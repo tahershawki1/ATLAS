@@ -1,12 +1,13 @@
 {
-  "web_version": "1.0.0",
-  "mobile_version": "1.0.0",
-  "build_number": 1,
+  "web_version": "1.0.1",
+  "mobile_version": "1.0.1",
+  "build_number": 2,
+  "apk_url": "https://atlas-e73.pages.dev/downloads/atlas_app_final.apk",
   "last_updated": "2026-02-20",
   "changelog": [
-    "الإصدار الأول للتطبيق",
-    "تفعيل ميزة العمل بدون إنترنت (Offline Mode)",
-    "تحويل الموقع إلى تطبيق موبايل باستخدام Flutter",
-    "نظام إشعارات التحديثات عبر Cloudflare"
+    "النسخة النهائية للاستخدام الرسمي",
+    "تحسين حجم التطبيق إلى 15.7 ميجابايت",
+    "تفعيل نظام التوقيع الرقمي للأمان",
+    "دعم التحديثات الأونلاين بالكامل"
   ]
 }
