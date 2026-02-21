@@ -11,81 +11,198 @@
     <link rel="stylesheet" href="../../shared/mobile-fix.css">
     <style>
         .check-container {
-            padding: 1.5rem;
+            padding: 1rem;
             max-width: 600px;
             margin: 0 auto;
+            padding-bottom: 100px;
         }
+        
+        /* Dropdown & Add Section */
+        .add-item-box {
+            background: white;
+            padding: 1.2rem;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+            border: 1px solid #f1f5f9;
+        }
+        
+        .form-field {
+            margin-bottom: 1rem;
+        }
+        
+        .form-field label {
+            display: block;
+            font-weight: 800;
+            margin-bottom: 0.8rem;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+        
+        .custom-select {
+            width: 100%;
+            height: 55px;
+            border-radius: 15px;
+            border: 2px solid #e2e8f0;
+            padding: 0 1rem;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            background-color: #f8fafc;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: left 1rem center;
+            background-size: 1.2em;
+        }
+
+        .custom-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: white;
+        }
+
+        /* Dynamic List Items */
         .check-list {
             display: flex;
             flex-direction: column;
             gap: 12px;
-            margin-top: 1.5rem;
         }
-        .check-item {
+        
+        .check-card {
             background: white;
             padding: 1.2rem;
-            border-radius: 18px;
+            border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
             border: 1px solid #f1f5f9;
-            transition: all 0.2s ease;
-            cursor: pointer;
+            animation: slideIn 0.3s ease-out;
         }
-        .check-item:active {
-            transform: scale(0.98);
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .check-item.done {
-            border-color: #10b981;
-            background: #f0fdf4;
+        
+        .card-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
         }
-        .item-info {
+        
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+        
+        .card-actions {
             display: flex;
             align-items: center;
             gap: 15px;
         }
-        .item-text {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-main);
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
         }
-        .check-status {
-            width: 24px;
-            height: 24px;
+
+        .custom-checkbox {
+            width: 28px;
+            height: 28px;
             border: 2px solid #cbd5e1;
-            border-radius: 8px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
         }
-        .check-item.done .check-status {
-            background: #10b981;
+
+        .card-status-text {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-dim);
+        }
+
+        .check-card.checked {
+            border-color: #10b981;
+            background-color: #f0fdf4;
+        }
+
+        .check-card.checked .custom-checkbox {
+            background-color: #10b981;
             border-color: #10b981;
         }
-        .check-status::after {
+
+        .check-card.checked .card-status-text {
+            color: #047857;
+        }
+
+        .custom-checkbox::after {
             content: "✓";
             color: white;
-            font-weight: 900;
+            font-weight: 950;
             display: none;
         }
-        .check-item.done .check-status::after {
+
+        .check-card.checked .custom-checkbox::after {
             display: block;
+        }
+
+        .delete-btn {
+            background: #fee2e2;
+            color: #ef4444;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .delete-btn:active {
+            transform: scale(0.9);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-dim);
         }
         
         .header-section {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
         .header-section h2 {
             color: var(--primary);
             font-weight: 900;
             margin-bottom: 0.5rem;
         }
-        .header-section p {
-            color: var(--text-dim);
-            font-size: 0.95rem;
+
+        /* Footer Save Button */
+        .footer-actions {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1.2rem;
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(15px);
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: center;
+            z-index: 100;
         }
     </style>
 </head>
@@ -107,64 +224,119 @@
     <main class="check-container">
         <div class="header-section">
             <h2>تشييك التايبيم</h2>
-            <p>قائمة العناصر المراد التشييك عليها في الموقع</p>
+            <p>اختر العناصر المراد التشييك عليها</p>
         </div>
 
-        <div class="check-list" id="tieBeamList">
-            <!-- Items -->
-            <div class="check-item shadow-sm" onclick="toggleCheck(this)">
-                <div class="item-info">
-                    <span class="item-text">الفيلا</span>
+        <!-- Add Item Selector -->
+        <div class="add-item-box">
+            <div class="form-field">
+                <label>إضافة عنصر جديد للتشييك</label>
+                <div style="display: flex; gap: 10px;">
+                    <select id="itemTypeSelect" class="custom-select">
+                        <option value="الفيلا">الفيلا</option>
+                        <option value="الملحق">الملحق</option>
+                        <option value="غرفة السائق">غرفة السائق</option>
+                        <option value="المجلس">المجلس</option>
+                        <option value="السور">السور</option>
+                    </select>
+                    <button class="btn-primary" style="padding: 0 1.5rem; height: 55px; border-radius: 15px; font-weight: 900;" onclick="addItem()">إضافة</button>
                 </div>
-                <div class="check-status"></div>
-            </div>
-
-            <div class="check-item shadow-sm" onclick="toggleCheck(this)">
-                <div class="item-info">
-                    <span class="item-text">الملحق</span>
-                </div>
-                <div class="check-status"></div>
-            </div>
-
-            <div class="check-item shadow-sm" onclick="toggleCheck(this)">
-                <div class="item-info">
-                    <span class="item-text">غرفة السائق</span>
-                </div>
-                <div class="check-status"></div>
-            </div>
-
-            <div class="check-item shadow-sm" onclick="toggleCheck(this)">
-                <div class="item-info">
-                    <span class="item-text">المجلس</span>
-                </div>
-                <div class="check-status"></div>
-            </div>
-
-            <div class="check-item shadow-sm" onclick="toggleCheck(this)">
-                <div class="item-info">
-                    <span class="item-text">السور</span>
-                </div>
-                <div class="check-status"></div>
             </div>
         </div>
 
-        <div style="margin-top: 2rem;">
-            <button class="btn-primary" style="width: 100%; height: 55px; border-radius: 18px; font-weight: 800;" onclick="saveSession()">حفظ التشييك</button>
+        <!-- Dynamic List -->
+        <div class="check-list" id="activeList">
+            <!-- Dynamic items go here -->
+             <div id="emptyMsg" class="empty-state">
+                <p>لا توجد عناصر مضافة للتشييك بعد</p>
+                <span style="font-size: 0.8rem; opacity: 0.7;">اختر عنصراً من القائمة أعلاه للبدء</span>
+             </div>
         </div>
     </main>
 
+    <div class="footer-actions">
+        <button class="btn-primary" style="width: 100%; max-width: 500px; height: 55px; border-radius: 18px; font-weight: 800; box-shadow: 0 10px 25px rgba(30,64,175,0.3);" onclick="saveSession()">حفظ التقرير</button>
+    </div>
+
     <script>
-        function toggleCheck(el) {
-            el.classList.toggle('done');
-            // Subtle haptic feel if available
-            if (window.navigator.vibrate) {
-                window.navigator.vibrate(10);
+        let checkedItems = [];
+
+        function addItem() {
+            const select = document.getElementById('itemTypeSelect');
+            const type = select.value;
+            
+            // Create item object
+            const item = {
+                id: Date.now(),
+                type: type,
+                done: false
+            };
+            
+            checkedItems.push(item);
+            renderList();
+            
+            // Haptic feedback
+            if (window.navigator.vibrate) window.navigator.vibrate(15);
+        }
+
+        function toggleItem(id) {
+            const index = checkedItems.findIndex(i => i.id === id);
+            if (index !== -1) {
+                checkedItems[index].done = !checkedItems[index].done;
+                renderList();
+                if (window.navigator.vibrate) window.navigator.vibrate(10);
             }
         }
 
+        function deleteItem(id) {
+            checkedItems = checkedItems.filter(i => i.id !== id);
+            renderList();
+        }
+
+        function renderList() {
+            const container = document.getElementById('activeList');
+            const emptyMsg = document.getElementById('emptyMsg');
+            
+            if (checkedItems.length === 0) {
+                container.innerHTML = '';
+                container.appendChild(emptyMsg);
+                emptyMsg.style.display = 'block';
+                return;
+            }
+
+            emptyMsg.style.display = 'none';
+            container.innerHTML = '';
+            
+            checkedItems.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `check-card ${item.done ? 'checked' : ''}`;
+                card.innerHTML = `
+                    <div class="card-info">
+                        <span class="card-title">${item.type}</span>
+                    </div>
+                    <div class="card-actions">
+                        <div class="checkbox-container" onclick="toggleItem(${item.id})">
+                            <span class="card-status-text">${item.done ? 'تم التشييك' : 'قيد التشييك'}</span>
+                            <div class="custom-checkbox"></div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteItem(${item.id})">
+                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
         function saveSession() {
-            // Placeholder for save logic
+            if (checkedItems.length === 0) {
+                alert("يرجى إضافة عنصر واحد على الأقل للتشييك");
+                return;
+            }
             alert("تم حفظ حالة التشييك بنجاح!");
+            // In a real app, this would save to localStorage or an API
         }
     </script>
 </body>
