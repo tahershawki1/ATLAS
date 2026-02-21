@@ -639,6 +639,9 @@ body {
     color: var(--text-main);
     font-size: 1rem;
     outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
     transition: var(--transition);
 }
 
@@ -670,6 +673,9 @@ body {
     font-size: 1.1rem;
     font-weight: 600;
     outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
     transition: var(--transition);
 }
 
@@ -1023,6 +1029,9 @@ body {
     font-size: 1.1rem;
     font-weight: 700;
     outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
     transition: var(--transition);
 }
 
