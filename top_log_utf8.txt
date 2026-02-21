@@ -1,0 +1,200 @@
+﻿Starting a Gradle Daemon, 2 busy and 1 incompatible Daemons could not be reused, use --status for details
+> Task :gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle:compileKotlin UP-TO-DATE
+> Task :gradle:compileJava NO-SOURCE
+> Task :gradle:compileGroovy NO-SOURCE
+> Task :gradle:pluginDescriptors UP-TO-DATE
+> Task :gradle:processResources UP-TO-DATE
+> Task :gradle:classes UP-TO-DATE
+> Task :gradle:jar UP-TO-DATE
+
+> Configure project :app
+.\gradlew.bat : e: file:///C:/13-02-2026/ATLAS%20SITE/mobile/android/app
+/build.gradle.kts:34:35: Unresolved reference: util
+At line:1 char:47
++ ... ile\android"; .\gradlew.bat assembleRelease --stacktrace 2>&1 | 
+Out-F ...
++                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (e: file:///C:/1...referenc 
+   e: util:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+w: file:///C:/13-02-2026/ATLAS%20SITE/mobile/android/app/build.gradle.kts:41:55: No cast needed
+w: file:///C:/13-02-2026/ATLAS%20SITE/mobile/android/app/build.gradle.kts:42:61: No cast needed
+e: file:///C:/13-02-2026/ATLAS%20SITE/mobile/android/app/build.gradle.kt
+s:43:69: Expression expected, but a package name found
+w: file:///C:/13-02-2026/ATLAS%20SITE/mobile/android/app/build.gradle.kts:44:65: No cast needed
+
+FAILURE: Build failed with an exception.
+
+* Where:
+Build file 'C:\13-02-2026\ATLAS 
+SITE\mobile\android\app\build.gradle.kts' line: 34
+
+* What went wrong:
+Script compilation errors:
+
+  Line 34:     val keystoreProperties = java.util.Properties()
+                                             ^ Unresolved reference: 
+util
+
+  Line 43:             storeFile = keystoreProperties["storeFile"]?.let 
+{ file(it) }
+                                                                        
+       ^ Expression expected, but a package name found
+
+2 errors
+
+* Try:
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+* Exception is:
+ScriptCompilationException(scriptCompilationErrors=[ScriptCompilationErr
+or(message=Unresolved reference: util, location=C:\Users\Taher\.gradle\.
+tmp\gradle-kotlin-dsl-2119945499484421260.tmp\build.gradle.kts 
+(34:35)), ScriptCompilationError(message=Expression expected, but a 
+package name found, location=C:\Users\Taher\.gradle\.tmp\gradle-kotlin-d
+sl-2119945499484421260.tmp\build.gradle.kts (43:69))])
+	at org.gradle.kotlin.dsl.support.KotlinCompilerKt.compileKotlinScriptMo
+duleTo(KotlinCompiler.kt:190)
+	at org.gradle.kotlin.dsl.support.KotlinCompilerKt.compileKotlinScriptTo
+Directory(KotlinCompiler.kt:148)
+	at org.gradle.kotlin.dsl.execution.ResidualProgramCompiler$compileScrip
+t$1.invoke(ResidualProgramCompiler.kt:713)
+	at org.gradle.kotlin.dsl.execution.ResidualProgramCompiler$compileScrip
+t$1.invoke(ResidualProgramCompiler.kt:712)
+	at org.gradle.kotlin.dsl.provider.StandardKotlinScriptEvaluator$Interpr
+eterHost$runCompileBuildOperation$1.call(KotlinScriptEvaluator.kt:206)
+	at org.gradle.kotlin.dsl.provider.StandardKotlinScriptEvaluator$Interpr
+eterHost$runCompileBuildOperation$1.call(KotlinScriptEvaluator.kt:203)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableB
+uildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableB
+uildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute
+(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute
+(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(D
+efaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(D
+efaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(Defa
+ultBuildOperationRunner.java:53)
+	at org.gradle.kotlin.dsl.provider.StandardKotlinScriptEvaluator$Interpr
+eterHost.runCompileBuildOperation(KotlinScriptEvaluator.kt:203)
+	at org.gradle.kotlin.dsl.execution.Interpreter$ProgramHost$compileSecon
+dStageOf$cacheDir$1$1$1$1$1.invoke(Interpreter.kt:492)
+	at org.gradle.kotlin.dsl.execution.Interpreter$ProgramHost$compileSecon
+dStageOf$cacheDir$1$1$1$1$1.invoke(Interpreter.kt:492)
+	at org.gradle.kotlin.dsl.execution.ResidualProgramCompiler.compileScrip
+t-C5AE47M(ResidualProgramCompiler.kt:712)
+	at org.gradle.kotlin.dsl.execution.ResidualProgramCompiler.compileScrip
+t-C5AE47M$default(ResidualProgramCompiler.kt:705)
+	at org.gradle.kotlin.dsl.execution.ResidualProgramCompiler.emitStage2Pr
+ogramFor(ResidualProgramCompiler.kt:364)
+	at org.gradle.kotlin.dsl.execution.Interpreter$ProgramHost$compileSecon
+dStageOf$cacheDir$1.invoke(Interpreter.kt:493)
+	at org.gradle.kotlin.dsl.execution.Interpreter$ProgramHost$compileSecon
+dStageOf$cacheDir$1.invoke(Interpreter.kt:469)
+	at org.gradle.kotlin.dsl.provider.StandardKotlinScriptEvaluator$KotlinS
+criptCompilationAndInstrumentation.compile(KotlinScriptEvaluator.kt:437)
+	at org.gradle.internal.scripts.BuildScriptCompilationAndInstrumentation
+.execute(BuildScriptCompilationAndInstrumentation.java:136)
+	at org.gradle.internal.execution.steps.ExecuteStep.executeInternal(Exec
+uteStep.java:105)
+	at org.gradle.internal.execution.steps.ExecuteStep.access$000(ExecuteSt
+ep.java:44)
+	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.j
+ava:59)
+	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.j
+ava:56)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableB
+uildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableB
+uildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute
+(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute
+(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(D
+efaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(D
+efaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(Defa
+ultBuildOperationRunner.java:53)
+	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.
+java:56)
+	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.
+java:44)
+	at org.gradle.internal.execution.steps.CancelExecutionStep.execute(Canc
+elExecutionStep.java:42)
+	at org.gradle.internal.execution.steps.TimeoutStep.executeWithoutTimeou
+t(TimeoutStep.java:75)
+	at org.gradle.internal.execution.steps.TimeoutStep.execute(TimeoutStep.
+java:55)
+	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execu
+te(PreCreateOutputParentsStep.java:50)
+	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execu
+te(PreCreateOutputParentsStep.java:28)
+	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.exe
+cute(BroadcastChangingOutputsStep.java:61)
+	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.exe
+cute(BroadcastChangingOutputsStep.java:26)
+	at org.gradle.internal.execution.steps.NoInputChangesStep.execute(NoInp
+utChangesStep.java:30)
+	at org.gradle.internal.execution.steps.NoInputChangesStep.execute(NoInp
+utChangesStep.java:21)
+	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep
+.execute(CaptureOutputsAfterExecutionStep.java:69)
+	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep
+.execute(CaptureOutputsAfterExecutionStep.java:46)
+	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCac
+he(BuildCacheStep.java:189)
+	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$1(
+BuildCacheStep.java:75)
+	at org.gradle.internal.Either$Right.fold(Either.java:175)
+	at org.gradle.internal.execution.caching.CachingState.fold(CachingState
+.java:62)
+	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCach
+eStep.java:73)
+	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCach
+eStep.java:48)
+	at org.gradle.internal.execution.steps.NeverUpToDateStep.execute(NeverU
+pToDateStep.java:34)
+	at org.gradle.internal.execution.steps.NeverUpToDateStep.execute(NeverU
+pToDateStep.java:22)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFin
+ishedStep.execute(MarkSnapshottingInputsFinishedStep.java:37)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFin
+ishedStep.execute(MarkSnapshottingInputsFinishedStep.java:27)
+	at org.gradle.internal.execution.steps.ResolveNonIncrementalCachingStat
+eStep.executeDelegate(ResolveNonIncrementalCachingStateStep.java:50)
+	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.
+execute(AbstractResolveCachingStateStep.java:71)
+	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.
+execute(AbstractResolveCachingStateStep.java:39)
+	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateSte
+p.java:107)
+	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateSte
+p.java:56)
+	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecut
+ionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:64)
+	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecut
+ionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:43)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsSta
+rtedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
+	at org.gradle.internal.execution.steps.AssignImmutableWorkspaceStep.lam
+bda$executeInTemporaryWorkspace$3(AssignImmutableWorkspaceStep.java:209)
+	at org.gradle.internal.execution.workspace.impl.CacheBasedImmutableWork
+spaceProvider$1.withTemporaryWorkspace(CacheBasedImmutableWorkspaceProvi
+der.java:116)
+	at org.gradle.internal.execution.steps.AssignImmutableWorkspaceStep.exe
+cuteInTemporaryWorkspace(AssignImmutableWorkspaceStep.java:199)
+	at org.gradle.internal.execution.steps.AssignImmutableWorkspaceStep.lam
+bda$execute$0(AssignImmutableWorkspaceStep.java:121)
+	at org.gradle.internal.execution.steps.AssignImmutableWorkspaceStep.exe
+cute(AssignImmutableWorkspaceStep.java:121)
+	at org.gradle.internal.execution.steps.AssignImmutableWorkspaceStep.exe
