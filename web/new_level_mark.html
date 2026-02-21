@@ -799,14 +799,14 @@
                 </div>
 
                 <!-- Primary Reading Box -->
-                <div id="stakingResultBox" class="level-card" style="margin-top: 2rem; background: var(--primary); color: white; border: none; text-align: center; padding: 2rem 1rem; border-radius: 28px; box-shadow: 0 15px 35px rgba(30,64,175,0.2);">
+                <div id="stakingResultBox" class="level-card" style="display: none; margin-top: 2rem; background: var(--primary); color: white; border: none; text-align: center; padding: 2rem 1rem; border-radius: 28px; box-shadow: 0 15px 35px rgba(30,64,175,0.2);">
                     <span style="display: block; font-size: 1rem; opacity: 0.9; font-weight: 700; margin-bottom: 0.5rem;">القراءة المطلوبة على القامة</span>
                     <h1 id="required_reading" style="font-size: 5rem; font-weight: 950; margin: 0; font-family: 'Outfit', sans-serif; line-height:1;">0.000</h1>
                     <span id="reading_warning" style="display: none; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 800; margin-top: 8px;">المنسوب أعلى من الميزان ⚠️</span>
                 </div>
 
                 <!-- Secondary Technical Info Box -->
-                <div class="level-card" style="margin-top: 1.2rem; background: #ffffff; border: 2px solid var(--primary); padding: 1.2rem; border-radius: 24px; text-align: center;">
+                <div id="stakingSecondaryBox" class="level-card" style="display: none; margin-top: 1.2rem; background: #ffffff; border: 2px solid var(--primary); padding: 1.2rem; border-radius: 24px; text-align: center;">
                     <div style="display: flex; flex-direction: column; gap: 12px;">
                         <span id="offset_display" style="font-size: 1.8rem; font-weight: 950; color: var(--text-main); direction: ltr; line-height: 1.2;">+0.00m</span>
                         <div style="height: 1px; background: #e2e8f0; width: 60%; margin: 4px auto;"></div>
@@ -980,10 +980,10 @@
 
     </main>
 
-    <!-- Simple Point Entry Modal (Simulated for UI) -->
+    <!-- Point Add/Edit Modal -->
     <div id="pointModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); backdrop-filter:blur(5px); z-index:2000; align-items:center; justify-content:center;">
         <div class="level-card" style="width: 90%; max-width: 400px; margin-bottom:0;">
-            <h3 style="margin-bottom:1.5rem; color:var(--primary); font-weight:900;">إضافة نقطة جديدة</h3>
+            <h3 id="modalTitle" style="margin-bottom:1.5rem; color:var(--primary); font-weight:900;">إضافة نقطة جديدة</h3>
             <div class="form-field">
                 <label>اسم النقطة</label>
                 <input type="text" id="pt_name" placeholder="مثال: PM 1">
@@ -996,14 +996,14 @@
                 <label>صورة النقطة (اختياري)</label>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <button class="btn-secondary" style="height: 45px; flex: 1; font-size: 0.8rem;" onclick="document.getElementById('pt_image').click()">
-                        📷 اختيار صورة
+                        📷 اختيار / تغيير صورة
                     </button>
                     <input type="file" id="pt_image" accept="image/*" style="display: none;" onchange="updateImageStatus()">
                     <span id="img_status" style="font-size: 0.8rem; color: var(--text-dim);">لا توجد صورة</span>
                 </div>
             </div>
             <div style="display:flex; gap:12px;">
-                <button class="btn-primary" style="flex:1" onclick="addPoint()">إضافة</button>
+                <button id="modalSaveBtn" class="btn-primary" style="flex:1" onclick="savePoint()">إضافة</button>
                 <button class="btn-secondary" style="flex:1" onclick="hidePointForm()">إلغاء</button>
             </div>
         </div>
@@ -1014,6 +1014,7 @@
         let currentStep = 1;
         let globalMSM = 0;
         let stakingOffset = 0;
+        let editingIndex = -1; // -1 = add mode, >= 0 = edit mode
 
         function handleHeaderBack() {
             if (currentStep > 1) {
@@ -1163,6 +1164,27 @@
         }
 
         function showPointForm() {
+            // Add mode
+            editingIndex = -1;
+            document.getElementById('modalTitle').textContent = 'إضافة نقطة جديدة';
+            document.getElementById('modalSaveBtn').textContent = 'إضافة';
+            document.getElementById('pt_name').value = '';
+            document.getElementById('pt_rl').value = '';
+            document.getElementById('pt_image').value = '';
+            document.getElementById('img_status').textContent = 'لا توجد صورة';
+            document.getElementById('pointModal').style.display = 'flex';
+        }
+
+        function editPoint(index) {
+            // Edit mode
+            editingIndex = index;
+            const p = points[index];
+            document.getElementById('modalTitle').textContent = 'تعديل النقطة';
+            document.getElementById('modalSaveBtn').textContent = 'حفظ التعديل';
+            document.getElementById('pt_name').value = p.name;
+            document.getElementById('pt_rl').value = p.rl;
+            document.getElementById('pt_image').value = '';
+            document.getElementById('img_status').textContent = p.image === '📷' ? '✅ يوجد صورة (اختر لتغييرها)' : 'لا توجد صورة';
             document.getElementById('pointModal').style.display = 'flex';
         }
 
@@ -1206,40 +1228,45 @@
             saveAppState();
         }
 
-        function addPoint() {
+        function savePoint() {
             const nameInput = document.getElementById('pt_name');
             const rlInput = document.getElementById('pt_rl');
             const imgInput = document.getElementById('pt_image');
             
             const name = nameInput.value.trim();
             const rl = rlInput.value.trim();
-            const hasImage = imgInput.files.length > 0;
+            const hasNewImage = imgInput.files.length > 0;
             
             if(!name || !rl) {
-                showToast("❌ يرجى إدخال اسم النقطة والمنسوب");
+                showToast('❌ يرجى إدخال اسم النقطة والمنسوب');
                 return;
             }
 
-            points.push({ 
-                name, 
-                rl, 
-                image: hasImage ? "📷" : "—"
-            });
+            if (editingIndex >= 0) {
+                // Edit mode - keep old image if no new one selected
+                const oldImage = points[editingIndex].image;
+                points[editingIndex] = {
+                    name,
+                    rl,
+                    image: hasNewImage ? '📷' : oldImage
+                };
+                showToast('✅ تم تعديل النقطة بنجاح');
+            } else {
+                // Add mode
+                points.push({ name, rl, image: hasNewImage ? '📷' : '—' });
+                showToast('✅ تمت إضافة النقطة');
+            }
 
             updatePointsTable();
             hidePointForm();
-            
-            // Reset inputs
-            nameInput.value = '';
-            rlInput.value = '';
-            imgInput.value = '';
-            document.getElementById('img_status').textContent = "لا توجد صورة";
         }
+
+        function addPoint() { savePoint(); }
 
         function updatePointsTable() {
             const tbody = document.getElementById('pointsList');
             if(points.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="empty-msg">لا توجد نقاط مضافة بعد</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">لا توجد نقاط مضافة بعد</td></tr>';
                 return;
             }
 
@@ -1250,7 +1277,10 @@
                         <td>${p.name}</td>
                         <td>${parseFloat(p.rl).toFixed(3)}</td>
                         <td>${p.image}</td>
-                        <td><button onclick="deletePoint(${index})" style="background:none; border:none; color:#dc2626; cursor:pointer;">🗑️</button></td>
+                        <td style="white-space:nowrap">
+                            <button onclick="editPoint(${index})" style="background:none; border:none; color:var(--primary); cursor:pointer; font-size:1rem;" title="تعديل">✏️</button>
+                            <button onclick="deletePoint(${index})" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:1rem;" title="حذف">🗑️</button>
+                        </td>
                     </tr>
                 `;
                 tbody.innerHTML += row;
@@ -1283,9 +1313,26 @@
 
         function updateStakingCalc() {
             const designRLInput = document.getElementById('design_rl');
+            const hasValue = designRLInput.value.trim() !== '';
             const designRL = parseFloat(designRLInput.value) || 0;
             const targetRL = designRL + stakingOffset;
             const reading = globalMSM - targetRL;
+
+            const box = document.getElementById('stakingResultBox');
+            const secondaryBox = document.getElementById('stakingSecondaryBox');
+            const warning = document.getElementById('reading_warning');
+
+            // إخفاء الصناديق حتى يدخل المستخدم قيمة
+            if (!hasValue) {
+                box.style.display = 'none';
+                secondaryBox.style.display = 'none';
+                saveAppState();
+                return;
+            }
+
+            // إظهار الصناديق
+            box.style.display = 'block';
+            secondaryBox.style.display = 'block';
 
             const readingDisp = document.getElementById('required_reading');
             readingDisp.textContent = reading.toFixed(3);
@@ -1295,18 +1342,12 @@
             document.getElementById('offset_display').textContent = `${stakingOffset >= 0 ? '+' : ''}${stakingOffset.toFixed(2)}m`;
             
             // Visual feedback based on feasibility
-            const box = document.getElementById('stakingResultBox');
-            const warning = document.getElementById('reading_warning');
-            
             if (reading < 0) {
                 box.style.background = "#991b1b"; // Danger
                 readingDisp.style.color = "#ffffff";
                 warning.style.display = "inline-block";
             } else if (reading > 3) {
                  box.style.background = "#b45309"; // Warning (Above 3m staff)
-                 warning.style.display = "none";
-            } else if (reading === globalMSM && designRL === 0) {
-                 box.style.background = "var(--primary)";
                  warning.style.display = "none";
             } else {
                  box.style.background = "#059669"; // Success Green
