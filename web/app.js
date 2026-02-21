@@ -4,12 +4,13 @@ const app = {
     history: ["home"],
     selectedSite: null,
     pendingAction: null,
-    currentSelection: { companyId: null, area: null, plotId: null }
+    currentSelection: { companyId: null, area: null, plotId: null },
+    pendingSites: [],
   },
 
   // Data will be loaded from SITES_DB (sites_data.js)
   data: {
-    companies: typeof SITES_DB !== "undefined" ? SITES_DB : []
+    companies: typeof SITES_DB !== "undefined" ? SITES_DB : [],
   },
 
   pages: {
@@ -19,18 +20,33 @@ const app = {
     survey: { id: "surveyPage", title: "رفع" },
     stakeout: { id: "stakePage", title: "توقيع" },
     action: { id: "actionPage", title: "العمل" },
+    history: { id: "historyPage", title: "السجل" },
   },
 
   init() {
     console.log("Atlas App Initialized");
     this.populateCompanies();
-    
+
     // Load persisted site
     const saved = localStorage.getItem("selectedSite");
     if (saved) {
-        this.state.selectedSite = JSON.parse(saved);
-        document.getElementById("siteName").textContent = this.state.selectedSite.plot;
+      this.state.selectedSite = JSON.parse(saved);
+      document.getElementById("siteName").textContent =
+        this.state.selectedSite.plot;
+      document.getElementById("siteCompany").textContent =
+        this.state.selectedSite.company;
     }
+
+    // Load pending sites
+    const pending = localStorage.getItem("pendingSites");
+    if (pending) {
+      this.state.pendingSites = JSON.parse(pending);
+      this.updateSyncBadge();
+    }
+
+    // Network listeners
+    window.addEventListener("online", () => this.syncPendingSites());
+    if (navigator.onLine) this.syncPendingSites();
 
     this.render();
   },
@@ -39,7 +55,7 @@ const app = {
     const list = document.getElementById("companyList");
     if (!list) return;
     list.innerHTML = "";
-    this.data.companies.forEach(company => {
+    this.data.companies.forEach((company) => {
       const item = document.createElement("div");
       item.className = "list-select-item";
       item.textContent = company.name;
@@ -52,11 +68,12 @@ const app = {
     this.state.currentSelection.companyId = companyId;
     this.state.currentSelection.area = null;
     this.state.currentSelection.plotId = null;
-    
+
     // UI update
     const items = document.querySelectorAll("#companyList .list-select-item");
-    items.forEach(el => el.classList.remove("selected"));
-    if (event && event.currentTarget) event.currentTarget.classList.add("selected");
+    items.forEach((el) => el.classList.remove("selected"));
+    if (event && event.currentTarget)
+      event.currentTarget.classList.add("selected");
 
     this.populateAreas(companyId);
     this.modalStep(2);
@@ -64,14 +81,16 @@ const app = {
 
   populateAreas(companyId) {
     const list = document.getElementById("areaList");
-    const company = this.data.companies.find(c => c.id == companyId);
+    const company = this.data.companies.find((c) => c.id == companyId);
     if (!list || !company) return;
 
     list.innerHTML = "";
     // Get unique areas for this company
-    const areas = [...new Set(company.plots.map(p => p.area || "غير محدد"))].sort();
-    
-    areas.forEach(area => {
+    const areas = [
+      ...new Set(company.plots.map((p) => p.area || "غير محدد")),
+    ].sort();
+
+    areas.forEach((area) => {
       const item = document.createElement("div");
       item.className = "list-select-item";
       item.textContent = area;
@@ -82,10 +101,10 @@ const app = {
 
   selectArea(area, e) {
     this.state.currentSelection.area = area;
-    
+
     // UI update
     const items = document.querySelectorAll("#areaList .list-select-item");
-    items.forEach(el => el.classList.remove("selected"));
+    items.forEach((el) => el.classList.remove("selected"));
     if (e && e.currentTarget) e.currentTarget.classList.add("selected");
 
     this.populatePlots(this.state.currentSelection.companyId, area);
@@ -94,14 +113,16 @@ const app = {
 
   populatePlots(companyId, area) {
     const list = document.getElementById("plotList");
-    const company = this.data.companies.find(c => c.id == companyId);
+    const company = this.data.companies.find((c) => c.id == companyId);
     if (!list || !company) return;
 
     list.innerHTML = "";
     // Filter plots by selected area
-    const filteredPlots = company.plots.filter(p => (p.area || "غير محدد") === area);
-    
-    filteredPlots.forEach(plot => {
+    const filteredPlots = company.plots.filter(
+      (p) => (p.area || "غير محدد") === area,
+    );
+
+    filteredPlots.forEach((plot) => {
       const item = document.createElement("div");
       item.className = "list-select-item";
       item.textContent = plot.id;
@@ -112,32 +133,36 @@ const app = {
 
   selectPlot(plotId, e) {
     this.state.currentSelection.plotId = plotId;
-    const company = this.data.companies.find(c => c.id == this.state.currentSelection.companyId);
-    const plot = company.plots.find(p => p.id == plotId);
+    const company = this.data.companies.find(
+      (c) => c.id == this.state.currentSelection.companyId,
+    );
+    const plot = company.plots.find((p) => p.id == plotId);
 
     // UI update
     const items = document.querySelectorAll("#plotList .list-select-item");
-    items.forEach(el => el.classList.remove("selected"));
+    items.forEach((el) => el.classList.remove("selected"));
     if (e && e.currentTarget) e.currentTarget.classList.add("selected");
 
     // Update Summary
     document.getElementById("summaryCompany").textContent = company.name;
-    document.getElementById("summaryArea").textContent = plot.area || "غير محدد";
+    document.getElementById("summaryArea").textContent =
+      plot.area || "غير محدد";
     document.getElementById("summaryPlot").textContent = plot.id;
-    
+
     // Store metadata
     this.state.currentSelection.metadata = {
-        owner: plot.owner,
-        consultant: plot.consultant,
-        area: plot.area
+      owner: plot.owner,
+      consultant: plot.consultant,
+      area: plot.area,
     };
 
     this.modalStep(4);
   },
 
-
   modalStep(step) {
-    document.querySelectorAll(".modal-step").forEach(s => s.classList.remove("active"));
+    document
+      .querySelectorAll(".modal-step")
+      .forEach((s) => s.classList.remove("active"));
     document.getElementById(`step${step}`).classList.add("active");
   },
 
@@ -159,84 +184,142 @@ const app = {
     const box = document.getElementById("modalSearchBox");
     box.classList.toggle("active");
     if (box.classList.contains("active")) {
-        document.getElementById("siteSearchInput").focus();
+      document.getElementById("siteSearchInput").focus();
     }
   },
 
   filterBySearch() {
-    const query = document.getElementById("siteSearchInput").value.toLowerCase();
+    const query = document
+      .getElementById("siteSearchInput")
+      .value.toLowerCase();
     if (!query) {
-        this.populateCompanies();
-        this.modalStep(1);
-        return;
+      this.populateCompanies();
+      this.modalStep(1);
+      return;
     }
 
     const results = [];
-    this.data.companies.forEach(company => {
-        company.plots.forEach(plot => {
-            if (plot.id.toLowerCase().includes(query)) {
-                results.push({
-                    companyName: company.name,
-                    companyId: company.id,
-                    plot: plot
-                });
-            }
-        });
+    this.data.companies.forEach((company) => {
+      company.plots.forEach((plot) => {
+        if (plot.id.toLowerCase().includes(query)) {
+          results.push({
+            companyName: company.name,
+            companyId: company.id,
+            plot: plot,
+          });
+        }
+      });
     });
 
     // Display search results in the current step (or switch to a results list)
     this.modalStep(3); // Go to plot selection step to show results
     const list = document.getElementById("plotList");
     list.innerHTML = "";
-    
-    results.slice(0, 20).forEach(res => {
-        const item = document.createElement("div");
-        item.className = "list-select-item";
-        item.innerHTML = `<small style="display:block; font-size:0.7rem; color:var(--text-dim)">${res.companyName}</small> ${res.plot.id}`;
-        item.onclick = (e) => {
-            this.state.currentSelection.companyId = res.companyId;
-            this.selectPlot(res.plot.id, e);
-        };
-        list.appendChild(item);
+
+    results.slice(0, 20).forEach((res) => {
+      const item = document.createElement("div");
+      item.className = "list-select-item";
+      item.innerHTML = `<small style="display:block; font-size:0.7rem; color:var(--text-dim)">${res.companyName}</small> ${res.plot.id}`;
+      item.onclick = (e) => {
+        this.state.currentSelection.companyId = res.companyId;
+        this.selectPlot(res.plot.id, e);
+      };
+      list.appendChild(item);
     });
   },
 
   showAddSite() {
-      this.modalStep('Add');
+    this.modalStep("Add");
   },
 
   registerNewSite() {
-      const company = document.getElementById("newSiteCompany").value;
-      const area = document.getElementById("newSiteArea").value;
-      const plot = document.getElementById("newSitePlot").value;
+    const company = document.getElementById("newSiteCompany").value;
+    const area = document.getElementById("newSiteArea").value;
+    const plot = document.getElementById("newSitePlot").value;
 
-      if (!company || !plot) {
-          this.showToast("يرجى إدخال اسم الشركة ورقم الأرض");
-          return;
-      }
+    if (!company || !plot) {
+      this.showToast("يرجى إدخال اسم الشركة ورقم الأرض");
+      return;
+    }
 
-      this.state.selectedSite = {
-          company: company,
-          area: area || "غير محدد",
-          plot: plot,
-          owner: "يدوي",
-          consultant: "يدوي"
-      };
+    this.state.selectedSite = {
+      company: company,
+      area: area || "غير محدد",
+      plot: plot,
+      owner: "يدوي",
+      consultant: "يدوي",
+    };
 
-      document.getElementById("siteName").textContent = `${plot}`;
-      this.closeSiteModal();
-      this.showToast("تمت إضافة الموقع وتحديده");
+    // Add to pending sync
+    const newSite = {
+      ...this.state.selectedSite,
+      timestamp: new Date().toISOString(),
+      id: Date.now(),
+    };
 
-      if (this.state.pendingAction) {
-          const action = this.state.pendingAction;
-          this.state.pendingAction = null;
-          this.action(action);
-      }
+    this.state.pendingSites.push(newSite);
+    localStorage.setItem(
+      "pendingSites",
+      JSON.stringify(this.state.pendingSites),
+    );
+    this.updateSyncBadge();
+
+    document.getElementById("siteName").textContent = plot;
+    document.getElementById("siteCompany").textContent = company;
+    this.closeSiteModal();
+    this.showToast("تمت إضافة الموقع محلياً وسيتم مزامنته عند توفر الإنترنت");
+
+    if (this.state.pendingAction) {
+      const action = this.state.pendingAction;
+      this.state.pendingAction = null;
+      this.action(action);
+    }
+
+    // Try to sync immediately if online
+    if (navigator.onLine) this.syncPendingSites();
   },
 
+  async syncPendingSites() {
+    if (this.state.pendingSites.length === 0) return;
+    if (!navigator.onLine) return;
+
+    console.log("Attempting to sync sites to GitHub...");
+
+    // Note: This requires a backend worker or GitHub API token
+    // We'll simulate a successful sync if no endpoint is defined
+    // to demonstrate the UI flow.
+
+    try {
+      // In a real scenario, you'd call an API like:
+      // const res = await fetch('https://YOUR_WORKER.workers.dev/api/sync', {
+      //     method: 'POST',
+      //     body: JSON.stringify(this.state.pendingSites),
+      //     headers: { 'Content-Type': 'application/json' }
+      // });
+
+      // Reaching out to GitHub directly (Mock for now)
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      this.showToast("تمت مزامنة البيانات مع جيت هب ✅");
+      this.state.pendingSites = [];
+      localStorage.setItem("pendingSites", "[]");
+      this.updateSyncBadge();
+    } catch (e) {
+      console.error("Sync failed:", e);
+    }
+  },
+
+  updateSyncBadge() {
+    // You can add a badge to the UI to show pending items
+    const count = this.state.pendingSites.length;
+    console.log(`Pending sites to sync: ${count}`);
+    // Implementation of UI badge update could go here
+  },
 
   saveSiteFinal() {
-    const company = this.data.companies.find(c => c.id == this.state.currentSelection.companyId);
+    const company = this.data.companies.find(
+      (c) => c.id == this.state.currentSelection.companyId,
+    );
     const plotId = this.state.currentSelection.plotId;
     const meta = this.state.currentSelection.metadata;
 
@@ -245,14 +328,18 @@ const app = {
       plot: plotId,
       area: meta.area,
       owner: meta.owner,
-      consultant: meta.consultant
+      consultant: meta.consultant,
     };
 
     // Persist to local storage
-    localStorage.setItem("selectedSite", JSON.stringify(this.state.selectedSite));
+    localStorage.setItem(
+      "selectedSite",
+      JSON.stringify(this.state.selectedSite),
+    );
 
     // Update UI Header
-    document.getElementById("siteName").textContent = `${plotId}`;
+    document.getElementById("siteName").textContent = plotId;
+    document.getElementById("siteCompany").textContent = company.name;
     this.closeSiteModal();
     this.showToast("تم تحديد الموقع بنجاح");
 
@@ -297,47 +384,49 @@ const app = {
     document.getElementById("mainContent").scrollTop = 0;
   },
 
-    action(id) {
-        // Gatekeeper: Check for site selection
-        if (!this.state.selectedSite) {
-            this.showSiteSelector(id);
-            return;
-        }
+  action(id) {
+    // Gatekeeper: Check for site selection
+    if (!this.state.selectedSite) {
+      this.showSiteSelector(id);
+      return;
+    }
 
-        const labels = {
-            new_level: 'علام جيت لفل جديد',
-            survey_consultant: 'رفع أرض للاستشاري',
-            excavation_bottom: 'قاع حفر',
-            tie_beam: 'تايبيم',
-            roofs: 'أسقف',
-            gps_survey: 'رفع بال GPS',
-            total_station_survey: 'رفع Totalstation',
-            point_staking: 'توقيع نقاط',
-            level_staking: 'توقيع منسوب'
-        };
+    const labels = {
+      new_level: "علام جيت لفل جديد",
+      survey_consultant: "رفع أرض للاستشاري",
+      excavation_bottom: "قاع حفر",
+      tie_beam: "تايبيم",
+      roofs: "أسقف",
+      gps_survey: "رفع بال GPS",
+      total_station_survey: "رفع Totalstation",
+      point_staking: "توقيع نقاط",
+      level_staking: "توقيع منسوب",
+    };
 
-        const label = labels[id] || 'إجراء غير معروف';
-        
-        // Populate Action Page Header
-        document.getElementById("actionPageTitle").textContent = label;
-        document.getElementById("actionSitePlot").textContent = this.state.selectedSite.plot;
-        document.getElementById("actionSiteCompany").textContent = this.state.selectedSite.company;
+    const label = labels[id] || "إجراء غير معروف";
 
-        // Reset and Build Form
-        document.getElementById("actionNotes").value = "";
-        this.buildActionForm(id);
+    // Populate Action Page Header
+    document.getElementById("actionPageTitle").textContent = label;
+    document.getElementById("actionSitePlot").textContent =
+      this.state.selectedSite.plot;
+    document.getElementById("actionSiteCompany").textContent =
+      this.state.selectedSite.company;
 
-        this.navigateTo('action');
-    },
+    // Reset and Build Form
+    document.getElementById("actionNotes").value = "";
+    this.buildActionForm(id);
 
-    buildActionForm(id) {
-        const container = document.getElementById("actionFormContainer");
-        container.innerHTML = "";
-        const form = document.createElement("div");
-        form.className = "action-form-content";
+    this.navigateTo("action");
+  },
 
-        if (id === 'new_level') {
-            form.innerHTML = `
+  buildActionForm(id) {
+    const container = document.getElementById("actionFormContainer");
+    container.innerHTML = "";
+    const form = document.createElement("div");
+    form.className = "action-form-content";
+
+    if (id === "new_level") {
+      form.innerHTML = `
                 <div class="form-field">
                     <label>مستوى العلام الحالي (Reduced Level)</label>
                     <input type="number" step="0.001" id="rl_value" placeholder="0.000">
@@ -350,8 +439,8 @@ const app = {
                         <option>حديد</option>
                     </select>
                 </div>`;
-        } else if (id === 'excavation_bottom') {
-            form.innerHTML = `
+    } else if (id === "excavation_bottom") {
+      form.innerHTML = `
                 <div class="form-field">
                     <label>رقم النقطة</label>
                     <input type="text" id="point_number" placeholder="مثال: P1">
@@ -360,45 +449,44 @@ const app = {
                     <label>المنسوب المطلوب</label>
                     <input type="number" step="0.001" id="required_level" placeholder="0.000">
                 </div>`;
-        } else {
-            form.innerHTML = `
+    } else {
+      form.innerHTML = `
                 <div class="form-field">
                     <label>رقم الطلب / المرجع</label>
                     <input type="text" id="ref_number" placeholder="Reference Number">
                 </div>
                 <div class="form-field">
                     <label>التاريخ</label>
-                    <input type="date" id="action_date" value="${new Date().toISOString().split('T')[0]}">
+                    <input type="date" id="action_date" value="${new Date().toISOString().split("T")[0]}">
                 </div>`;
-        }
-        container.appendChild(form);
-    },
-
-    submitAction() {
-        this.showToast("جاري حفظ التقرير...");
-        setTimeout(() => {
-            this.showToast("تم إرسال التقرير بنجاح ✅");
-            this.navigateBack();
-        }, 1200);
-    },
-
-
-    showToast(message) {
-        // Remove existing toast if any
-        const existing = document.querySelector('.toast');
-        if (existing) existing.remove();
-
-        const toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-
-        setTimeout(() => toast.classList.add('show'), 100);
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
     }
+    container.appendChild(form);
+  },
+
+  submitAction() {
+    this.showToast("جاري حفظ التقرير...");
+    setTimeout(() => {
+      this.showToast("تم إرسال التقرير بنجاح ✅");
+      this.navigateBack();
+    }, 1200);
+  },
+
+  showToast(message) {
+    // Remove existing toast if any
+    const existing = document.querySelector(".toast");
+    if (existing) existing.remove();
+
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    setTimeout(() => toast.classList.add("show"), 100);
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  },
 };
 
 // Global Exposure

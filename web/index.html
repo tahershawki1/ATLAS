@@ -17,7 +17,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@400;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@400;600;700;800;900&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
@@ -36,12 +36,18 @@
 
       <!-- Header -->
       <header class="main-header">
-        <div class="logo">
-          <img src="icons/brand-logo.png" alt="Atlas" class="header-logo">
+        <div class="logo-wrapper">
+          <div class="logo">
+            <img src="icons/brand-logo.png" alt="Atlas" class="header-logo">
+          </div>
+          <span class="logo-text-brand">ATLAS SURVEYING</span>
         </div>
         <div class="header-right">
             <div id="selectedSiteDisplay" class="header-site-box" onclick="app.showSiteSelector()">
-                <span id="siteName">تحديد الموقع</span>
+                <div class="header-site-info">
+                    <span id="siteCompany" class="site-company-text">تحديد الشركة</span>
+                    <span id="siteName" class="site-plot-text">رقم الأرض</span>
+                </div>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
             </div>
             <div id="navTitle" class="nav-title">الرئيسية</div>
@@ -138,20 +144,21 @@
         <!-- New Page -->
         <div id="newPage" class="page">
           <div class="page-header">
+            <h2>جديد</h2>
             <button class="back-btn" onclick="app.navigateBack()">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2"
+                stroke-width="2.5"
+                style="transform: rotate(180deg);"
               >
                 <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
             </button>
-            <h2>جديد</h2>
           </div>
           <div class="list-buttons">
-            <button class="list-item" onclick="app.action('new_level')">
+            <button class="list-item" onclick="window.location.href='new_level_mark.html'">
               <div class="item-icon">
                 <svg
                   viewBox="0 0 24 24"
@@ -185,17 +192,18 @@
         <!-- Check Page -->
         <div id="checkPage" class="page">
           <div class="page-header">
+            <h2>تشييك</h2>
             <button class="back-btn" onclick="app.navigateBack()">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2"
+                stroke-width="2.5"
+                style="transform: rotate(180deg);"
               >
                 <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
             </button>
-            <h2>تشييك</h2>
           </div>
           <div class="list-buttons">
             <button class="list-item" onclick="app.action('check_unassigned')">
@@ -220,17 +228,18 @@
         <!-- Survey (Raising) Page -->
         <div id="surveyPage" class="page">
           <div class="page-header">
+            <h2>رفع</h2>
             <button class="back-btn" onclick="app.navigateBack()">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2"
+                stroke-width="2.5"
+                style="transform: rotate(180deg);"
               >
                 <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
             </button>
-            <h2>رفع</h2>
           </div>
           <div class="list-buttons">
             <button class="list-item" onclick="app.action('gps_survey')">
@@ -270,17 +279,18 @@
         <!-- Stakeout (Signature) Page -->
         <div id="stakePage" class="page">
           <div class="page-header">
+            <h2>توقيع</h2>
             <button class="back-btn" onclick="app.navigateBack()">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2"
+                stroke-width="2.5"
+                style="transform: rotate(180deg);"
               >
                 <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
             </button>
-            <h2>توقيع</h2>
           </div>
           <div class="list-buttons">
             <button class="list-item" onclick="app.action('point_staking')">
@@ -316,12 +326,12 @@
         <!-- Action Form Page (Dynamic) -->
         <div id="actionPage" class="page">
           <div class="page-header">
+            <h2 id="actionPageTitle">العمل</h2>
             <button class="back-btn" onclick="app.navigateBack()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transform: rotate(180deg);">
                 <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
             </button>
-            <h2 id="actionPageTitle">العمل</h2>
           </div>
           
           <div class="action-card">
@@ -354,7 +364,7 @@
       <footer class="main-footer">
         <div class="status-indicator">
           <span class="status-dot"></span>
-          <span class="status-text">Atlas Engineering System Online</span>
+          <span class="status-text">Atlas Engineering System</span>
           <span class="version-tag">v1.0.0</span>
         </div>
       </footer>
