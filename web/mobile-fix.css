@@ -1,12 +1,353 @@
 /* ============================================= */
 /* MOBILE RESPONSIVE - Scale Down Components     */
-/* File: mobile-fix.css                          */
+/* File: mobile-fix.css  (v2 - Smaller)         */
 /* ============================================= */
 
 @media (max-width: 480px) {
   /* === Header === */
   .main-header {
-    padding: 0.6rem 0.8rem;
+    padding: 0.4rem 0.7rem;
+  }
+
+  .header-logo {
+    height: 22px;
+  }
+
+  .logo-text-brand {
+    font-size: 0.72rem;
+    letter-spacing: 0px;
+  }
+
+  .logo {
+    padding: 3px;
+    border-radius: 6px;
+  }
+
+  .logo-wrapper {
+    gap: 6px;
+  }
+
+  .subText {
+    font-size: 0.42rem;
+    letter-spacing: 1.5px;
+  }
+
+  .header-site-box {
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+    gap: 0.35rem;
+  }
+
+  .site-company-text {
+    font-size: 0.48rem;
+    max-width: 75px;
+  }
+
+  .site-plot-text {
+    font-size: 0.6rem;
+    max-width: 75px;
+  }
+
+  .header-site-box svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  .nav-title {
+    font-size: 0.65rem;
+    letter-spacing: 0px;
+  }
+
+  /* === Content Area === */
+  .content-wrapper {
+    padding: 0.7rem 0.6rem;
+  }
+
+  /* === Menu Cards === */
+  .grid-menu {
+    gap: 0.5rem;
+  }
+
+  .menu-card {
+    padding: 0.7rem 0.8rem;
+    border-radius: 14px;
+    gap: 0.75rem;
+    box-shadow: 0 4px 10px rgba(30, 64, 175, 0.03);
+  }
+
+  .icon-wrapper {
+    width: 33px;
+    height: 33px;
+    border-radius: 9px;
+  }
+
+  .icon-wrapper svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .card-label {
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+
+  .badge {
+    font-size: 0.52rem;
+    padding: 1px 5px;
+  }
+
+  /* === Page Header === */
+  .page-header {
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+  }
+
+  .page-header h2 {
+    font-size: 1.15rem;
+  }
+
+  .back-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+
+  .back-btn svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  /* === List Items === */
+  .list-buttons {
+    gap: 0.45rem;
+  }
+
+  .list-item {
+    padding: 0.7rem 0.8rem;
+    border-radius: 13px;
+    gap: 0.65rem;
+  }
+
+  .list-item span {
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+
+  .item-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+  }
+
+  .item-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* === Footer === */
+  .main-footer {
+    padding: 0.5rem 0.7rem;
+  }
+
+  .status-indicator {
+    font-size: 0.58rem;
+    gap: 0.4rem;
+  }
+
+  .status-dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  .version-tag {
+    font-size: 0.52rem;
+    padding: 1px 4px;
+  }
+
+  /* === Modal === */
+  .modal-content {
+    border-radius: 18px;
+    padding: 1.1rem;
+    max-width: 320px;
+  }
+
+  .modal-header h3 {
+    font-size: 0.88rem;
+  }
+
+  .modal-sub-header h4 {
+    font-size: 0.78rem;
+  }
+
+  .icon-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+  }
+
+  .icon-btn svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .small-back-btn {
+    width: 24px;
+    height: 24px;
+  }
+
+  .small-back-btn svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .modal-search-box input {
+    padding: 0.65rem;
+    font-size: 0.78rem;
+    border-radius: 10px;
+  }
+
+  .list-select-item {
+    padding: 0.55rem 0.65rem;
+    font-size: 0.78rem;
+    border-radius: 8px;
+  }
+
+  .custom-list-selector {
+    gap: 0.4rem;
+    max-height: 260px;
+  }
+
+  /* === Site Summary Card === */
+  .site-summary-card {
+    border-radius: 11px;
+    padding: 0.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .summary-item label {
+    font-size: 0.62rem;
+  }
+
+  .summary-item span {
+    font-size: 0.8rem;
+  }
+
+  /* === Form Fields === */
+  .form-group-light input {
+    padding: 0.65rem;
+    font-size: 0.82rem;
+    border-radius: 10px;
+  }
+
+  .form-group-light label {
+    font-size: 0.65rem;
+  }
+
+  .form-group-light {
+    margin-bottom: 0.65rem;
+  }
+
+  /* === Submit Button === */
+  .submit-btn {
+    padding: 0.75rem;
+    font-size: 0.82rem;
+    border-radius: 12px;
+    gap: 0.4rem;
+  }
+
+  .submit-btn.highlight svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  /* === Action Page === */
+  .action-card {
+    border-radius: 18px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .site-info-bar {
+    gap: 0.45rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .info-tag {
+    padding: 0.3rem 0.6rem;
+    border-radius: 8px;
+    gap: 0.3rem;
+  }
+
+  .info-tag svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .info-tag span {
+    font-size: 0.65rem;
+  }
+
+  .capture-section label {
+    font-size: 0.65rem;
+  }
+
+  .media-add-btn {
+    width: 54px;
+    height: 54px;
+    border-radius: 10px;
+    gap: 0.2rem;
+  }
+
+  .media-add-btn svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .media-add-btn span {
+    font-size: 0.52rem;
+  }
+
+  #actionNotes {
+    height: 54px;
+    font-size: 0.78rem;
+    padding: 0.55rem;
+    border-radius: 10px;
+  }
+
+  .form-field input, .form-field select {
+    padding: 0.65rem;
+    font-size: 0.82rem;
+    border-radius: 12px;
+  }
+
+  .form-field label {
+    font-size: 0.65rem;
+  }
+
+  /* === Toast === */
+  .toast {
+    padding: 0.55rem 1rem;
+    font-size: 0.72rem;
+    border-radius: 24px;
+  }
+
+  /* === Background Effects === */
+  .bg-blur {
+    width: 180px;
+    height: 180px;
+  }
+
+  .bg-gradient {
+    width: 220px;
+    height: 220px;
+  }
+}
+
+/* Slightly larger phones (481-640px) */
+@media (min-width: 481px) and (max-width: 640px) {
+  .main-header {
+    padding: 0.65rem 0.9rem;
   }
 
   .header-logo {
@@ -14,71 +355,22 @@
   }
 
   .logo-text-brand {
-    font-size: 0.85rem;
-    letter-spacing: 0.2px;
+    font-size: 0.9rem;
   }
 
-  .logo {
-    padding: 4px;
-    border-radius: 8px;
-  }
-
-  .logo-wrapper {
-    gap: 8px;
-  }
-
-  .subText {
-    font-size: 0.5rem;
-    letter-spacing: 2px;
-  }
-
-  .header-site-box {
-    padding: 0.3rem 0.6rem;
-    border-radius: 10px;
-    gap: 0.5rem;
-  }
-
-  .site-company-text {
-    font-size: 0.55rem;
-    max-width: 90px;
-  }
-
-  .site-plot-text {
-    font-size: 0.7rem;
-    max-width: 90px;
-  }
-
-  .header-site-box svg {
-    width: 12px;
-    height: 12px;
-  }
-
-  .nav-title {
-    font-size: 0.75rem;
-    letter-spacing: 0.5px;
-  }
-
-  /* === Content Area === */
   .content-wrapper {
     padding: 1rem 0.8rem;
-  }
-
-  /* === Menu Cards === */
-  .grid-menu {
-    gap: 0.7rem;
   }
 
   .menu-card {
     padding: 0.9rem 1rem;
     border-radius: 18px;
     gap: 1rem;
-    box-shadow: 0 6px 15px rgba(30, 64, 175, 0.04);
   }
 
   .icon-wrapper {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
+    width: 38px;
+    height: 38px;
   }
 
   .icon-wrapper svg {
@@ -87,321 +379,29 @@
   }
 
   .card-label {
-    font-size: 1.05rem;
-    font-weight: 700;
-  }
-
-  .badge {
-    font-size: 0.6rem;
-    padding: 1px 6px;
-  }
-
-  /* === Page Header === */
-  .page-header {
-    gap: 0.8rem;
-    margin-bottom: 1.4rem;
+    font-size: 1rem;
   }
 
   .page-header h2 {
-    font-size: 1.4rem;
-  }
-
-  .back-btn {
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
-  }
-
-  .back-btn svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  /* === List Items === */
-  .list-buttons {
-    gap: 0.6rem;
+    font-size: 1.35rem;
   }
 
   .list-item {
-    padding: 0.9rem;
-    border-radius: 16px;
-    gap: 0.8rem;
+    padding: 0.85rem;
+    border-radius: 14px;
   }
 
   .list-item span {
-    font-size: 0.95rem;
-    font-weight: 600;
+    font-size: 0.9rem;
   }
 
   .item-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    font-size: 1rem;
-  }
-
-  .item-icon svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  /* === Footer === */
-  .main-footer {
-    padding: 0.7rem 0.8rem;
-  }
-
-  .status-indicator {
-    font-size: 0.65rem;
-    gap: 0.5rem;
-  }
-
-  .status-dot {
-    width: 6px;
-    height: 6px;
-  }
-
-  .version-tag {
-    font-size: 0.6rem;
-    padding: 1px 5px;
-  }
-
-  /* === Modal === */
-  .modal-content {
-    border-radius: 22px;
-    padding: 1.4rem;
-    max-width: 340px;
-  }
-
-  .modal-header h3 {
-    font-size: 1rem;
-  }
-
-  .modal-sub-header h4 {
-    font-size: 0.9rem;
-  }
-
-  .icon-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-  }
-
-  .icon-btn svg {
-    width: 14px;
-    height: 14px;
-  }
-
-  .small-back-btn {
-    width: 28px;
-    height: 28px;
-  }
-
-  .small-back-btn svg {
-    width: 14px;
-    height: 14px;
-  }
-
-  .modal-search-box input {
-    padding: 0.8rem;
-    font-size: 0.85rem;
-    border-radius: 12px;
-  }
-
-  .list-select-item {
-    padding: 0.7rem 0.8rem;
-    font-size: 0.85rem;
-    border-radius: 10px;
-  }
-
-  .custom-list-selector {
-    gap: 0.5rem;
-    max-height: 300px;
-  }
-
-  /* === Site Summary Card === */
-  .site-summary-card {
-    border-radius: 14px;
-    padding: 1rem;
-    margin-bottom: 1.2rem;
-  }
-
-  .summary-item label {
-    font-size: 0.7rem;
-  }
-
-  .summary-item span {
-    font-size: 0.9rem;
-  }
-
-  /* === Form Fields === */
-  .form-group-light input {
-    padding: 0.8rem;
-    font-size: 0.9rem;
-    border-radius: 12px;
-  }
-
-  .form-group-light label {
-    font-size: 0.75rem;
-  }
-
-  .form-group-light {
-    margin-bottom: 0.8rem;
-  }
-
-  /* === Submit Button === */
-  .submit-btn {
-    padding: 0.9rem;
-    font-size: 0.9rem;
-    border-radius: 14px;
-    gap: 0.5rem;
-  }
-
-  .submit-btn.highlight svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  /* === Action Page === */
-  .action-card {
-    border-radius: 22px;
-    padding: 1.2rem;
-    margin-bottom: 1.2rem;
-  }
-
-  .site-info-bar {
-    gap: 0.6rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .info-tag {
-    padding: 0.4rem 0.8rem;
-    border-radius: 10px;
-    gap: 0.4rem;
-  }
-
-  .info-tag svg {
-    width: 13px;
-    height: 13px;
-  }
-
-  .info-tag span {
-    font-size: 0.75rem;
-  }
-
-  .capture-section label {
-    font-size: 0.75rem;
-  }
-
-  .media-add-btn {
-    width: 65px;
-    height: 65px;
-    border-radius: 12px;
-    gap: 0.3rem;
-  }
-
-  .media-add-btn svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  .media-add-btn span {
-    font-size: 0.6rem;
-  }
-
-  #actionNotes {
-    height: 65px;
-    font-size: 0.85rem;
-    padding: 0.7rem;
-    border-radius: 12px;
-  }
-
-  .form-field input, .form-field select {
-    padding: 0.8rem;
-    font-size: 0.9rem;
-    border-radius: 14px;
-  }
-
-  .form-field label {
-    font-size: 0.75rem;
-  }
-
-  /* === Toast === */
-  .toast {
-    padding: 0.7rem 1.2rem;
-    font-size: 0.8rem;
-    border-radius: 30px;
-  }
-
-  /* === Background Effects === */
-  .bg-blur {
-    width: 250px;
-    height: 250px;
-  }
-
-  .bg-gradient {
-    width: 300px;
-    height: 300px;
-  }
-}
-
-/* Slightly larger phones (481-640px) */
-@media (min-width: 481px) and (max-width: 640px) {
-  .main-header {
-    padding: 0.8rem 1rem;
-  }
-
-  .header-logo {
+    width: 34px;
     height: 34px;
   }
 
-  .logo-text-brand {
-    font-size: 1rem;
-  }
-
-  .content-wrapper {
-    padding: 1.2rem 0.9rem;
-  }
-
-  .menu-card {
-    padding: 1.1rem 1.2rem;
-    border-radius: 22px;
-    gap: 1.2rem;
-  }
-
-  .icon-wrapper {
-    width: 45px;
-    height: 45px;
-  }
-
-  .icon-wrapper svg {
-    width: 24px;
-    height: 24px;
-  }
-
-  .card-label {
-    font-size: 1.2rem;
-  }
-
-  .page-header h2 {
-    font-size: 1.6rem;
-  }
-
-  .list-item {
-    padding: 1rem;
-    border-radius: 18px;
-  }
-
-  .list-item span {
-    font-size: 1rem;
-  }
-
-  .item-icon {
-    width: 40px;
-    height: 40px;
-  }
-
   .modal-content {
-    border-radius: 26px;
-    padding: 1.6rem;
+    border-radius: 22px;
+    padding: 1.35rem;
   }
 }
