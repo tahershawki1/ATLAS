@@ -7,10 +7,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="mobile-fix.css">
+    <link rel="stylesheet" href="../../shared/style.css">
+    <link rel="stylesheet" href="../../shared/mobile-fix.css">
     <!-- Load library locally for offline support -->
-    <script src="LIP/html2pdf.bundle.min.js"></script>
+    <script src="../../LIP/html2pdf.bundle.min.js"></script>
     <style>
         .custom-page {
             min-height: 100vh;
@@ -617,7 +617,7 @@
     <header class="main-header">
         <div class="logo-wrapper">
           <div class="logo">
-            <img src="icons/brand-logo.png" alt="Atlas" class="header-logo">
+            <img src="../../icons/brand-logo.png" alt="Atlas" class="header-logo">
           </div>
           <span class="logo-text-brand">ATLAS SURVEYING</span>
         </div>
@@ -1020,7 +1020,7 @@
             if (currentStep > 1) {
                 nextStep(currentStep - 1);
             } else {
-                window.location.href = 'index.html';
+                window.location.href = '../../index.html';
             }
         }
 
@@ -1515,7 +1515,7 @@
                 try {
                     await new Promise((resolve, reject) => {
                         const script = document.createElement('script');
-                        script.src = 'LIP/html-docx.min.js';
+                        script.src = '../../LIP/html-docx.min.js';
                         script.onload = resolve;
                         script.onerror = () => reject(new Error("Missing html-docx.min.js"));
                         document.head.appendChild(script);
