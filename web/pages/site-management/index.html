@@ -1,0 +1,1158 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Atlas Surveying - إدارة المواقع</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../shared/style.css" />
+  <link rel="stylesheet" href="../../shared/mobile-fix.css" />
+  <script src="../../shared/auth.js"></script>
+  <style>
+    .manage-page {
+      min-height: 100vh;
+      overflow-y: auto;
+      background: radial-gradient(circle at top right, #f1f5f9 0%, #e2e8f0 100%);
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 430px;
+      margin: 0 auto;
+      padding: 12px;
+      padding-bottom: 82px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .action-btn {
+      flex: 1;
+      height: 42px;
+      border-radius: 12px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      background: #fff;
+      color: var(--primary);
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(255, 255, 255, 1);
+      border-radius: 18px;
+      padding: 12px;
+      box-shadow: 0 10px 24px rgba(30, 64, 175, 0.08);
+      margin-bottom: 10px;
+    }
+
+    .card h2 {
+      color: var(--primary);
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+
+    .muted {
+      color: var(--text-dim);
+      font-size: 0.72rem;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat-box {
+      background: #f8fafc;
+      border: 1px solid rgba(30, 64, 175, 0.1);
+      border-radius: 12px;
+      padding: 8px;
+      text-align: center;
+    }
+
+    .stat-box .label {
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      margin-bottom: 3px;
+    }
+
+    .stat-box .value {
+      font-size: 1rem;
+      font-weight: 900;
+      color: var(--primary);
+      font-family: "Outfit", sans-serif;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .browse-head {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .browse-path {
+      flex: 1;
+      background: #f8fafc;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      border-radius: 10px;
+      padding: 8px 10px;
+      color: var(--text-dim);
+      font-size: 0.72rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .browse-back {
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(30, 64, 175, 0.15);
+      background: #fff;
+      color: var(--primary);
+      font-weight: 800;
+      cursor: pointer;
+      padding: 0 10px;
+      font-size: 0.72rem;
+      display: none;
+    }
+
+    .browse-back.show {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .browse-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      max-height: 58vh;
+      overflow-y: auto;
+      padding-left: 2px;
+    }
+
+    .browse-list::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .browse-list::-webkit-scrollbar-thumb {
+      background: rgba(30, 64, 175, 0.28);
+      border-radius: 10px;
+    }
+
+    .browse-btn {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--text-main);
+      font-weight: 800;
+      padding: 8px 10px;
+      text-align: right;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.75rem;
+    }
+
+    .browse-btn small {
+      color: var(--text-dim);
+      font-weight: 700;
+      font-size: 0.65rem;
+    }
+
+    .site-detail {
+      background: #f8fafc;
+      border: 1px solid rgba(30, 64, 175, 0.1);
+      border-radius: 12px;
+      padding: 10px;
+      max-height: 44vh;
+      overflow-y: auto;
+    }
+
+    .detail-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.72rem;
+      padding: 6px 0;
+      border-bottom: 1px dashed rgba(30, 64, 175, 0.12);
+    }
+
+    .detail-item:last-child {
+      border-bottom: none;
+    }
+
+    .detail-item label {
+      color: var(--text-dim);
+      font-weight: 700;
+    }
+
+    .detail-item span {
+      color: var(--text-main);
+      font-weight: 800;
+      text-align: left;
+      direction: ltr;
+      font-family: "Outfit", sans-serif;
+    }
+
+    .detail-item span.ar {
+      direction: rtl;
+      font-family: "Cairo", sans-serif;
+      text-align: right;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      height: 38px;
+      border-radius: 10px;
+      border: 1.5px solid rgba(30, 64, 175, 0.15);
+      padding: 0 10px;
+      font-size: 0.78rem;
+      background: #fff;
+      font-family: "Cairo", sans-serif;
+    }
+
+    .field-inline {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .mini-btn {
+      height: 38px;
+      border-radius: 10px;
+      border: 1px dashed rgba(30, 64, 175, 0.22);
+      background: #f8fafc;
+      color: var(--primary);
+      padding: 0 10px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 0.74rem;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .toolbar button {
+      flex: 1;
+      height: 40px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 800;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #f8fafc;
+      color: var(--text-main);
+      border: 1px solid rgba(30, 64, 175, 0.14);
+    }
+
+    .manager-tabs {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .manager-tab-btn {
+      width: 100%;
+      height: 42px;
+      border-radius: 12px;
+      border: 1px solid rgba(30, 64, 175, 0.16);
+      background: #fff;
+      color: var(--primary);
+      font-weight: 800;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .manager-view {
+      display: none;
+    }
+
+    .manager-view.active {
+      display: block;
+    }
+
+    .manager-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(30, 64, 175, 0.1);
+      background: #fff;
+    }
+
+    .manager-row span {
+      flex: 1;
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--text-main);
+      word-break: break-word;
+    }
+
+    .manager-row button {
+      height: 30px;
+      border-radius: 8px;
+      border: 1px solid rgba(30, 64, 175, 0.16);
+      background: #fff;
+      color: var(--primary);
+      font-size: 0.67rem;
+      font-weight: 800;
+      padding: 0 8px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .manager-row .danger {
+      border-color: rgba(190, 18, 60, 0.22);
+      color: #be123c;
+      background: #fff1f2;
+    }
+
+    .transfer-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 4000;
+      padding: 14px;
+    }
+
+    .transfer-modal.show {
+      display: flex;
+    }
+
+    .transfer-card {
+      width: 100%;
+      max-width: 380px;
+      background: #fff;
+      border: 1px solid rgba(30, 64, 175, 0.14);
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.24);
+    }
+
+    .transfer-card h3 {
+      color: var(--primary);
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    @media (min-width: 768px) {
+      .wrap {
+        max-width: 430px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      if (!window.AtlasAuth) return;
+      await window.AtlasAuth.initialize();
+      const allowed = await window.AtlasAuth.requirePageAccess("admin.panel");
+      if (!allowed) return;
+      window.location.replace("../admin/?tab=sites");
+    });
+  </script>
+  <div class="manage-page">
+    <div class="wrap">
+      <div id="browseView" class="view active">
+        <div class="top-actions">
+          <button class="back-btn" onclick="window.location.href='../../index.html'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transform: rotate(180deg);" aria-hidden="true">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            <span>العودة</span>
+          </button>
+          <button class="action-btn" onclick="openFormView()">إضافة/تعديل</button>
+          <button class="action-btn" onclick="refreshData()">تحديث</button>
+        </div>
+
+        <section class="card">
+          <h2>ملخص</h2>
+          <div class="stats-grid">
+            <div class="stat-box"><div class="label">الشركات</div><div class="value" id="statCompanies">0</div></div>
+            <div class="stat-box"><div class="label">المناطق</div><div class="value" id="statAreas">0</div></div>
+            <div class="stat-box"><div class="label">المواقع</div><div class="value" id="statPlots">0</div></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>متصفح البيانات</h2>
+          <div class="browse-head">
+            <button id="browseBackBtn" type="button" class="browse-back" onclick="browseBack()">رجوع</button>
+            <div id="browsePath" class="browse-path">الشركات</div>
+          </div>
+          <div id="browserList" class="browse-list"></div>
+        </section>
+      </div>
+
+      <div id="formView" class="view">
+        <div class="top-actions">
+          <button class="back-btn" onclick="closeFormView()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transform: rotate(180deg);" aria-hidden="true">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            <span>رجوع للتصفح</span>
+          </button>
+          <button class="action-btn" onclick="resetForm()">تفريغ</button>
+        </div>
+
+        <section id="formMenuView" class="card manager-view active">
+          <h2>صفحة إضافة أو تعديل</h2>
+          <div class="manager-tabs">
+            <button class="manager-tab-btn" type="button" onclick="openManagerView('companies')">تعديل الشركات</button>
+            <button class="manager-tab-btn" type="button" onclick="openManagerView('areas')">تعديل المناطق</button>
+            <button class="manager-tab-btn" type="button" onclick="openManagerView('sites')">تعديل المواقع</button>
+          </div>
+        </section>
+
+        <section id="companiesManagerView" class="card manager-view">
+          <h2>تعديل الشركات</h2>
+          <div class="toolbar"><button class="btn-secondary" type="button" onclick="openManagerView('menu')">رجوع</button></div>
+          <div id="companiesManagerList"></div>
+        </section>
+
+        <section id="areasManagerView" class="card manager-view">
+          <h2>تعديل المناطق</h2>
+          <div class="toolbar"><button class="btn-secondary" type="button" onclick="openManagerView('menu')">رجوع</button></div>
+          <div class="field"><label>اختر الشركة</label><select id="areasManagerCompany" onchange="renderAreasManager()"></select></div>
+          <div id="areasManagerList"></div>
+        </section>
+
+        <section id="sitesManagerView" class="card manager-view">
+          <h2>تعديل المواقع</h2>
+          <div class="toolbar"><button class="btn-secondary" type="button" onclick="openManagerView('menu')">رجوع</button></div>
+          <div class="field"><label>اختر الشركة</label><select id="sitesManagerCompany" onchange="renderSitesManager()"></select></div>
+          <div id="sitesManagerList"></div>
+        </section>
+
+        <section id="siteEditorView" class="card manager-view">
+          <h2>تعديل بيانات الموقع</h2>
+          <div class="toolbar"><button class="btn-secondary" type="button" onclick="openManagerView('sites')">رجوع</button></div>
+          <p class="muted">الحفظ يتم محليًا داخل الجهاز ويظهر مباشرة في نافذة اختيار الموقع.</p>
+          <div class="filters">
+            <div class="field">
+              <label>الشركة</label>
+              <div class="field-inline">
+                <select id="editCompany"></select>
+                <button class="mini-btn" type="button" onclick="addCompany()">+ شركة</button>
+              </div>
+            </div>
+            <div class="field"><label>المنطقة</label><input id="editArea" type="text" /></div>
+            <div class="field"><label>رقم الأرض</label><input id="editPlot" type="text" /></div>
+            <div class="field"><label>اسم المالك</label><input id="editOwner" type="text" /></div>
+            <div class="field"><label>اسم الاستشاري</label><input id="editConsultant" type="text" /></div>
+            <div class="field"><label>اسم المشروع</label><input id="editProject" type="text" /></div>
+            <div class="field"><label>اسم المقاول</label><input id="editContractor" type="text" /></div>
+            <div class="field"><label>تاريخ المسح</label><input id="editSurveyDate" type="date" /></div>
+            <div class="field"><label>موضوع التقرير</label><input id="editSubject" type="text" /></div>
+            <div class="field"><label>اسم المساح</label><input id="editSurveyor" type="text" placeholder="MR. " /></div>
+          </div>
+          <div class="toolbar">
+            <button class="btn-primary" type="button" onclick="savePlot()">حفظ</button>
+            <button class="btn-secondary" type="button" onclick="resetForm()">تفريغ</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="areaTransferModal" class="transfer-modal">
+    <div class="transfer-card">
+      <h3>نقل مواقع المنطقة قبل الحذف</h3>
+      <p class="muted">لا يمكن حذف المنطقة مباشرة. اختر منطقة بديلة موجودة أو اكتب منطقة جديدة لنقل المواقع إليها.</p>
+      <div class="filters">
+        <div class="field">
+          <label>منطقة بديلة موجودة</label>
+          <select id="areaTransferSelect"></select>
+        </div>
+        <div class="field">
+          <label>أو منطقة جديدة</label>
+          <input id="areaTransferNew" type="text" placeholder="اكتب اسم المنطقة الجديدة" />
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn-primary" type="button" onclick="confirmAreaTransfer()">نقل ثم حذف المنطقة</button>
+        <button class="btn-secondary" type="button" onclick="closeAreaTransferModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../shared/sites_data.js"></script>
+  <script src="../../shared/dialogs.js"></script>
+  <script>
+    const STORAGE_KEY = "atlasCustomSitesDb";
+    let customDb = [];
+    let companies = [];
+    let browseState = { companyId: null, area: null, plotId: null };
+    let managerViewKey = "menu";
+    let pendingAreaTransfer = null;
+
+    const norm = (v) => String(v ?? "").trim();
+    const esc = (v) => norm(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+    const jsArg = (v) => {
+      const jsSafe = String(v ?? "")
+        .replaceAll("\\", "\\\\")
+        .replaceAll("'", "\\'")
+        .replaceAll("\n", "\\n")
+        .replaceAll("\r", "\\r");
+      return `'${jsSafe}'`
+        .replaceAll("&", "&amp;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    };
+    const clone = (v) => JSON.parse(JSON.stringify(v));
+    const askPrompt = (message, defaultValue = "") =>
+      window.AtlasDialog
+        ? window.AtlasDialog.prompt(message, { defaultValue })
+        : window.prompt(message, defaultValue);
+    const askConfirm = (message) =>
+      window.AtlasDialog ? window.AtlasDialog.confirm(message) : window.confirm(message);
+    const askAlert = (message) =>
+      window.AtlasDialog ? window.AtlasDialog.alert(message) : window.alert(message);
+
+    function loadCustomDb() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveCustomDb() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(customDb));
+    }
+
+    function openFormView() {
+      document.getElementById("browseView").classList.remove("active");
+      document.getElementById("formView").classList.add("active");
+      document.querySelector(".manage-page").scrollTop = 0;
+    }
+
+    function closeFormView() {
+      document.getElementById("formView").classList.remove("active");
+      document.getElementById("browseView").classList.add("active");
+      document.querySelector(".manage-page").scrollTop = 0;
+    }
+
+    function openManagerView(viewKey) {
+      managerViewKey = viewKey;
+      const map = {
+        menu: "formMenuView",
+        companies: "companiesManagerView",
+        areas: "areasManagerView",
+        sites: "sitesManagerView",
+        editor: "siteEditorView",
+      };
+      Object.values(map).forEach((id) => {
+        const node = document.getElementById(id);
+        if (node) node.classList.remove("active");
+      });
+      const target = document.getElementById(map[viewKey] || map.menu);
+      if (target) target.classList.add("active");
+      renderActiveManagerView();
+    }
+
+    function renderActiveManagerView() {
+      if (managerViewKey === "companies") renderCompaniesManager();
+      if (managerViewKey === "areas") renderAreasManager();
+      if (managerViewKey === "sites") renderSitesManager();
+    }
+
+    function getCustomCompany(companyId) {
+      return customDb.find((c) => String(c.id) === String(companyId));
+    }
+
+    function renderManagerSelectors() {
+      const options = companies
+        .map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`)
+        .join("");
+      const areasSelect = document.getElementById("areasManagerCompany");
+      const sitesSelect = document.getElementById("sitesManagerCompany");
+      if (areasSelect) {
+        const prev = areasSelect.value;
+        areasSelect.innerHTML = `<option value="">اختر الشركة</option>${options}`;
+        areasSelect.value = [...areasSelect.options].some((o) => o.value === prev) ? prev : "";
+      }
+      if (sitesSelect) {
+        const prev = sitesSelect.value;
+        sitesSelect.innerHTML = `<option value="">اختر الشركة</option>${options}`;
+        sitesSelect.value = [...sitesSelect.options].some((o) => o.value === prev) ? prev : "";
+      }
+    }
+
+    function mergeCompanies(base, custom) {
+      const deletedIds = new Set(
+        (custom || [])
+          .filter((item) => item?.is_deleted)
+          .map((item) => String(item.id)),
+      );
+      const merged = clone(base || []).filter(
+        (company) => !deletedIds.has(String(company.id)),
+      );
+      custom.forEach((customCompany) => {
+        if (customCompany?.is_deleted) return;
+        const target = merged.find((c) => String(c.id) === String(customCompany.id)) || merged.find((c) => norm(c.name).toLowerCase() === norm(customCompany.name).toLowerCase());
+        if (!target) {
+          const deletedPlots = new Set((customCompany.deleted_plots || []).map((id) => String(id)));
+          const plots = clone(customCompany.plots || []).filter((plot) => !deletedPlots.has(String(plot.id)));
+          merged.push({ id: customCompany.id, name: customCompany.name, plots, is_custom: true });
+          return;
+        }
+        target.name = customCompany.name || target.name;
+        const deletedPlots = new Set((customCompany.deleted_plots || []).map((id) => String(id)));
+        const byId = new Map((target.plots || []).map((p) => [String(p.id), { ...p, _source: "base" }]));
+        (customCompany.plots || []).forEach((p) => byId.set(String(p.id), { ...clone(p), _source: "custom" }));
+        deletedPlots.forEach((id) => byId.delete(String(id)));
+        target.plots = Array.from(byId.values());
+        if (customCompany.is_custom) target.is_custom = true;
+      });
+
+      merged.forEach((company) => {
+        company.plots = (company.plots || []).map((plot) => ({ ...plot, _source: plot._source || "base" }));
+      });
+      return merged;
+    }
+
+    function refreshData() {
+      customDb = loadCustomDb();
+      companies = mergeCompanies(Array.isArray(SITES_DB) ? SITES_DB : [], customDb);
+      renderStats();
+      renderEditCompanySelector();
+      renderManagerSelectors();
+      renderBrowser();
+      renderActiveManagerView();
+    }
+
+    function getCompanyById(companyId) {
+      return companies.find((c) => String(c.id) === String(companyId));
+    }
+
+    function getPlot(companyId, plotId) {
+      const company = getCompanyById(companyId);
+      if (!company) return null;
+      const plot = (company.plots || []).find((p) => String(p.id) === String(plotId));
+      return plot ? { company, plot } : null;
+    }
+
+    function renderBrowser() {
+      const pathEl = document.getElementById("browsePath");
+      const backBtn = document.getElementById("browseBackBtn");
+      const listEl = document.getElementById("browserList");
+      if (!pathEl || !backBtn || !listEl) return;
+
+      if (!browseState.companyId) {
+        pathEl.textContent = "الشركات";
+        backBtn.classList.remove("show");
+        listEl.innerHTML = companies.map((company) => {
+          const areaSet = new Set((company.plots || []).map((p) => norm(p.area)).filter(Boolean));
+          return `<button type="button" class="browse-btn" onclick="browseOpenCompany(${jsArg(company.id)})">
+            <span>${esc(company.name)}</span>
+            <small>${areaSet.size} منطقة - ${(company.plots || []).length} موقع</small>
+          </button>`;
+        }).join("") || `<div class="muted">لا توجد شركات حالياً.</div>`;
+        return;
+      }
+
+      const company = getCompanyById(browseState.companyId);
+      if (!company) {
+        browseState = { companyId: null, area: null, plotId: null };
+        renderBrowser();
+        return;
+      }
+
+      backBtn.classList.add("show");
+
+      if (!browseState.area) {
+        pathEl.textContent = `${company.name} / المناطق`;
+        const areas = Array.from(new Set((company.plots || []).map((p) => norm(p.area)).filter(Boolean))).sort();
+        listEl.innerHTML = areas.map((area) => {
+          const plotsCount = (company.plots || []).filter((p) => norm(p.area) === area).length;
+          return `<button type="button" class="browse-btn" onclick="browseOpenArea(${jsArg(area)})">
+            <span>${esc(area)}</span>
+            <small>${plotsCount} موقع</small>
+          </button>`;
+        }).join("") || `<div class="muted">لا توجد مناطق داخل هذه الشركة.</div>`;
+        return;
+      }
+
+      if (!browseState.plotId) {
+        pathEl.textContent = `${company.name} / ${browseState.area} / المواقع`;
+        const plots = (company.plots || []).filter((p) => norm(p.area) === browseState.area);
+        listEl.innerHTML = plots.map((plot) => {
+          const status = plot._source === "custom" ? "محلي" : "أساسي";
+          return `<button type="button" class="browse-btn" onclick="browseOpenPlot(${jsArg(plot.id)})">
+            <span>${esc(plot.id)}</span>
+            <small>${status}</small>
+          </button>`;
+        }).join("") || `<div class="muted">لا توجد مواقع داخل هذه المنطقة.</div>`;
+        return;
+      }
+
+      const selected = getPlot(company.id, browseState.plotId);
+      if (!selected) {
+        browseState.plotId = null;
+        renderBrowser();
+        return;
+      }
+
+      const plot = selected.plot;
+      pathEl.textContent = `${company.name} / ${browseState.area} / ${plot.id}`;
+
+      const levelsCount = Array.isArray(plot.levels) ? plot.levels.length : 0;
+      listEl.innerHTML = `
+        <div class="site-detail">
+          <div class="detail-item"><label>الشركة</label><span class="ar">${esc(company.name)}</span></div>
+          <div class="detail-item"><label>المنطقة</label><span class="ar">${esc(plot.area)}</span></div>
+          <div class="detail-item"><label>رقم الأرض</label><span>${esc(plot.id)}</span></div>
+          <div class="detail-item"><label>اسم المالك</label><span class="ar">${esc(plot.owner)}</span></div>
+          <div class="detail-item"><label>الاستشاري</label><span class="ar">${esc(plot.consultant)}</span></div>
+          <div class="detail-item"><label>اسم المشروع</label><span class="ar">${esc(plot.project)}</span></div>
+          <div class="detail-item"><label>المقاول</label><span class="ar">${esc(plot.contractor)}</span></div>
+          <div class="detail-item"><label>سنة التقرير</label><span>${esc(plot.report_year)}</span></div>
+          <div class="detail-item"><label>شهر التقرير</label><span class="ar">${esc(plot.report_month)}</span></div>
+          <div class="detail-item"><label>رقم التعريف</label><span>${esc(plot.report_number_in_month)}</span></div>
+          <div class="detail-item"><label>رقم التقرير المصدر</label><span>${esc(plot.source_report_id)}</span></div>
+          <div class="detail-item"><label>تاريخ المسح</label><span>${esc(plot.survey_date)}</span></div>
+          <div class="detail-item"><label>موضوع التقرير</label><span class="ar">${esc(plot.subject)}</span></div>
+          <div class="detail-item"><label>اسم المساح</label><span class="ar">${esc(plot.surveyor)}</span></div>
+          <div class="detail-item"><label>عدد مستويات Levels</label><span>${levelsCount}</span></div>
+        </div>
+        <div class="toolbar">
+          <button class="btn-primary" type="button" onclick="loadPlot(${jsArg(company.id)},${jsArg(plot.id)})">تعديل البيانات</button>
+          ${plot._source === "custom"
+            ? `<button class="btn-secondary" type="button" onclick="deletePlot(${jsArg(company.id)},${jsArg(plot.id)})">حذف محلي</button>`
+            : `<button class="btn-secondary" type="button" onclick="clonePlot(${jsArg(company.id)},${jsArg(plot.id)})">نسخ محلي</button>`}
+        </div>
+      `;
+    }
+
+    function browseOpenCompany(companyId) {
+      browseState = { companyId: String(companyId), area: null, plotId: null };
+      renderBrowser();
+    }
+
+    function browseOpenArea(area) {
+      browseState = { ...browseState, area: norm(area), plotId: null };
+      renderBrowser();
+    }
+
+    function browseOpenPlot(plotId) {
+      browseState = { ...browseState, plotId: String(plotId) };
+      renderBrowser();
+    }
+
+    function browseBack() {
+      if (browseState.plotId) {
+        browseState.plotId = null;
+      } else if (browseState.area) {
+        browseState.area = null;
+      } else if (browseState.companyId) {
+        browseState = { companyId: null, area: null, plotId: null };
+      }
+      renderBrowser();
+    }
+
+    function renderStats() {
+      const area = new Set();
+      let plots = 0;
+      companies.forEach((c) => (c.plots || []).forEach((p) => {
+        plots += 1;
+        if (norm(p.area)) area.add(norm(p.area).toLowerCase());
+      }));
+      document.getElementById("statCompanies").textContent = companies.length;
+      document.getElementById("statAreas").textContent = area.size;
+      document.getElementById("statPlots").textContent = plots;
+    }
+
+    function renderEditCompanySelector() {
+      const editCompany = document.getElementById("editCompany");
+      const oldEdit = editCompany.value || "";
+
+      const opts = companies.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("");
+      editCompany.innerHTML = `<option value="">اختر الشركة</option>${opts}`;
+      editCompany.value = [...editCompany.options].some((o) => o.value === oldEdit) ? oldEdit : "";
+    }
+
+    function renderCompaniesManager() {
+      const container = document.getElementById("companiesManagerList");
+      if (!container) return;
+      container.innerHTML = companies.map((company) => `
+        <div class="manager-row">
+          <span>${esc(company.name)}</span>
+          <button type="button" onclick="renameCompany(${jsArg(company.id)})">تعديل</button>
+          <button type="button" class="danger" onclick="deleteCompany(${jsArg(company.id)})">حذف</button>
+        </div>
+      `).join("") || `<div class="muted">لا توجد شركات.</div>`;
+    }
+
+    function renderAreasManager() {
+      const container = document.getElementById("areasManagerList");
+      const companyId = document.getElementById("areasManagerCompany")?.value;
+      if (!container) return;
+      if (!companyId) {
+        container.innerHTML = `<div class="muted">اختر شركة لعرض المناطق.</div>`;
+        return;
+      }
+      const company = getCompanyById(companyId);
+      if (!company) {
+        container.innerHTML = `<div class="muted">الشركة غير موجودة.</div>`;
+        return;
+      }
+      const areas = Array.from(new Set((company.plots || []).map((p) => norm(p.area)).filter(Boolean))).sort();
+      container.innerHTML = areas.map((area) => `
+        <div class="manager-row">
+          <span>${esc(area)} (${(company.plots || []).filter((p) => norm(p.area) === area).length} مواقع)</span>
+          <button type="button" onclick="renameArea(${jsArg(company.id)},${jsArg(area)})">تعديل</button>
+          <button type="button" class="danger" onclick="deleteArea(${jsArg(company.id)},${jsArg(area)})">حذف</button>
+        </div>
+      `).join("") || `<div class="muted">لا توجد مناطق.</div>`;
+    }
+
+    function renderSitesManager() {
+      const container = document.getElementById("sitesManagerList");
+      const companyId = document.getElementById("sitesManagerCompany")?.value;
+      if (!container) return;
+      if (!companyId) {
+        container.innerHTML = `<div class="muted">اختر شركة لعرض المواقع.</div>`;
+        return;
+      }
+      const company = getCompanyById(companyId);
+      if (!company) {
+        container.innerHTML = `<div class="muted">الشركة غير موجودة.</div>`;
+        return;
+      }
+      container.innerHTML = (company.plots || []).map((plot) => `
+        <div class="manager-row">
+          <span>${esc(plot.id)} - ${esc(plot.area)}</span>
+          <button type="button" onclick="loadPlotForManager(${jsArg(company.id)},${jsArg(plot.id)})">تعديل</button>
+          <button type="button" class="danger" onclick="deletePlot(${jsArg(company.id)},${jsArg(plot.id)})">حذف</button>
+        </div>
+      `).join("") || `<div class="muted">لا توجد مواقع.</div>`;
+    }
+
+    function loadPlotForManager(companyId, plotId) {
+      loadPlot(companyId, plotId);
+      openManagerView("editor");
+    }
+
+    async function renameCompany(companyId) {
+      const company = getCompanyById(companyId);
+      if (!company) return;
+      const nextName = norm(await askPrompt("اكتب اسم الشركة الجديد", company.name));
+      if (!nextName) return;
+      const entry = upsertCustomCompany(company.id, nextName);
+      entry.is_deleted = false;
+      saveCustomDb();
+      refreshData();
+      openManagerView("companies");
+    }
+
+    async function deleteCompany(companyId) {
+      const company = getCompanyById(companyId);
+      if (!company) return;
+      if (!(await askConfirm(`حذف الشركة ${company.name}؟`))) return;
+      const entry = upsertCustomCompany(company.id, company.name);
+      entry.is_deleted = true;
+      entry.plots = [];
+      saveCustomDb();
+      if (browseState.companyId === String(company.id)) {
+        browseState = { companyId: null, area: null, plotId: null };
+      }
+      refreshData();
+      openManagerView("companies");
+    }
+
+    async function renameArea(companyId, oldArea) {
+      const company = getCompanyById(companyId);
+      if (!company) return;
+      const nextArea = norm(await askPrompt("اكتب اسم المنطقة الجديد", oldArea));
+      if (!nextArea || nextArea === oldArea) return;
+      const entry = upsertCustomCompany(company.id, company.name);
+      (company.plots || []).forEach((plot) => {
+        if (norm(plot.area) !== norm(oldArea)) return;
+        const sourcePlot = clone(plot);
+        delete sourcePlot._source;
+        sourcePlot.area = nextArea;
+        const idx = entry.plots.findIndex((p) => String(p.id) === String(plot.id));
+        if (idx === -1) entry.plots.push(sourcePlot); else entry.plots[idx] = sourcePlot;
+      });
+      saveCustomDb();
+      refreshData();
+      const areasSelect = document.getElementById("areasManagerCompany");
+      if (areasSelect) areasSelect.value = String(company.id);
+      openManagerView("areas");
+    }
+
+    function openAreaTransferModal(companyId, oldArea) {
+      const company = getCompanyById(companyId);
+      if (!company) return;
+      pendingAreaTransfer = { companyId: String(companyId), oldArea: norm(oldArea) };
+      const modal = document.getElementById("areaTransferModal");
+      const select = document.getElementById("areaTransferSelect");
+      const input = document.getElementById("areaTransferNew");
+      const otherAreas = Array.from(
+        new Set((company.plots || []).map((p) => norm(p.area)).filter((a) => a && a !== norm(oldArea))),
+      ).sort();
+      select.innerHTML = `<option value="">اختر منطقة...</option>${otherAreas.map((a) => `<option value="${esc(a)}">${esc(a)}</option>`).join("")}`;
+      input.value = "";
+      modal.classList.add("show");
+    }
+
+    function closeAreaTransferModal() {
+      pendingAreaTransfer = null;
+      document.getElementById("areaTransferModal")?.classList.remove("show");
+    }
+
+    async function confirmAreaTransfer() {
+      if (!pendingAreaTransfer) return;
+      const { companyId, oldArea } = pendingAreaTransfer;
+      const selectedArea = norm(document.getElementById("areaTransferSelect")?.value);
+      const newAreaInput = norm(document.getElementById("areaTransferNew")?.value);
+      const targetArea = newAreaInput || selectedArea;
+      if (!targetArea || targetArea === oldArea) {
+        await askAlert("يرجى اختيار منطقة بديلة مختلفة عن المنطقة الحالية.");
+        return;
+      }
+
+      const company = getCompanyById(companyId);
+      if (!company) {
+        closeAreaTransferModal();
+        return;
+      }
+
+      const entry = upsertCustomCompany(company.id, company.name);
+      (company.plots || []).forEach((plot) => {
+        if (norm(plot.area) !== oldArea) return;
+        const sourcePlot = clone(plot);
+        delete sourcePlot._source;
+        sourcePlot.area = targetArea;
+        const idx = entry.plots.findIndex((p) => String(p.id) === String(plot.id));
+        if (idx === -1) entry.plots.push(sourcePlot); else entry.plots[idx] = sourcePlot;
+      });
+
+      entry.deleted_plots = (entry.deleted_plots || []).filter((id) => {
+        const moved = (company.plots || []).some((plot) => norm(plot.area) === oldArea && String(plot.id) === String(id));
+        return !moved;
+      });
+
+      saveCustomDb();
+      if (browseState.companyId === String(company.id) && browseState.area === oldArea) {
+        browseState.area = targetArea;
+        browseState.plotId = null;
+      }
+      closeAreaTransferModal();
+      refreshData();
+      const areasSelect = document.getElementById("areasManagerCompany");
+      if (areasSelect) areasSelect.value = String(company.id);
+      openManagerView("areas");
+    }
+
+    function deleteArea(companyId, area) {
+      const company = getCompanyById(companyId);
+      if (!company) return;
+      const areaPlotsCount = (company.plots || []).filter((plot) => norm(plot.area) === norm(area)).length;
+      if (!areaPlotsCount) return;
+      openAreaTransferModal(company.id, area);
+    }
+
+    async function addCompany() {
+      const name = norm(await askPrompt("اكتب اسم الشركة الجديدة"));
+      if (!name) return;
+      const exists = companies.find((c) => norm(c.name).toLowerCase() === name.toLowerCase());
+      if (exists) {
+        document.getElementById("editCompany").value = String(exists.id);
+        openManagerView("editor");
+        return;
+      }
+      const maxId = companies.reduce((m, c) => {
+        const n = parseInt(c.id, 10);
+        return Number.isFinite(n) ? Math.max(m, n) : m;
+      }, 0);
+      customDb.push({ id: String(maxId + 1 || 1), name, plots: [], is_custom: true });
+      saveCustomDb();
+      refreshData();
+      openManagerView("companies");
+    }
+
+    function upsertCustomCompany(companyId, companyName) {
+      let entry = customDb.find((c) => String(c.id) === String(companyId));
+      if (!entry) {
+        entry = { id: String(companyId), name: companyName, plots: [], is_custom: true };
+        customDb.push(entry);
+      }
+      entry.name = companyName;
+      entry.plots = entry.plots || [];
+      entry.deleted_plots = entry.deleted_plots || [];
+      entry.is_deleted = false;
+      entry.is_custom = true;
+      return entry;
+    }
+
+    function resetForm() {
+      ["editArea", "editPlot", "editOwner", "editConsultant", "editProject", "editContractor", "editSurveyDate", "editSubject"].forEach((id) => document.getElementById(id).value = "");
+      document.getElementById("editSurveyor").value = "MR. ";
+    }
+
+    function loadPlot(companyId, plotId) {
+      const selected = getPlot(companyId, plotId);
+      const company = selected?.company;
+      const plot = selected?.plot;
+      if (!company || !plot) return;
+      document.getElementById("editCompany").value = String(company.id);
+      document.getElementById("editArea").value = norm(plot.area);
+      document.getElementById("editPlot").value = norm(plot.id);
+      document.getElementById("editOwner").value = norm(plot.owner);
+      document.getElementById("editConsultant").value = norm(plot.consultant);
+      document.getElementById("editProject").value = norm(plot.project);
+      document.getElementById("editContractor").value = norm(plot.contractor);
+      document.getElementById("editSurveyDate").value = norm(plot.survey_date);
+      document.getElementById("editSubject").value = norm(plot.subject);
+      document.getElementById("editSurveyor").value = norm(plot.surveyor) || "MR. ";
+      openFormView();
+      openManagerView("editor");
+      browseState = { companyId: String(company.id), area: norm(plot.area), plotId: String(plot.id) };
+      renderBrowser();
+    }
+
+    function clonePlot(companyId, plotId) {
+      const selected = getPlot(companyId, plotId);
+      const company = selected?.company;
+      const plot = selected?.plot;
+      if (!company || !plot) return;
+      const entry = upsertCustomCompany(company.id, company.name);
+      if (!entry.plots.some((p) => String(p.id) === String(plot.id))) entry.plots.push(clone(plot));
+      saveCustomDb();
+      refreshData();
+      browseState = { companyId: String(company.id), area: norm(plot.area), plotId: String(plot.id) };
+      renderBrowser();
+      loadPlot(companyId, plotId);
+    }
+
+    async function deletePlot(companyId, plotId) {
+      const selected = getPlot(companyId, plotId);
+      const company = selected?.company;
+      const plot = selected?.plot;
+      if (!company || !plot) return;
+      if (!(await askConfirm(`حذف الموقع ${plot.id}؟`))) return;
+
+      const entry = upsertCustomCompany(company.id, company.name);
+      const idx = entry.plots.findIndex((p) => String(p.id) === String(plot.id));
+      if (idx !== -1) entry.plots.splice(idx, 1);
+      if (!entry.deleted_plots.includes(String(plot.id))) entry.deleted_plots.push(String(plot.id));
+
+      saveCustomDb();
+      refreshData();
+      if (browseState.plotId === String(plot.id) && browseState.area === norm(plot.area)) {
+        browseState.plotId = null;
+        renderBrowser();
+      }
+      if (managerViewKey === "sites") renderSitesManager();
+    }
+
+    function savePlot() {
+      const companyId = document.getElementById("editCompany").value;
+      const company = companies.find((c) => String(c.id) === String(companyId));
+      if (!company) return;
+
+      const data = {
+        id: norm(document.getElementById("editPlot").value),
+        area: norm(document.getElementById("editArea").value),
+        owner: norm(document.getElementById("editOwner").value),
+        consultant: norm(document.getElementById("editConsultant").value),
+        project: norm(document.getElementById("editProject").value),
+        contractor: norm(document.getElementById("editContractor").value),
+        survey_date: norm(document.getElementById("editSurveyDate").value),
+        subject: norm(document.getElementById("editSubject").value),
+        surveyor: norm(document.getElementById("editSurveyor").value),
+      };
+
+      if (!data.id || !data.area || !data.owner || !data.consultant || !data.project || !data.contractor || !data.survey_date || !data.subject || !data.surveyor) {
+        return;
+      }
+
+      if (!data.surveyor.toUpperCase().startsWith("MR.")) data.surveyor = `MR. ${data.surveyor}`;
+
+      const entry = upsertCustomCompany(company.id, company.name);
+      const idx = entry.plots.findIndex((p) => String(p.id) === String(data.id));
+      const record = { ...data, levels: [] };
+      if (idx === -1) entry.plots.push(record); else entry.plots[idx] = record;
+
+      saveCustomDb();
+      refreshData();
+      browseState = { companyId: String(company.id), area: data.area, plotId: data.id };
+      renderBrowser();
+      openFormView();
+      openManagerView("editor");
+      loadPlot(company.id, data.id);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      refreshData();
+      document.getElementById("editSurveyor").value = "MR. ";
+      closeFormView();
+      openManagerView("menu");
+    });
+  </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="../../shared/mobile-fix.css">
     <!-- Load library locally for offline support -->
     <script src="../../LIP/html2pdf.bundle.min.js"></script>
+    <script src="../../shared/auth.js"></script>
     <style>
         .custom-page {
             min-height: 100vh;
@@ -26,23 +27,6 @@
             gap: 12px;
             width: 100%;
             margin-bottom: 5px;
-        }
-
-        /* Standard Button styles to prevent size issues */
-        .btn-base {
-            height: 54px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            border-radius: 16px;
-            font-weight: 700;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: var(--transition);
-            border: none;
-            box-sizing: border-box;
-            width: 100%;
         }
 
         .reset-btn {
@@ -277,9 +261,7 @@
         #required_reading,
         #target_rl_display,
         #offset_display,
-        #dmd_display,
-        .type-option span:first-child,
-        .technical-summary span:last-child {
+        .type-option span:first-child {
             direction: ltr !important;
             unicode-bidi: isolate;
             font-family: 'Outfit', sans-serif;
@@ -468,13 +450,6 @@
                 gap: 4px;
             }
 
-            .btn-base {
-                height: 36px;
-                border-radius: 10px;
-                font-size: 0.7rem;
-                gap: 5px;
-            }
-
             .add-point-btn {
                 height: 36px;
                 border-radius: 11px;
@@ -598,6 +573,31 @@
                 font-size: 0.58rem;
             }
 
+            .import-level-btn {
+                width: 100%;
+                justify-content: center;
+                padding: 7px 10px;
+                font-size: 0.66rem;
+            }
+
+            .levels-import-shell {
+                padding: 14px;
+                border-radius: 20px;
+            }
+
+            .levels-import-header {
+                align-items: flex-start;
+            }
+
+            .levels-import-table {
+                font-size: 0.72rem;
+            }
+
+            .levels-import-table th,
+            .levels-import-table td {
+                padding: 10px 8px;
+            }
+
             .empty-msg {
                 padding: 0.9rem;
                 font-size: 0.75rem;
@@ -609,6 +609,145 @@
                 font-size: 0.65rem;
                 border-radius: 13px;
                 gap: 5px;
+            }
+        }
+
+        .import-level-btn {
+            border: none;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            line-height: 1;
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+            color: #ffffff;
+            white-space: nowrap;
+            box-shadow: 0 8px 18px rgba(30, 64, 175, 0.10);
+        }
+
+        .import-level-btn:hover {
+            transform: translateY(-1px);
+            opacity: 0.96;
+        }
+
+        .import-level-btn:active {
+            transform: translateY(0);
+        }
+
+        .design-btn {
+            background: var(--primary);
+        }
+
+        .asbuilt-btn {
+            background: var(--accent);
+        }
+
+        .levels-import-shell {
+            width: min(100%, 1040px);
+            max-height: 90vh;
+            overflow: hidden;
+            margin-bottom: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 18px;
+        }
+
+        .levels-import-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(30, 64, 175, 0.12);
+        }
+
+        .levels-import-close {
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+
+        .levels-import-table-wrap {
+            overflow: auto;
+            border: 1px solid rgba(30, 64, 175, 0.08);
+            border-radius: 16px;
+            background: #fff;
+        }
+
+        .levels-import-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.82rem;
+        }
+
+        .levels-import-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: var(--primary);
+            color: white;
+        }
+
+        .levels-import-table th {
+            padding: 12px 10px;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .levels-import-table td {
+            padding: 12px 10px;
+            vertical-align: middle;
+            color: var(--text-main);
+        }
+
+        .levels-import-table tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .levels-import-table tbody tr:nth-child(odd) {
+            background: #ffffff;
+        }
+
+        .levels-import-table tbody tr + tr td {
+            border-top: 1px solid #e5e7eb;
+        }
+
+        @media (min-width: 768px) {
+            html {
+                background: radial-gradient(circle at top right, #dbeafe 0%, #bfdbfe 42%, #e2e8f0 100%);
+            }
+
+            body.custom-page {
+                width: min(calc(100vw - 28px), 430px);
+                max-width: 430px;
+                min-height: 0;
+                height: min(920px, calc(100vh - 28px));
+                margin: 14px auto;
+                padding: 0;
+                justify-content: flex-start;
+                align-items: stretch;
+                overflow: hidden;
+                position: relative;
+                border: 1px solid rgba(30, 64, 175, 0.12);
+                border-radius: 32px;
+                box-shadow: 0 28px 70px rgba(15, 23, 42, 0.22);
+            }
+
+            body.custom-page > .form-container {
+                flex: 1 1 auto;
+                overflow-y: auto;
+                padding-bottom: 72px;
+            }
+
+            #pointModal,
+            #levelsImportModal {
+                position: absolute !important;
+                inset: 0 !important;
+                width: auto !important;
+                height: auto !important;
+                border-radius: inherit;
             }
         }
     </style>
@@ -689,7 +828,6 @@
                         <span>التالي: الحسابات</span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     </button>
-                    <button class="btn-secondary" onclick="window.location.href='index.html'">رجوع</button>
                 </div>
             </div>
         </div>
@@ -702,7 +840,7 @@
                 
                 <div class="form-field">
                     <label>النقطة الأولى (Reference)</label>
-                    <select id="sel_pt1" onchange="enableNextField(1); calculateCheck()">
+                    <select id="sel_pt1" class="check-select" onchange="enableNextField(1); calculateCheck()">
                         <option value="">-- اختر النقطة --</option>
                     </select>
                 </div>
@@ -714,7 +852,7 @@
 
                 <div class="form-field">
                     <label>النقطة الثانية</label>
-                    <select id="sel_pt2" disabled onchange="enableNextField(3); calculateCheck()">
+                    <select id="sel_pt2" class="check-select" disabled onchange="enableNextField(3); calculateCheck()">
                         <option value="">-- اختر النقطة --</option>
                     </select>
                 </div>
@@ -764,7 +902,6 @@
                         <span>التالي: التوقيع</span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     </button>
-                    <button class="btn-secondary" onclick="nextStep(1)">رجوع</button>
                 </div>
             </div>
         </div>
@@ -776,8 +913,16 @@
                 <p style="color: var(--text-dim); margin-bottom: 2rem; font-weight: 600; font-size: 0.9rem;">تحديد القراءة المطلوبة لتوقيع المنسوب بدقة على الموقع.</p>
 
                 <div class="form-field">
-                    <label>منسوب الجيت لفل (المخطط)</label>
-                    <input type="number" id="design_rl" step="0.001" placeholder="0.000" oninput="updateStakingCalc()">
+                    <label>منسوب الجيت لفل (تلقائي من التحقق)</label>
+                    <input type="text" id="design_rl" inputmode="decimal" placeholder="0.000" oninput="updateStakingCalc()">
+                    <button type="button" class="db-import-btn" onclick="openLevelsImportModal()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 7h16M4 12h10M4 17h16" />
+                            <path d="M18 10l3 2-3 2" />
+                        </svg>
+                        استيراد من قاعدة البيانات
+                    </button>
+                    <div id="design_rl_source" class="design-rl-source"></div>
                 </div>
 
                 <div class="input-group">
@@ -810,7 +955,7 @@
                     <div style="display: flex; flex-direction: column; gap: 12px;">
                         <span id="offset_display" style="font-size: 1.8rem; font-weight: 950; color: var(--text-main); direction: ltr; line-height: 1.2;">+0.00m</span>
                         <div style="height: 1px; background: #e2e8f0; width: 60%; margin: 4px auto;"></div>
-                        <span id="target_rl_display" style="font-size: 1.8rem; font-weight: 950; color: var(--text-main); direction: ltr; line-height: 1.2;">+0.000 (DMD)</span>
+                        <span id="target_rl_display" style="font-size: 1.8rem; font-weight: 950; color: var(--text-main); direction: ltr; line-height: 1.2;">+0.000</span>
                     </div>
                 </div>
 
@@ -834,7 +979,6 @@
                         <span>التالي: التوثيق النهائي</span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     </button>
-                    <button class="btn-secondary" onclick="nextStep(2)">رجوع</button>
                 </div>
             </div>
         </div>
@@ -881,7 +1025,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed rgba(30, 64, 175, 0.15); padding-bottom: 15px; margin-bottom: 15px;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <div style="width: 45px; height: 45px; background: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(30,64,175,0.2);">
-                                <img src="icons/brand-logo.png" style="width: 25px; height: 25px; filter: brightness(0) invert(1);">
+                                <img src="../../icons/brand-logo.png" style="width: 25px; height: 25px; filter: brightness(0) invert(1);">
                             </div>
                             <div>
                                 <h1 class="rep-title" style="color: var(--primary); font-weight: 900; font-size: 1.3rem; margin: 0; line-height: 1.2;">ATLAS SURVEYING</h1>
@@ -935,7 +1079,7 @@
                         <div style="position: absolute; top: -40px; right: -40px; width: 120px; height: 120px; background: rgba(255,255,255,0.05); border-radius: 50%;"></div>
                         <div style="position: relative; z-index: 2;">
                             <span style="font-weight: 700; font-size: 0.85rem; opacity: 0.9; display: block; margin-bottom: 4px;">المنسوب النهائي المستهدف للعلام</span>
-                            <div class="rep-gwd-val" id="rep_gwd" style="font-weight: 950; font-size: 2rem; direction: ltr; line-height: 1.1;">+0.000 (DMD)</div>
+                            <div class="rep-gwd-val" id="rep_gwd" style="font-weight: 950; font-size: 2rem; direction: ltr; line-height: 1.1;">+0.000</div>
                         </div>
                         <div class="rep-dmd-bg" style="position: relative; z-index: 2; display: flex; flex-direction: column; gap: 8px; text-align: left;">
                             <div style="background: rgba(0,0,0,0.2); padding: 5px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;" id="rep_dmd"></div>
@@ -973,7 +1117,6 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                         تصدير Word
                     </button>
-                    <button class="btn-secondary" style="flex: 1; min-width: 100px;" onclick="nextStep(3)">رجوع</button>
                 </div>
             </div>
         </div>
@@ -1009,12 +1152,94 @@
         </div>
     </div>
 
+    <div id="levelsImportModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.72); backdrop-filter:blur(8px); z-index:2100; align-items:center; justify-content:center; padding:16px;">
+        <div class="level-card levels-import-shell">
+            <div class="levels-import-header">
+                <div style="min-width:0;">
+                    <h3 style="margin:0; color:var(--primary); font-weight:900; font-size:1.2rem;">استيراد من قاعدة البيانات</h3>
+                    <p id="levelsImportSubtitle" style="margin:6px 0 0; color:var(--text-dim); font-weight:700; font-size:0.82rem; line-height:1.4;"></p>
+                </div>
+                <button class="btn-secondary levels-import-close" type="button" onclick="closeLevelsImportModal()">إغلاق</button>
+            </div>
+            <div class="levels-import-table-wrap">
+                <table class="levels-import-table">
+                    <thead>
+                        <tr>
+                            <th>الصف</th>
+                            <th>Design Level</th>
+                            <th>As Built</th>
+                            <th>Difference</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="levelsImportBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../shared/sites_data.js"></script>
+    <script src="../../shared/dialogs.js"></script>
     <script>
         let points = [];
         let currentStep = 1;
         let globalMSM = 0;
         let stakingOffset = 0;
         let editingIndex = -1; // -1 = add mode, >= 0 = edit mode
+        let selectedSiteLevels = [];
+        let importedDesignLevelRaw = '';
+        const SITE_REFERENCE_LEVELS_KEY = "level_mark_site_reference_levels";
+        const askPrompt = (message, defaultValue = "") =>
+            window.AtlasDialog
+                ? window.AtlasDialog.prompt(message, { defaultValue })
+                : window.prompt(message, defaultValue);
+        const askConfirm = (message) =>
+            window.AtlasDialog ? window.AtlasDialog.confirm(message) : window.confirm(message);
+
+        function getSiteReferenceLevelsMap() {
+            try {
+                const raw = localStorage.getItem(SITE_REFERENCE_LEVELS_KEY);
+                const parsed = raw ? JSON.parse(raw) : {};
+                return parsed && typeof parsed === "object" ? parsed : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function getSiteReferenceKey(site) {
+            if (!site) return "";
+            return `${site.company || ""}__${site.plot || ""}`.trim();
+        }
+
+        function savePinnedReferenceLevel(site, value, sourceLabel = "") {
+            const siteKey = getSiteReferenceKey(site);
+            if (!siteKey) return;
+            const map = getSiteReferenceLevelsMap();
+            map[siteKey] = {
+                value: Number.isFinite(value) ? Number(value).toFixed(3) : "",
+                source: sourceLabel || "",
+                updated_at: new Date().toISOString()
+            };
+            localStorage.setItem(SITE_REFERENCE_LEVELS_KEY, JSON.stringify(map));
+        }
+
+        function applyPinnedReferenceLevelForSite(site) {
+            const siteKey = getSiteReferenceKey(site);
+            if (!siteKey) return false;
+
+            const map = getSiteReferenceLevelsMap();
+            const pinned = map[siteKey];
+            if (!pinned || !pinned.value) return false;
+
+            const designInput = document.getElementById('design_rl');
+            if (!designInput || designInput.value.trim() !== "") return false;
+
+            designInput.value = pinned.value;
+            const source = pinned.source ? ` (${pinned.source})` : "";
+            document.getElementById('design_rl_source').textContent = `تم تحميل المنسوب المرجعي المثبت${source}: ${pinned.value}`;
+            updateStakingCalc();
+            return true;
+        }
 
         function handleHeaderBack() {
             if (currentStep > 1) {
@@ -1092,8 +1317,32 @@
             s2.innerHTML = placeholder + options;
         }
 
+        function autoSelectPoint2() {
+            const p1Idx = document.getElementById('sel_pt1').value;
+            const p2 = document.getElementById('sel_pt2');
+            if (p1Idx === "") return;
+
+            if (points.length > 2) {
+                p2.value = "";
+                document.getElementById('read_2').disabled = true;
+                showToast("اختر النقطة الثانية الصحيحة من القائمة");
+                return;
+            }
+
+            const availableIndex = points.findIndex((_, i) => String(i) !== String(p1Idx));
+            if (availableIndex >= 0 && (!p2.value || p2.value === p1Idx)) {
+                p2.value = String(availableIndex);
+                document.getElementById('read_1').disabled = false;
+                document.getElementById('read_2').disabled = false;
+            }
+        }
+
         function enableNextField(step) {
-            if(step === 1) document.getElementById('read_1').disabled = !document.getElementById('sel_pt1').value;
+            if(step === 1) {
+                const hasP1 = !!document.getElementById('sel_pt1').value;
+                document.getElementById('read_1').disabled = !hasP1;
+                if (hasP1) autoSelectPoint2();
+            }
             if(step === 2) document.getElementById('sel_pt2').disabled = !document.getElementById('read_1').value;
             if(step === 3) document.getElementById('read_2').disabled = !document.getElementById('sel_pt2').value;
         }
@@ -1103,10 +1352,15 @@
             const r1 = parseFloat(document.getElementById('read_1').value);
             const p2Idx = document.getElementById('sel_pt2').value;
             const r2 = parseFloat(document.getElementById('read_2').value);
+            const designRLInput = document.getElementById('design_rl');
+            const designRLSource = document.getElementById('design_rl_source');
 
             if(p1Idx === "" || isNaN(r1) || p2Idx === "" || isNaN(r2)) {
                 document.getElementById('calcBox').style.display = 'none';
                 document.getElementById('btnCheckNext').disabled = true;
+                designRLInput.value = '';
+                designRLSource.textContent = '';
+                updateStakingCalc();
                 return;
             }
 
@@ -1114,6 +1368,9 @@
                 showToast("⚠️ يجب اختيار نقطتين مختلفتين للتحقق");
                 document.getElementById('calcBox').style.display = 'none';
                 document.getElementById('btnCheckNext').disabled = true;
+                designRLInput.value = '';
+                designRLSource.textContent = '';
+                updateStakingCalc();
                 return;
             }
 
@@ -1138,6 +1395,11 @@
             const obsRL2 = msmValue - r2;
             const calcDiff = Math.abs(rl1 - obsRL2);
             document.getElementById('res_calc_diff').textContent = calcDiff.toFixed(3) + " m";
+
+            // Auto-fill RL for step 3 from check result
+            designRLInput.value = obsRL2.toFixed(3);
+            designRLSource.textContent = `تم الحساب تلقائياً من التحقق: RL = ${obsRL2.toFixed(3)} m`;
+            updateStakingCalc();
 
             // 4. الفارق بين الناتجين (الخطأ)
             const error = Math.abs(trueDiff - calcDiff);
@@ -1207,7 +1469,7 @@
 
             if (file) {
                 card.classList.add('has-image');
-                icon.innerHTML = '✅';
+                icon.innerHTML = 'âœ…';
                 text.textContent = "تم التقاط صورة العلام بنجاح";
                 hint.textContent = "اضغط للتغيير";
                 
@@ -1248,12 +1510,12 @@
                 points[editingIndex] = {
                     name,
                     rl,
-                    image: hasNewImage ? '📷' : oldImage
+                    image: hasNewImage ? 'ðŸ“·' : oldImage
                 };
                 showToast('✅ تم تعديل النقطة بنجاح');
             } else {
                 // Add mode
-                points.push({ name, rl, image: hasNewImage ? '📷' : '—' });
+                points.push({ name, rl, image: hasNewImage ? 'ðŸ“·' : 'â€”' });
                 showToast('✅ تمت إضافة النقطة');
             }
 
@@ -1300,8 +1562,8 @@
             updateStakingCalc();
         }
 
-        function showCustomOffsetModal() {
-            const val = prompt("أدخل قيمة الإزاحة الخاصة (متر):", "0.00");
+        async function showCustomOffsetModal() {
+            const val = await askPrompt("أدخل قيمة الإزاحة الخاصة (متر):", "0.00");
             if (val !== null && !isNaN(val)) {
                 stakingOffset = parseFloat(val);
                 document.getElementById('custom_off_label').textContent = val + " m";
@@ -1314,7 +1576,7 @@
         function updateStakingCalc() {
             const designRLInput = document.getElementById('design_rl');
             const hasValue = designRLInput.value.trim() !== '';
-            const designRL = parseFloat(designRLInput.value) || 0;
+            const designRL = parseNumericLevel(designRLInput.value);
             const targetRL = designRL + stakingOffset;
             const reading = globalMSM - targetRL;
 
@@ -1338,7 +1600,7 @@
             readingDisp.textContent = reading.toFixed(3);
             
             // Update labels
-            document.getElementById('target_rl_display').textContent = `+${targetRL.toFixed(3)} (DMD)`;
+            document.getElementById('target_rl_display').textContent = `${targetRL >= 0 ? '+' : ''}${targetRL.toFixed(3)}`;
             document.getElementById('offset_display').textContent = `${stakingOffset >= 0 ? '+' : ''}${stakingOffset.toFixed(2)}m`;
             
             // Visual feedback based on feasibility
@@ -1354,6 +1616,121 @@
                  warning.style.display = "none";
             }
             saveAppState();
+        }
+
+        function parseNumericLevel(value) {
+            if (value === null || value === undefined) return 0;
+            const str = String(value).trim();
+            if (!str) return 0;
+            const match = str.match(/[-+]?\d*\.?\d+/);
+            return match ? parseFloat(match[0]) : 0;
+        }
+
+        function getSelectedLevels() {
+            const savedSite = localStorage.getItem("selectedSite");
+            if (!savedSite) return [];
+            try {
+                const site = JSON.parse(savedSite);
+                if (Array.isArray(site.levels) && site.levels.length) return site.levels;
+
+                if (typeof SITES_DB !== 'undefined' && Array.isArray(SITES_DB)) {
+                    const company = SITES_DB.find((c) => c.name === site.company);
+                    const match = company?.plots?.find((p) => p.id === site.plot);
+                    if (match && Array.isArray(match.levels)) return match.levels;
+                }
+
+                return [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function formatLevelCell(value) {
+            return value && String(value).trim() ? String(value) : '-';
+        }
+
+        function formatDisplayLevel(value) {
+            const numeric = parseNumericLevel(value);
+            return Number.isFinite(numeric) ? numeric.toFixed(3) : '-';
+        }
+
+        function openLevelsImportModal() {
+            const levels = getSelectedLevels();
+            selectedSiteLevels = levels;
+            const body = document.getElementById('levelsImportBody');
+            const subtitle = document.getElementById('levelsImportSubtitle');
+            const modal = document.getElementById('levelsImportModal');
+            const selectedSite = localStorage.getItem("selectedSite");
+            let siteInfo = '';
+
+            if (selectedSite) {
+                try {
+                    const site = JSON.parse(selectedSite);
+                    siteInfo = `${site.company || ''} - ${site.plot || ''}`;
+                } catch (e) {}
+            }
+
+            subtitle.textContent = siteInfo ? `الموقع المختار: ${siteInfo}` : 'لا يوجد موقع مختار حتى الآن';
+            body.innerHTML = '';
+
+            if (!levels.length) {
+                body.innerHTML = '<tr><td colspan="5" style="padding:22px; text-align:center; color:var(--text-dim); font-weight:700;">لا توجد مستويات مرتبطة بهذا الموقع</td></tr>';
+            } else {
+                levels.forEach((level, index) => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid #e5e7eb';
+                    tr.style.background = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+                    tr.innerHTML = `
+                        <td style="padding:12px 10px; font-weight:800; color:var(--text-main); white-space:nowrap;">${formatLevelCell(level.row_no)}</td>
+                        <td style="padding:12px 10px; direction:ltr; vertical-align:middle;">
+                            <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start;">
+                                <span style="font-weight:800; color:var(--text-main);">${formatLevelCell(level.design_level)}</span>
+                                <button type="button" class="import-level-btn design-btn" onclick="importLevelToDesign(${index}, 'design')">اختيار Design</button>
+                            </div>
+                        </td>
+                        <td style="padding:12px 10px; direction:ltr; vertical-align:middle;">
+                            <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start;">
+                                <span style="font-weight:800; color:var(--text-main);">${formatLevelCell(level.asbuilt_level)}</span>
+                                <button type="button" class="import-level-btn asbuilt-btn" onclick="importLevelToDesign(${index}, 'asbuilt')">اختيار As Built</button>
+                            </div>
+                        </td>
+                        <td style="padding:12px 10px; direction:ltr; color:var(--text-main); font-weight:700; white-space:nowrap;">${formatLevelCell(level.difference_value)}</td>
+                        <td style="padding:12px 10px; color:var(--text-main); font-weight:700;">${formatLevelCell(level.remarks)}</td>
+                    `;
+                    body.appendChild(tr);
+                });
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeLevelsImportModal() {
+            document.getElementById('levelsImportModal').style.display = 'none';
+        }
+
+        async function importLevelToDesign(index, source = 'design') {
+            const level = selectedSiteLevels[index];
+            if (!level) return;
+            const rawValue = source === 'asbuilt' ? level.asbuilt_level : level.design_level;
+            importedDesignLevelRaw = rawValue || '';
+            const value = parseNumericLevel(rawValue);
+            const input = document.getElementById('design_rl');
+            input.value = Number.isFinite(value) ? value.toFixed(3) : '';
+            const label = source === 'asbuilt' ? 'As Built' : 'Design Level';
+            document.getElementById('design_rl_source').textContent = `تم الاستيراد من الصف ${level.row_no || '-'} (${label}): ${formatDisplayLevel(importedDesignLevelRaw)}`;
+            closeLevelsImportModal();
+            updateStakingCalc();
+
+            const savedSite = localStorage.getItem("selectedSite");
+            if (!savedSite) return;
+            try {
+                const site = JSON.parse(savedSite);
+                const confirmPin = await askConfirm("هل تريد تثبيت هذا المنسوب كمنسوب مرجعي لهذا الموقع؟");
+                if (confirmPin && Number.isFinite(value)) {
+                    savePinnedReferenceLevel(site, value, `صف ${level.row_no || '-'} - ${label}`);
+                    showToast("تم تثبيت المنسوب المرجعي لهذا الموقع");
+                }
+            } catch (e) {}
         }
 
         // --- Persistence Logic ---
@@ -1419,8 +1796,8 @@
             nextStep(currentStep, true);
         }
 
-        function resetPage() {
-            if(confirm("هل أنت متأكد من مسح كافة البيانات والبدء من جديد؟")) {
+        async function resetPage() {
+            if(await askConfirm("هل أنت متأكد من مسح كافة البيانات والبدء من جديد؟")) {
                 localStorage.removeItem("atomic_app_state");
                 location.reload();
             }
@@ -1435,6 +1812,11 @@
                 const site = JSON.parse(savedSite);
                 document.getElementById("siteName").textContent = site.plot;
                 document.getElementById("siteCompany").textContent = site.company;
+                selectedSiteLevels = Array.isArray(site.levels) ? site.levels : [];
+                if (site.levels && site.levels.length) {
+                    document.getElementById('design_rl_source').textContent = `المستويات مرتبطة بالموقع المختار: ${site.company} - ${site.plot}`;
+                }
+                applyPinnedReferenceLevelForSite(site);
             }
         });
         function generateReport() {
@@ -1468,9 +1850,9 @@
             const reading = globalMSM - targetRL;
 
             document.getElementById('rep_reading').textContent = reading.toFixed(3);
-            document.getElementById('rep_dmd').textContent = "DESIGN LEVEL: " + designRL.toFixed(3) + " (DMD)";
+            document.getElementById('rep_dmd').textContent = "DESIGN LEVEL: " + designRL.toFixed(3);
             document.getElementById('rep_offset').textContent = (stakingOffset >= 0 ? '+' : '') + stakingOffset.toFixed(2) + "m Offset";
-            document.getElementById('rep_gwd').textContent = (targetRL >= 0 ? '+' : '') + targetRL.toFixed(3) + " (DMD)";
+            document.getElementById('rep_gwd').textContent = (targetRL >= 0 ? '+' : '') + targetRL.toFixed(3);
 
             // 4. Staking Image
             const imgInput = document.getElementById('staking_image');
@@ -1628,5 +2010,15 @@
             }
         }
     </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            if (!window.AtlasAuth) return;
+            await window.AtlasAuth.initialize();
+            const allowed = await window.AtlasAuth.requirePageAccess("pages.new-level-mark");
+            if (!allowed) return;
+            window.AtlasAuth.decorateShell();
+        });
+    </script>
 </body>
 </html>
+

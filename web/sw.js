@@ -1,29 +1,44 @@
 // Atlas Site - Service Worker
 // Handles offline caching and update notifications
 
-const CACHE_NAME = 'atlas-site-v2';
+const CACHE_NAME = 'atlas-site-v3';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/shared/app.js',
-  '/shared/style.css',
-  '/shared/mobile-fix.css',
-  '/shared/sites_data.js',
-  '/pages/new-level-mark/',
-  '/manifest.json',
-  '/version.json',
-  '/icons/brand-logo.png',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  './',
+  './index.html',
+  './shared/app.js',
+  './shared/style.css',
+  './shared/mobile-fix.css',
+  './shared/sites_data.js',
+  './pages/new-level-mark/',
+  './manifest.json',
+  './version.json',
+  './icons/brand-logo.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 // Install: Cache all assets
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
       console.log('[SW] Caching all assets');
-      return cache.addAll(ASSETS);
-    })
+      const results = await Promise.allSettled(
+        ASSETS.map(async (path) => {
+          const req = new Request(path, { cache: 'no-cache' });
+          await cache.add(req);
+          return path;
+        })
+      );
+
+      const failed = results
+        .map((result, idx) => ({ result, path: ASSETS[idx] }))
+        .filter((item) => item.result.status === 'rejected');
+
+      if (failed.length) {
+        console.warn('[SW] Some assets failed to cache:', failed.map(f => f.path));
+      }
+    })()
   );
   self.skipWaiting();
 });
@@ -51,6 +66,10 @@ self.addEventListener('activate', event => {
 
 // Fetch: Cache-first strategy with network update
 self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+  const reqUrl = new URL(event.request.url);
+  if (reqUrl.origin !== self.location.origin) return;
+
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
       // Return cached version immediately
@@ -59,7 +78,7 @@ self.addEventListener('fetch', event => {
         if (networkResponse && networkResponse.status === 200) {
           const responseClone = networkResponse.clone();
           caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseClone);
+            cache.put(event.request, responseClone).catch(() => {});
           });
         }
         return networkResponse;

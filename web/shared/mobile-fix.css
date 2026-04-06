@@ -27,11 +27,6 @@
     gap: 6px;
   }
 
-  .subText {
-    font-size: 0.42rem;
-    letter-spacing: 1.5px;
-  }
-
   .header-site-box {
     padding: 0.25rem 0.5rem;
     border-radius: 8px;
@@ -56,6 +51,21 @@
   .nav-title {
     font-size: 0.65rem;
     letter-spacing: 0px;
+  }
+
+  .global-back-btn {
+    height: 34px;
+    min-width: 92px;
+    padding: 0 0.6rem;
+    border-radius: 10px;
+    margin-bottom: 0.4rem;
+    font-size: 0.7rem;
+    gap: 4px;
+  }
+
+  .global-back-btn svg {
+    width: 16px;
+    height: 16px;
   }
 
   /* === Content Area === */
@@ -107,9 +117,12 @@
   }
 
   .back-btn {
-    width: 32px;
-    height: 32px;
+    height: 34px;
+    min-width: 92px;
+    padding: 0 0.6rem;
     border-radius: 10px;
+    font-size: 0.7rem;
+    gap: 4px;
   }
 
   .back-btn svg {
@@ -321,6 +334,15 @@
     border-radius: 12px;
   }
 
+  .check-select {
+    padding-right: 2.4rem;
+    background-position:
+      calc(100% - 1rem) 50%,
+      calc(100% - 0.75rem) 50%,
+      calc(100% - 2rem) 50%;
+    background-size: 0.4rem 0.4rem, 0.4rem 0.4rem, 1px 55%;
+  }
+
   .form-field label {
     font-size: 0.65rem;
   }
@@ -403,5 +425,102 @@
   .modal-content {
     border-radius: 22px;
     padding: 1.35rem;
+    max-height: 92vh;
+    overflow: hidden;
   }
+}
+
+@media (max-width: 640px) {
+  #siteModal .modal-content {
+    width: min(100%, 520px);
+    max-height: 94vh;
+  }
+
+  #siteModal #stepAdd.modal-step.active {
+    min-height: 0;
+  }
+
+  #siteModal .add-site-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    max-height: calc(94vh - 160px);
+    padding-right: 0.2rem;
+  }
+
+  #siteModal .form-group-light input,
+  #siteModal .form-group-light select {
+    padding: 0.8rem;
+    font-size: 0.82rem;
+    border-radius: 12px;
+  }
+
+  #siteModal .form-field-inline {
+    gap: 0.45rem;
+  }
+
+  #siteModal .field-add-btn {
+    width: 42px;
+    min-width: 42px;
+    flex-basis: 42px;
+    border-radius: 12px;
+    font-size: 1.2rem;
+  }
+
+  #siteModal .levels-entry-table th,
+  #siteModal .levels-entry-table td {
+    font-size: 0.68rem;
+    padding: 0.35rem;
+  }
+}
+
+/* === New Level Mark: DB Import Button === */
+.db-import-btn {
+  width: 100%;
+  margin-top: 10px;
+  height: 52px;
+  border: 1px solid rgba(30, 64, 175, 0.12);
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--accent-soft), #ffffff);
+  color: var(--primary);
+  font-weight: 900;
+  font-size: 0.92rem;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 10px 24px rgba(30, 64, 175, 0.08);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.db-import-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(30, 64, 175, 0.22);
+  box-shadow: 0 14px 28px rgba(30, 64, 175, 0.12);
+}
+
+.db-import-btn:active {
+  transform: translateY(0);
+}
+
+.db-import-btn svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 480px) {
+  .db-import-btn {
+    height: 44px;
+    font-size: 0.82rem;
+    border-radius: 12px;
+  }
+}
+
+.design-rl-source {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  font-weight: 700;
 }

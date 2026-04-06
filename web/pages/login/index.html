@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Atlas Surveying - تسجيل الدخول</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../shared/style.css" />
+  <link rel="stylesheet" href="../../shared/mobile-fix.css" />
+  <style>
+    .login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background:
+        radial-gradient(circle at top right, rgba(10, 127, 138, 0.1), transparent 32%),
+        radial-gradient(circle at bottom left, rgba(241, 135, 62, 0.18), transparent 28%),
+        linear-gradient(135deg, #eff6ff, #f8fafc 42%, #e2e8f0);
+    }
+
+    .login-shell {
+      width: min(100%, 430px);
+      border-radius: 32px;
+      padding: 22px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 28px 60px rgba(15, 23, 42, 0.16);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .brand img {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+      border-radius: 18px;
+      padding: 8px;
+      background: #fff;
+      border: 1px solid rgba(30, 64, 175, 0.1);
+      box-shadow: 0 12px 26px rgba(30, 64, 175, 0.08);
+    }
+
+    .brand h1 {
+      font-size: 1.2rem;
+      color: var(--primary);
+      font-weight: 900;
+      margin-bottom: 4px;
+    }
+
+    .brand p {
+      color: var(--text-dim);
+      font-size: 0.82rem;
+      line-height: 1.7;
+    }
+
+    .info-card,
+    .login-card {
+      background: #fff;
+      border: 1px solid rgba(30, 64, 175, 0.1);
+      border-radius: 24px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 12px 26px rgba(30, 64, 175, 0.05);
+    }
+
+    .info-card h2,
+    .login-card h2 {
+      color: var(--primary);
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+
+    .muted {
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      line-height: 1.8;
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      display: block;
+      color: var(--text-dim);
+      font-size: 0.76rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .field input {
+      width: 100%;
+      height: 48px;
+      border-radius: 14px;
+      border: 1.5px solid rgba(30, 64, 175, 0.14);
+      background: #f8fafc;
+      padding: 0 14px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .field input:focus {
+      background: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 10px 26px rgba(30, 64, 175, 0.08);
+    }
+
+    .login-btn {
+      width: 100%;
+      height: 52px;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--primary), #1e3a8a);
+      color: #fff;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 18px 34px rgba(30, 64, 175, 0.18);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .status {
+      min-height: 24px;
+      margin-top: 10px;
+      color: #b91c1c;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .status.ok {
+      color: #047857;
+    }
+
+    .quick-note {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-size: 0.76rem;
+      line-height: 1.8;
+      border: 1px solid rgba(30, 64, 175, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-shell">
+      <div class="brand">
+        <img src="../../icons/brand-logo.png" alt="Atlas" />
+        <div>
+          <h1>ATLAS SURVEYING</h1>
+          <p>بوابة تسجيل الدخول ولوحة الإدارة وإدارة الصلاحيات والصفحات.</p>
+        </div>
+      </div>
+
+      <section class="info-card">
+        <h2>وضع التشغيل</h2>
+        <p id="modeLabel" class="muted">جاري التحقق من وضع التشغيل...</p>
+        <div class="quick-note">
+          المستخدم الافتراضي لأول تشغيل:
+          <strong>admin</strong>
+          /
+          <strong>admin123</strong>
+        </div>
+      </section>
+
+      <section class="login-card">
+        <h2>تسجيل الدخول</h2>
+        <form id="loginForm">
+          <div class="field">
+            <label for="username">اسم المستخدم</label>
+            <input id="username" name="username" type="text" autocomplete="username" required value="admin" />
+          </div>
+          <div class="field">
+            <label for="password">كلمة المرور</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required value="admin123" />
+          </div>
+          <button id="submitBtn" class="login-btn" type="submit">دخول</button>
+          <div id="status" class="status"></div>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <script src="../../shared/auth.js"></script>
+  <script>
+    const statusEl = document.getElementById("status");
+    const submitBtn = document.getElementById("submitBtn");
+    const modeLabel = document.getElementById("modeLabel");
+
+    function getRedirectTarget() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("redirect") || "/index.html";
+    }
+
+    function setStatus(message, isOk = false) {
+      statusEl.textContent = message || "";
+      statusEl.classList.toggle("ok", Boolean(isOk));
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      await window.AtlasAuth.initialize();
+
+      const mode = await window.AtlasStore.getMode();
+      modeLabel.textContent =
+        mode === "cloudflare"
+          ? "Cloudflare mode: يتم حفظ المستخدمين والصفحات والمواقع عبر KV / R2."
+          : "Local mode: البيانات محفوظة محليًا داخل المتصفح حتى يتم تفعيل Cloudflare.";
+
+      const user = window.AtlasAuth.getCurrentUser();
+      if (user) {
+        window.location.href = getRedirectTarget();
+      }
+    });
+
+    document.getElementById("loginForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      setStatus("");
+      submitBtn.disabled = true;
+
+      try {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        await window.AtlasAuth.login(username, password);
+        setStatus("تم تسجيل الدخول بنجاح", true);
+        window.location.href = getRedirectTarget();
+      } catch (error) {
+        setStatus(error.message || "تعذر تسجيل الدخول");
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

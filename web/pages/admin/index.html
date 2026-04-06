@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Atlas Surveying - لوحة الإدارة</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../shared/style.css" />
+  <link rel="stylesheet" href="../../shared/mobile-fix.css" />
+  <style>
+    .admin-page { min-height: 100vh; overflow-y: auto; background: linear-gradient(135deg, #f8fafc, #e2e8f0); }
+    .wrap { width: min(100%, 1180px); margin: 0 auto; padding: 14px; padding-bottom: 90px; }
+    .hero, .layout, .browser, .grid-2, .grid-3, .stats, .perm-grid { display: grid; gap: 12px; }
+    .hero, .layout { grid-template-columns: 1.1fr 0.9fr; }
+    .browser { grid-template-columns: 1fr 1fr 1.2fr; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 12px; }
+    .perm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card, .panel, .side-card, .browser-col { background: rgba(255,255,255,.9); border: 1px solid rgba(255,255,255,.9); border-radius: 24px; box-shadow: 0 18px 44px rgba(15,23,42,.08); padding: 16px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .side-stack { display: grid; gap: 12px; position: sticky; top: 12px; }
+    .tabs, .hero-actions, .row-actions, .inline-files { display: flex; gap: 8px; flex-wrap: wrap; }
+    .panel-head, .inline-head, .row-item, .detail-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .row-list { display: flex; flex-direction: column; gap: 8px; max-height: 58vh; overflow-y: auto; }
+    .row-item, .detail-card, .stat, .perm-item, .upload-box { border-radius: 18px; border: 1px solid rgba(30,64,175,.08); background: #fff; padding: 12px; }
+    .row-item.active { background: #eff6ff; border-color: rgba(30,64,175,.24); }
+    .field { margin-bottom: 10px; }
+    .field label { display: block; font-size: .74rem; color: var(--text-dim); margin-bottom: 4px; font-weight: 700; }
+    .field input, .field select, .field textarea { width: 100%; min-height: 46px; border-radius: 14px; border: 1.5px solid rgba(30,64,175,.12); background: #f8fafc; padding: 10px 12px; font-family: inherit; font-size: .9rem; }
+    .field textarea { min-height: 100px; resize: vertical; }
+    .action-btn, .tab-btn, .mini-btn, .danger-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 14px; border-radius: 14px; font-weight: 800; font-family: inherit; cursor: pointer; text-decoration: none; }
+    .action-btn, .tab-btn, .mini-btn { border: 1px solid rgba(30,64,175,.14); background: #fff; color: var(--primary); }
+    .action-btn.primary, .tab-btn.active { border: none; color: #fff; background: linear-gradient(135deg, var(--primary), #1e3a8a); }
+    .danger-btn { border: 1px solid rgba(190,18,60,.18); background: #fff1f2; color: #be123c; }
+    .empty, .muted { color: var(--text-dim); line-height: 1.8; font-size: .84rem; }
+    .empty { border: 1px dashed rgba(30,64,175,.18); border-radius: 18px; background: #f8fafc; padding: 18px; text-align: center; }
+    .stat small, .detail-row label, .row-item span { color: var(--text-dim); font-size: .74rem; font-weight: 700; }
+    .stat strong, .row-item strong, .detail-row span { color: var(--text-main); font-weight: 900; }
+    .stat strong { font-size: 1.2rem; color: var(--primary); font-family: "Outfit", sans-serif; }
+    .perm-item { display: flex; align-items: center; gap: 10px; background: #f8fafc; }
+    .perm-item input { width: 18px; height: 18px; accent-color: var(--primary); }
+    .perm-item label { margin: 0; cursor: pointer; font-size: .82rem; color: var(--text-main); font-weight: 700; }
+    .upload-box { background: #f8fafc; border-style: dashed; }
+    .file-chip { padding: 6px 10px; border-radius: 999px; background: #fff; border: 1px solid rgba(30,64,175,.1); font-size: .72rem; font-weight: 700; }
+    .hero-title { color: var(--primary); font-size: 1.45rem; margin-bottom: 8px; }
+    @media (max-width: 980px) {
+      .hero, .layout, .browser, .grid-2, .grid-3, .stats, .perm-grid { grid-template-columns: 1fr; }
+      .side-stack { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-page">
+    <div class="wrap">
+      <section class="hero">
+        <div class="card">
+          <h1 class="hero-title">لوحة الإدارة</h1>
+          <p class="muted">إدارة المستخدمين والشركات والمناطق والمواقع وصلاحيات الصفحات ورفع صفحات جديدة للموقع.</p>
+          <div class="hero-actions">
+            <a class="action-btn" href="../../index.html">العودة للرئيسية</a>
+            <a class="action-btn" href="../login/">صفحة تسجيل الدخول</a>
+            <button id="logoutBtn" class="action-btn primary" type="button">تسجيل الخروج</button>
+          </div>
+          <div class="stats">
+            <div class="stat"><small>المستخدمون</small><strong id="statUsers">0</strong></div>
+            <div class="stat"><small>الشركات</small><strong id="statCompanies">0</strong></div>
+            <div class="stat"><small>المواقع</small><strong id="statSites">0</strong></div>
+            <div class="stat"><small>الصفحات المرفوعة</small><strong id="statPages">0</strong></div>
+          </div>
+        </div>
+        <div class="side-card">
+          <h3>بيئة التشغيل</h3>
+          <p id="runtimeMode" class="muted">جاري التحميل...</p>
+          <div data-auth-shell></div>
+        </div>
+      </section>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="users" type="button">1. إدارة المستخدمين</button>
+        <button class="tab-btn" data-tab="sites" type="button">2. الشركات والمناطق والمواقع</button>
+        <button class="tab-btn" data-tab="permissions" type="button">3. الصلاحيات</button>
+        <button class="tab-btn" data-tab="pages" type="button">4. إدارة الصفحات</button>
+      </div>
+
+      <div class="layout">
+        <div>
+          <section id="panel-users" class="panel active">
+            <div class="grid-2">
+              <div class="side-card">
+                <div class="panel-head"><h3>إنشاء مستخدم</h3></div>
+                <div class="field"><label>اسم المستخدم</label><input id="userUsername" type="text" /></div>
+                <div class="field"><label>الاسم الكامل</label><input id="userFullName" type="text" /></div>
+                <div class="field"><label>كلمة المرور</label><input id="userPassword" type="password" /></div>
+                <div class="field"><label>النوع</label><select id="userRole"><option value="member">مستخدم عادي</option><option value="admin">مدير</option></select></div>
+                <button id="createUserBtn" class="action-btn primary" type="button">إنشاء المستخدم</button>
+              </div>
+              <div class="side-card">
+                <div class="panel-head"><h3>قائمة المستخدمين</h3></div>
+                <div id="usersList" class="row-list"></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="panel-sites" class="panel">
+            <div class="panel-head"><h2>الشركات والمناطق والمواقع</h2><button id="resetSiteFormBtn" class="action-btn" type="button">تفريغ النموذج</button></div>
+            <div class="browser">
+              <div class="browser-col"><div class="inline-head"><h4>الشركات</h4><button id="addCompanyBtn" class="mini-btn" type="button">+ شركة</button></div><div id="companiesBrowser" class="row-list"></div></div>
+              <div class="browser-col"><div class="inline-head"><h4>المناطق</h4><button id="renameAreaBtn" class="mini-btn" type="button">تعديل المنطقة</button></div><div id="areasBrowser" class="row-list"></div></div>
+              <div class="browser-col"><h4>تفاصيل الموقع</h4><div id="siteDetail" class="detail-card"><div class="empty">اختر موقعًا لعرض التفاصيل.</div></div></div>
+            </div>
+            <div class="grid-3" style="margin-top: 14px;">
+              <div class="field"><label>الشركة</label><select id="siteCompanySelect"></select></div>
+              <div class="field"><label>المنطقة</label><input id="siteAreaInput" type="text" /></div>
+              <div class="field"><label>رقم الأرض</label><input id="sitePlotInput" type="text" /></div>
+              <div class="field"><label>اسم المالك</label><input id="siteOwnerInput" type="text" /></div>
+              <div class="field"><label>اسم الاستشاري</label><input id="siteConsultantInput" type="text" /></div>
+              <div class="field"><label>اسم المشروع</label><input id="siteProjectInput" type="text" /></div>
+              <div class="field"><label>اسم المقاول</label><input id="siteContractorInput" type="text" /></div>
+              <div class="field"><label>سنة التقرير</label><input id="siteReportYearInput" type="text" /></div>
+              <div class="field"><label>شهر التقرير</label><input id="siteReportMonthInput" type="text" /></div>
+              <div class="field"><label>رقم التقرير في الشهر</label><input id="siteReportNoInput" type="text" /></div>
+              <div class="field"><label>رقم التقرير المصدر</label><input id="siteSourceIdInput" type="text" /></div>
+              <div class="field"><label>تاريخ المسح</label><input id="siteSurveyDateInput" type="date" /></div>
+              <div class="field"><label>موضوع التقرير</label><input id="siteSubjectInput" type="text" /></div>
+              <div class="field"><label>اسم المساح</label><input id="siteSurveyorInput" type="text" value="MR. " /></div>
+            </div>
+            <div class="hero-actions"><button id="saveSiteBtn" class="action-btn primary" type="button">حفظ الموقع</button><button id="deleteSiteBtn" class="danger-btn" type="button">حذف الموقع الحالي</button></div>
+          </section>
+
+          <section id="panel-permissions" class="panel">
+            <div class="grid-2">
+              <div class="side-card"><div class="panel-head"><h3>المستخدمون</h3></div><div id="permissionsUsersList" class="row-list"></div></div>
+              <div class="side-card"><div class="panel-head"><h3 id="permissionUserTitle">تفاصيل الصلاحيات</h3><button id="savePermissionsBtn" class="action-btn primary" type="button">حفظ الصلاحيات</button></div><p id="permissionsHint" class="muted">اختر مستخدمًا أولًا.</p><div id="permissionsGrid" class="perm-grid"></div></div>
+            </div>
+          </section>
+
+          <section id="panel-pages" class="panel">
+            <div class="upload-box">
+              <p class="muted">رفع ملف HTML أو مجلد كامل. في وضع Cloudflare سيتم حفظ الملفات داخل R2 لتصبح لكل صفحة وصلة خاصة بها.</p>
+              <div class="grid-2">
+                <div class="field"><label>عنوان الصفحة</label><input id="pageTitleInput" type="text" /></div>
+                <div class="field"><label>Slug / اسم المجلد</label><input id="pageSlugInput" type="text" /></div>
+              </div>
+              <div class="hero-actions">
+                <label class="action-btn" for="pageFileInput">اختيار ملف</label><input id="pageFileInput" type="file" hidden multiple />
+                <label class="action-btn" for="pageFolderInput">اختيار مجلد</label><input id="pageFolderInput" type="file" hidden multiple webkitdirectory directory />
+                <button id="uploadPagesBtn" class="action-btn primary" type="button">رفع الملفات المختارة</button>
+              </div>
+              <div id="selectedFiles" class="inline-files"></div>
+            </div>
+            <div class="grid-2">
+              <div class="side-card"><div class="panel-head"><h3>صفحات ثابتة</h3></div><div id="staticPagesList" class="row-list"></div></div>
+              <div class="side-card"><div class="panel-head"><h3>صفحات مرفوعة</h3></div><div id="uploadedPagesList" class="row-list"></div></div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="side-stack">
+          <section class="side-card"><div class="panel-head"><h3>الحالة</h3></div><p id="statusBox" class="muted">جاهز.</p></section>
+          <section class="side-card"><div class="panel-head"><h3>المستخدم المحدد</h3></div><div id="selectedUserCard" class="empty">لا يوجد مستخدم محدد.</div></section>
+          <section class="side-card"><div class="panel-head"><h3>الموقع المحدد</h3></div><div id="selectedSiteCard" class="empty">لا يوجد موقع محدد.</div></section>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../shared/sites_data.js"></script>
+  <script src="../../shared/dialogs.js"></script>
+  <script src="../../shared/auth.js"></script>
+  <script src="./admin.js"></script>
+</body>
+</html>

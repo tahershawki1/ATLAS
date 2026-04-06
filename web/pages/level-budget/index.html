@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Atlas Surveying - جدول الميزانية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../shared/style.css" />
+  <link rel="stylesheet" href="../../shared/mobile-fix.css" />
+  <script src="../../shared/auth.js"></script>
+  <style>
+    .budget-page { min-height: 100vh; background: radial-gradient(circle at top right, #f1f5f9 0%, #e2e8f0 100%); overflow-y: auto; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 18px; padding-bottom: 90px; }
+    .top-actions { display: flex; gap: 10px; margin-bottom: 14px; }
+    .action-btn { flex: 1; height: 46px; border-radius: 14px; border: 1px solid rgba(30, 64, 175, 0.12); background: #fff; color: var(--primary); font-weight: 800; cursor: pointer; }
+    .card { background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(255, 255, 255, 1); border-radius: 24px; padding: 18px; box-shadow: 0 14px 28px rgba(30, 64, 175, 0.08); margin-bottom: 14px; }
+    .card h2 { color: var(--primary); margin-bottom: 8px; font-size: 1.2rem; }
+    .muted { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 12px; }
+    .inline-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .field label { display: block; font-size: 0.82rem; color: var(--text-dim); margin-bottom: 4px; font-weight: 700; }
+    .field input { width: 100%; height: 42px; border-radius: 12px; border: 1.5px solid rgba(30, 64, 175, 0.15); padding: 0 10px; font-family: 'Outfit', sans-serif; direction: ltr; text-align: center; font-weight: 700; }
+    .table-shell { overflow: auto; border: 1px solid rgba(30, 64, 175, 0.1); border-radius: 14px; background: #fff; }
+    table { width: 100%; min-width: 920px; border-collapse: collapse; text-align: center; }
+    th, td { border-bottom: 1px solid rgba(30, 64, 175, 0.08); padding: 10px 8px; font-size: 0.82rem; }
+    th { background: #f8fafc; color: var(--primary); font-weight: 800; position: sticky; top: 0; z-index: 1; }
+    td input { width: 100%; border: 1px solid rgba(30, 64, 175, 0.15); border-radius: 10px; height: 36px; padding: 0 8px; font-size: 0.78rem; font-family: 'Outfit', sans-serif; text-align: center; }
+    td input.num { direction: ltr; }
+    .input-cell { background: #fff2cc; border-color: #eab308; }
+    .readonly { background: #f8fafc; color: #0f172a; font-weight: 700; }
+    .toolbar { display: flex; gap: 10px; margin-top: 10px; }
+    .toolbar button { flex: 1; height: 44px; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; }
+    .btn-add { background: #eaf6ee; color: #15803d; border: 1px dashed #22c55e; }
+    .btn-calc { background: var(--primary); color: #fff; }
+    .btn-reset { background: #fff1f2; color: #be123c; border: 1px solid rgba(190, 18, 60, 0.2); }
+    .check-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .check-item { background: #f8fafc; border: 1px solid rgba(30, 64, 175, 0.1); border-radius: 12px; padding: 10px; }
+    .check-item .label { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 4px; }
+    .check-item .value { font-family: 'Outfit', sans-serif; direction: ltr; font-weight: 800; color: var(--text-main); }
+    .status { margin-top: 10px; border-radius: 12px; padding: 10px; font-weight: 800; text-align: center; border: 1px solid transparent; }
+    .status.ok { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .status.warn { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+    .status.bad { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+    @media (max-width: 640px) {
+      .wrap { padding: 10px; padding-bottom: 70px; }
+      .card { border-radius: 16px; padding: 12px; }
+      .inline-fields { grid-template-columns: 1fr; }
+      .check-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="budget-page">
+    <div class="wrap">
+      <div class="top-actions">
+        <button class="back-btn" onclick="window.location.href='../../index.html'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transform: rotate(180deg);" aria-hidden="true">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          <span>العودة</span>
+        </button>
+        <button class="action-btn" onclick="resetAll()">مسح الكل</button>
+      </div>
+
+      <section class="card">
+        <h2>الميزانية - جدول التسوية</h2>
+        <p class="muted">إدخال قراءات BS / IS / FS وحساب HI و RL والتحقق الحسابي.</p>
+
+        <div class="inline-fields">
+          <div class="field">
+            <label>BM / RL البداية</label>
+            <input id="startRL" type="number" step="0.001" value="45.566" class="input-cell" />
+          </div>
+          <div class="field">
+            <label>سماحية الخطأ (م)</label>
+            <input id="tol" type="number" step="0.001" value="0.005" class="input-cell" />
+          </div>
+        </div>
+
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>النقطة</th>
+                <th>BS</th>
+                <th>IS</th>
+                <th>FS</th>
+                <th>HI</th>
+                <th>RL</th>
+                <th>ملاحظات</th>
+                <th>حذف</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+
+        <div class="toolbar">
+          <button class="btn-add" onclick="addRow()">+ إضافة صف</button>
+          <button class="btn-calc" onclick="calculateBudget()">احسب وحقق</button>
+          <button class="btn-reset" onclick="resetRows()">تفريغ الصفوف</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>التحقق الحسابي</h2>
+        <div class="check-grid">
+          <div class="check-item"><div class="label">Σ BS</div><div class="value" id="sumBS">0.000</div></div>
+          <div class="check-item"><div class="label">Σ FS</div><div class="value" id="sumFS">0.000</div></div>
+          <div class="check-item"><div class="label">ΣBS - ΣFS</div><div class="value" id="sumDiff">0.000</div></div>
+          <div class="check-item"><div class="label">Last RL - First RL</div><div class="value" id="rlDiff">0.000</div></div>
+          <div class="check-item"><div class="label">Closing Error</div><div class="value" id="closingError">0.000</div></div>
+          <div class="check-item"><div class="label">عدد محطات الجهاز</div><div class="value" id="stationCount">0</div></div>
+        </div>
+        <div id="status" class="status warn">أضف قراءات ثم اضغط "احسب وحقق"</div>
+      </section>
+    </div>
+  </div>
+
+  <script src="../../shared/dialogs.js"></script>
+  <script>
+    const rowsEl = document.getElementById('rows');
+
+    function fmt(n) {
+      return Number.isFinite(n) ? n.toFixed(3) : '';
+    }
+
+    function val(input) {
+      const x = parseFloat(input.value);
+      return Number.isFinite(x) ? x : null;
+    }
+
+    function createRow(idx) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${idx}</td>
+        <td><input class="input-cell" placeholder="P${idx}" /></td>
+        <td><input class="num input-cell" type="number" step="0.001" /></td>
+        <td><input class="num input-cell" type="number" step="0.001" /></td>
+        <td><input class="num input-cell" type="number" step="0.001" /></td>
+        <td><input class="readonly num" type="text" readonly /></td>
+        <td><input class="readonly num" type="text" readonly /></td>
+        <td><input class="input-cell" placeholder="-" /></td>
+        <td><button type="button" onclick="deleteRow(this)">✕</button></td>
+      `;
+      rowsEl.appendChild(tr);
+    }
+
+    function renumberRows() {
+      [...rowsEl.children].forEach((tr, i) => tr.children[0].textContent = i + 1);
+    }
+
+    function addRow() {
+      createRow(rowsEl.children.length + 1);
+    }
+
+    function deleteRow(btn) {
+      btn.closest('tr').remove();
+      renumberRows();
+    }
+
+    function resetRows() {
+      rowsEl.innerHTML = '';
+      for (let i = 0; i < 6; i++) addRow();
+      resetCheck();
+    }
+
+    function resetAll() {
+      document.getElementById('startRL').value = '45.566';
+      document.getElementById('tol').value = '0.005';
+      resetRows();
+    }
+
+    function setCheck(id, value) {
+      document.getElementById(id).textContent = value;
+    }
+
+    function resetCheck() {
+      setCheck('sumBS', '0.000');
+      setCheck('sumFS', '0.000');
+      setCheck('sumDiff', '0.000');
+      setCheck('rlDiff', '0.000');
+      setCheck('closingError', '0.000');
+      setCheck('stationCount', '0');
+      const status = document.getElementById('status');
+      status.className = 'status warn';
+      status.textContent = 'أضف قراءات ثم اضغط "احسب وحقق"';
+    }
+
+    function calculateBudget() {
+      const startRL = parseFloat(document.getElementById('startRL').value);
+      const tol = parseFloat(document.getElementById('tol').value);
+      if (!Number.isFinite(startRL)) return;
+
+      const status = document.getElementById('status');
+      const trs = [...rowsEl.querySelectorAll('tr')];
+      const hasAnyBS = trs.some((tr) => val(tr.children[2].querySelector('input')) !== null);
+      if (!hasAnyBS) {
+        status.className = 'status warn';
+        status.textContent = 'يرجى إدخال BS واحد على الأقل لبدء الحساب.';
+        return;
+      }
+
+      let sumBS = 0;
+      let sumFS = 0;
+      let stations = 0;
+      let previousHI = null;
+      let lastComputedRL = startRL;
+      let pendingError = '';
+
+      trs.forEach((tr, rowIndex) => {
+        const bs = val(tr.children[2].querySelector('input'));
+        const isv = val(tr.children[3].querySelector('input'));
+        const fs = val(tr.children[4].querySelector('input'));
+        const hiO = tr.children[5].querySelector('input');
+        const rlO = tr.children[6].querySelector('input');
+
+        const hasAnyReading = bs !== null || isv !== null || fs !== null;
+        if (!hasAnyReading) {
+          hiO.value = '';
+          rlO.value = '';
+          return;
+        }
+
+        const bsN = bs ?? 0;
+        const isN = isv ?? 0;
+        const fsN = fs ?? 0;
+
+        if (bs !== null) {
+          sumBS += bsN;
+          stations += 1;
+        }
+        if (fs !== null) sumFS += fsN;
+
+        let rowRL = null;
+        if (rowIndex === 0) rowRL = startRL;
+        else if (previousHI !== null) rowRL = previousHI - isN - fsN;
+
+        if (rowRL === null) {
+          hiO.value = '';
+          rlO.value = '';
+          if (!pendingError) pendingError = 'لا يمكن حساب RL قبل إنشاء محطة أولى (BS).';
+          return;
+        }
+
+        const rowHI = rowRL + isN + bsN;
+        previousHI = rowHI;
+        lastComputedRL = rowRL;
+        const isTurningPoint = bs !== null;
+
+        hiO.value = isTurningPoint ? fmt(rowHI) : '';
+        rlO.value = fmt(rowRL);
+      });
+
+      const rlDiff = lastComputedRL - startRL;
+      const sumDiff = sumBS - sumFS;
+      const closing = Math.abs(sumDiff - rlDiff);
+
+      setCheck('sumBS', fmt(sumBS));
+      setCheck('sumFS', fmt(sumFS));
+      setCheck('sumDiff', fmt(sumDiff));
+      setCheck('rlDiff', fmt(rlDiff));
+      setCheck('closingError', fmt(closing));
+      setCheck('stationCount', String(stations));
+
+      if (pendingError) {
+        status.className = 'status warn';
+        status.textContent = pendingError;
+        return;
+      }
+      if (!Number.isFinite(tol)) {
+        status.className = 'status warn';
+        status.textContent = 'يرجى إدخال سماحية خطأ صحيحة.';
+        return;
+      }
+
+      if (closing <= tol) {
+        status.className = 'status ok';
+        status.textContent = 'التحقق ناجح. الخطأ ضمن السماحية.';
+      } else if (closing <= tol * 2) {
+        status.className = 'status warn';
+        status.textContent = 'التحقق يحتاج مراجعة. الخطأ أعلى من السماحية.';
+      } else {
+        status.className = 'status bad';
+        status.textContent = 'التحقق فشل. فرق الإقفال كبير.';
+      }
+    }
+
+    resetRows();
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      if (!window.AtlasAuth) return;
+      await window.AtlasAuth.initialize();
+      const allowed = await window.AtlasAuth.requirePageAccess("pages.level-budget");
+      if (!allowed) return;
+      window.AtlasAuth.decorateShell();
+    });
+  </script>
+</body>
+</html>

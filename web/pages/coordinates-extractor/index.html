@@ -1,0 +1,2687 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atlas Surveying - استخراج الإحداثيات</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../shared/style.css">
+    <link rel="stylesheet" href="../../shared/mobile-fix.css">
+    <link rel="stylesheet" href="../../LIP/vendor/leaflet/leaflet.css">
+    <script src="../../shared/auth.js"></script>
+    <style>
+        .custom-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: radial-gradient(circle at top right, #f1f5f9 0%, #e2e8f0 100%);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .form-container {
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+            padding-bottom: 80px;
+        }
+
+        .header-btns {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .back-btn-header {
+            background: #ffffff;
+            border: 1px solid rgba(30, 64, 175, 0.1);
+            color: var(--primary);
+            flex: 1;
+            height: 52px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            font-weight: 800;
+            gap: 8px;
+        }
+
+        .back-btn-header:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .back-btn-header:active {
+            transform: scale(0.96);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(15px);
+            border-radius: 30px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 1);
+            box-shadow: 0 15px 35px rgba(30, 64, 175, 0.08);
+            margin-bottom: 1rem;
+        }
+
+        .title {
+            color: var(--primary);
+            font-weight: 900;
+            margin-bottom: 8px;
+            font-size: 1.25rem;
+        }
+
+        .sub-title {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+
+        .upload-shell {
+            border: 2px dashed rgba(30, 64, 175, 0.28);
+            border-radius: 22px;
+            background: #ffffff;
+            padding: 1.2rem;
+            text-align: center;
+        }
+
+        .file-btn {
+            width: 100%;
+            height: 56px;
+            border-radius: 16px;
+            border: 1px solid rgba(30, 64, 175, 0.15);
+            background: #f8fafc;
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .file-btn:hover {
+            transform: translateY(-2px);
+            background: #ffffff;
+            box-shadow: 0 8px 20px rgba(30, 64, 175, 0.08);
+        }
+
+        .viewer-toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .viewer-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .viewer-file-name {
+            color: var(--text-dim);
+            font-size: 0.88rem;
+            font-weight: 700;
+            text-align: left;
+            direction: ltr;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 65%;
+        }
+
+        .tool-btn {
+            flex: 1;
+            min-width: 140px;
+            height: 46px;
+            border-radius: 14px;
+            border: 1px solid rgba(30, 64, 175, 0.14);
+            background: #ffffff;
+            color: var(--text-main);
+            font-weight: 800;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .tool-btn.active {
+            opacity: 0.55;
+            border-color: rgba(30, 64, 175, 0.3);
+        }
+
+        .zoom-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: auto;
+        }
+
+        .map-tools-floating {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 500;
+        }
+
+        .map-icon-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            border: 1px solid rgba(30, 64, 175, 0.2);
+            background: rgba(255, 255, 255, 0.96);
+            color: var(--primary);
+            font-size: 20px;
+            font-weight: 900;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .map-icon-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .map-icon-btn.active {
+            border-color: rgba(241, 135, 62, 0.7);
+            color: #f1873e;
+        }
+
+        .map-zoom-badge {
+            min-width: 42px;
+            text-align: center;
+            padding: 6px 4px;
+            border-radius: 10px;
+            border: 1px solid rgba(30, 64, 175, 0.16);
+            background: rgba(255, 255, 255, 0.96);
+            color: var(--primary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 800;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+        }
+
+        .extract-btn {
+            width: auto;
+            min-width: 98px;
+            height: 38px;
+            padding: 0 10px;
+            border-radius: 14px;
+            border: none;
+            background: var(--primary);
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 0.82rem;
+            cursor: pointer;
+            box-shadow: 0 10px 22px rgba(10, 127, 138, 0.25);
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .extract-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 26px rgba(10, 127, 138, 0.32);
+        }
+
+        .extract-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .zoom-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid rgba(30, 64, 175, 0.14);
+            background: #ffffff;
+            color: var(--primary);
+            font-size: 1.2rem;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .zoom-label {
+            min-width: 72px;
+            text-align: center;
+            color: var(--primary);
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+        }
+
+        .viewer-wrap {
+            position: relative;
+            border-radius: 18px;
+            border: 1px solid rgba(30, 64, 175, 0.12);
+            background: #eef2f7;
+            height: 66vh;
+            overflow: hidden;
+            padding: 0;
+            cursor: default;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        #pagesHost {
+            width: 100%;
+            height: 100%;
+        }
+
+        .page-nav-floating {
+            position: absolute;
+            left: 50%;
+            bottom: 12px;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            flex-wrap: nowrap;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 14px;
+            border: 1px solid rgba(30, 64, 175, 0.14);
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+            z-index: 500;
+            max-width: calc(100% - 16px);
+            overflow-x: auto;
+        }
+
+        .selection-delete-map {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 0;
+            background: #dc2626;
+            color: #fff;
+            font-size: 14px;
+            line-height: 22px;
+            text-align: center;
+            font-weight: 900;
+            box-shadow: 0 4px 10px rgba(220, 38, 38, 0.3);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .selection-resize-handle {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            background: #0a7f8a;
+            box-shadow: 0 4px 10px rgba(10, 127, 138, 0.35);
+            cursor: nwse-resize;
+        }
+
+        .viewer-wrap.hand-mode {
+            cursor: grab;
+        }
+
+        .viewer-wrap.hand-mode.dragging {
+            cursor: grabbing;
+        }
+
+        .pdf-page {
+            position: relative;
+            margin: 0 auto 16px auto;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+            width: fit-content;
+        }
+
+        .pdf-page canvas {
+            display: block;
+        }
+
+        .table-selection {
+            position: absolute;
+            border: 2px dashed #0a7f8a;
+            background: rgba(10, 127, 138, 0.15);
+            box-sizing: border-box;
+            cursor: move;
+            z-index: 6;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .table-selection.active {
+            border-color: #f1873e;
+            background: rgba(241, 135, 62, 0.2);
+        }
+
+        .selection-handle {
+            width: 12px;
+            height: 12px;
+            background: #0a7f8a;
+            border-radius: 50%;
+            position: absolute;
+            z-index: 7;
+        }
+
+        .selection-handle.nw { top: -7px; left: -7px; cursor: nwse-resize; }
+        .selection-handle.ne { top: -7px; right: -7px; cursor: nesw-resize; }
+        .selection-handle.sw { bottom: -7px; left: -7px; cursor: nesw-resize; }
+        .selection-handle.se { bottom: -7px; right: -7px; cursor: nwse-resize; }
+
+        .selection-delete {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: none;
+            background: #dc2626;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 900;
+            line-height: 20px;
+            text-align: center;
+            cursor: pointer;
+            z-index: 8;
+            box-shadow: 0 4px 10px rgba(220, 38, 38, 0.3);
+            padding: 0;
+        }
+
+        .results-shell {
+            margin-top: 12px;
+            border: 1px solid rgba(30, 64, 175, 0.12);
+            border-radius: 14px;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .step-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .step-btn {
+            height: 42px;
+            border: none;
+            border-radius: 12px;
+            padding: 0 14px;
+            font-size: 0.86rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .step-btn.primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .step-btn.secondary {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .map-area {
+            width: 100%;
+            height: 62vh;
+            border: 1px solid rgba(30, 64, 175, 0.16);
+            border-radius: 14px;
+            overflow: hidden;
+            background: #f8fafc;
+        }
+
+        .point-name-tooltip {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(30, 64, 175, 0.18);
+            color: #0f172a;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+            font-family: 'Outfit', 'Cairo', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 2px 6px;
+        }
+
+        .point-name-tooltip:before {
+            display: none;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 16px;
+        }
+
+        .modal-card {
+            width: min(520px, 100%);
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid rgba(30, 64, 175, 0.12);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+            overflow: hidden;
+        }
+
+        .modal-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(30, 64, 175, 0.08);
+            background: #f8fafc;
+        }
+
+        .modal-title {
+            margin: 0;
+            font-size: 1rem;
+            color: var(--primary);
+            font-weight: 900;
+        }
+
+        .modal-close {
+            border: none;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: #e2e8f0;
+            color: #1e293b;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 900;
+        }
+
+        .modal-body {
+            padding: 14px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .modal-label {
+            font-size: 0.82rem;
+            color: #334155;
+            font-weight: 700;
+        }
+
+        .modal-select {
+            width: 100%;
+            height: 40px;
+            border: 1px solid rgba(30, 64, 175, 0.2);
+            border-radius: 10px;
+            padding: 0 10px;
+            background: #fff;
+            color: #0f172a;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .export-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .export-btn {
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid rgba(30, 64, 175, 0.18);
+            background: #fff;
+            color: var(--primary);
+            font-size: 0.82rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .export-note {
+            margin: 0;
+            font-size: 0.76rem;
+            color: #64748b;
+            font-weight: 700;
+        }
+
+        .results-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 10px 12px;
+            background: #f8fafc;
+            border-bottom: 1px solid rgba(30, 64, 175, 0.08);
+        }
+
+        .results-title {
+            margin: 0;
+            color: var(--primary);
+            font-weight: 900;
+            font-size: 0.92rem;
+        }
+
+        .results-count {
+            color: var(--text-dim);
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .results-table-wrap {
+            max-height: 280px;
+            overflow: auto;
+        }
+
+        .results-table {
+            width: 100%;
+            min-width: 760px;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 8px 6px;
+            border-bottom: 1px solid rgba(30, 64, 175, 0.08);
+            font-size: 0.76rem;
+        }
+
+        .results-table th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #f8fafc;
+            color: var(--primary);
+            font-weight: 800;
+        }
+
+        .row-del-btn {
+            height: 30px;
+            min-width: 56px;
+            border: none;
+            border-radius: 8px;
+            background: #fee2e2;
+            color: #b91c1c;
+            font-size: 0.72rem;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 480px) {
+            .form-container {
+                padding: 10px;
+                padding-bottom: 70px;
+            }
+
+            .card {
+                border-radius: 16px;
+                padding: 0.9rem;
+            }
+
+            .back-btn-header {
+                height: 36px;
+                border-radius: 10px;
+                font-size: 0.72rem;
+            }
+
+            .file-btn {
+                height: 44px;
+                border-radius: 12px;
+                font-size: 0.83rem;
+            }
+
+            .tool-btn {
+                height: 38px;
+                border-radius: 11px;
+                min-width: 120px;
+                font-size: 0.78rem;
+            }
+
+            .zoom-btn {
+                width: 36px;
+                height: 36px;
+                border-radius: 10px;
+            }
+
+            .viewer-wrap {
+                max-height: 62vh;
+                height: 62vh;
+                border-radius: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="custom-page">
+    <div class="form-container">
+        <div class="header-btns">
+            <button class="back-btn-header" onclick="window.location.href='../../index.html'">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" style="transform: rotate(180deg);"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                <span>العودة للرئيسية</span>
+            </button>
+        </div>
+
+        <section id="uploadStep" class="card">
+            <h1 class="title">استخراج الإحداثيات من PDF</h1>
+            <p class="sub-title">ارفع ملف PDF الذي يحتوي على جدول الإحداثيات</p>
+            <div class="upload-shell">
+                <input type="file" id="pdfInput" accept=".pdf,application/pdf" class="hidden">
+                <button id="uploadBtn" class="file-btn">رفع ملف PDF</button>
+                <p id="fileHint" class="sub-title" style="margin-top:10px;margin-bottom:0;">لم يتم اختيار ملف بعد</p>
+            </div>
+        </section>
+
+        <section id="viewerStep" class="card hidden">
+            <div class="viewer-head">
+                <h2 class="title" style="margin-bottom:0;">عارض الملفات</h2>
+                <div class="viewer-file-name" id="viewerFileName">-</div>
+            </div>
+
+            <div id="viewerWrap" class="viewer-wrap hand-mode">
+                <div id="pagesHost"></div>
+                <div class="map-tools-floating">
+                    <button id="handToolBtn" class="map-icon-btn active" type="button" title="أداة التحريك" aria-label="أداة التحريك">✋</button>
+                    <button id="selectToolBtn" class="map-icon-btn" type="button" title="أداة تحديد الجدول" aria-label="أداة تحديد الجدول">▭</button>
+                    <button id="zoomInBtn" class="map-icon-btn" type="button" title="تكبير" aria-label="تكبير">+</button>
+                    <button id="zoomOutBtn" class="map-icon-btn" type="button" title="تصغير" aria-label="تصغير">−</button>
+                    <div id="zoomLabel" class="map-zoom-badge">40%</div>
+                </div>
+                <div class="page-nav-floating">
+                    <button id="prevPageBtn" class="zoom-btn" type="button">&lt;</button>
+                    <div id="pageLabel" class="zoom-label">1 / 1</div>
+                    <button id="nextPageBtn" class="zoom-btn" type="button">&gt;</button>
+                    <button id="extractBtn" class="extract-btn" type="button" disabled>عرض الإحداثيات</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="coordinatesStep" class="card hidden">
+            <div class="viewer-head">
+                <h2 class="title" style="margin-bottom:0;">الإحداثيات المستخرجة</h2>
+                <span id="resultsCount" class="results-count">0 سطر</span>
+            </div>
+
+            <div id="resultsShell" class="results-shell hidden">
+                <div class="results-table-wrap">
+                    <table class="results-table">
+                        <thead>
+                        <tr>
+                            <th>name</th>
+                            <th>northing</th>
+                            <th>easting</th>
+                            <th>elevation</th>
+                            <th>code</th>
+                            <th>حذف</th>
+                        </tr>
+                        </thead>
+                        <tbody id="resultsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="step-actions">
+                <button id="backToViewerBtn" class="step-btn secondary" type="button">العودة للماب</button>
+                <button id="exportBtn" class="step-btn primary" type="button">تصدير</button>
+            </div>
+        </section>
+
+        <section id="pointsMapStep" class="card hidden">
+            <div class="viewer-head">
+                <h2 class="title" style="margin-bottom:0;">عرض النقاط على الماب</h2>
+            </div>
+            <div id="pointsMapHost" class="map-area"></div>
+            <div class="step-actions">
+                <button id="toggleSatelliteBtn" class="step-btn primary" type="button">عرض القمر الصناعي</button>
+                <button id="backToCoordsBtn" class="step-btn secondary" type="button">العودة للإحداثيات</button>
+            </div>
+        </section>
+    </div>
+</div>
+
+<div id="exportModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+        <div class="modal-head">
+            <h3 class="modal-title">تصدير الإحداثيات</h3>
+            <button id="closeExportModalBtn" class="modal-close" type="button">×</button>
+        </div>
+        <div class="modal-body">
+            <label class="modal-label" for="sourceCrsSelect">نظام الإحداثيات المصدر</label>
+            <select id="sourceCrsSelect" class="modal-select">
+                <option value="DLTM">DLTM</option>
+                <option value="UTM40N">UTM Z40N</option>
+                <option value="UTM39N">UTM Z39N</option>
+            </select>
+            <button id="showOnMapBtn" class="step-btn primary" type="button">عرض الإحداثيات على الماب</button>
+            <div class="export-grid">
+                <button class="export-btn" data-export-format="csv" type="button">تصدير CSV</button>
+                <button class="export-btn" data-export-format="sdr" type="button">تصدير SDR</button>
+                <button class="export-btn" data-export-format="dxf" type="button">تصدير DXF</button>
+                <button class="export-btn" data-export-format="kml" type="button">تصدير KML</button>
+            </div>
+            <p class="export-note">الأنظمة المدعومة حاليًا: DLTM و UTM Z40N و UTM Z39N. سيتم دعم أنظمة إضافية قريبًا.</p>
+        </div>
+    </div>
+</div>
+
+<script src="../../LIP/vendor/leaflet/leaflet.js"></script>
+<script src="../../LIP/vendor/proj4/proj4.js"></script>
+<script type="module">
+    const uploadBtn = document.getElementById('uploadBtn');
+    const pdfInput = document.getElementById('pdfInput');
+    const uploadStep = document.getElementById('uploadStep');
+    const viewerStep = document.getElementById('viewerStep');
+    const coordinatesStep = document.getElementById('coordinatesStep');
+    const pointsMapStep = document.getElementById('pointsMapStep');
+    const viewerFileName = document.getElementById('viewerFileName');
+    const pagesHost = document.getElementById('pagesHost');
+    const pointsMapHost = document.getElementById('pointsMapHost');
+    const viewerWrap = document.getElementById('viewerWrap');
+    const handToolBtn = document.getElementById('handToolBtn');
+    const selectToolBtn = document.getElementById('selectToolBtn');
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const zoomLabel = document.getElementById('zoomLabel');
+    const prevPageBtn = document.getElementById('prevPageBtn');
+    const nextPageBtn = document.getElementById('nextPageBtn');
+    const pageLabel = document.getElementById('pageLabel');
+    const fileHint = document.getElementById('fileHint');
+    const extractBtn = document.getElementById('extractBtn');
+    const backToViewerBtn = document.getElementById('backToViewerBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const backToCoordsBtn = document.getElementById('backToCoordsBtn');
+    const toggleSatelliteBtn = document.getElementById('toggleSatelliteBtn');
+    const resultsShell = document.getElementById('resultsShell');
+    const resultsCount = document.getElementById('resultsCount');
+    const resultsBody = document.getElementById('resultsBody');
+    const exportModal = document.getElementById('exportModal');
+    const closeExportModalBtn = document.getElementById('closeExportModalBtn');
+    const showOnMapBtn = document.getElementById('showOnMapBtn');
+    const sourceCrsSelect = document.getElementById('sourceCrsSelect');
+    const exportFormatBtns = Array.from(document.querySelectorAll('[data-export-format]'));
+
+    let pdfDoc = null;
+    let pdfApiModule = null;
+    let zoom = 1;
+    let toolMode = 'hand';
+    let selections = [];
+    let activeSelectionId = null;
+    let selectionCounter = 0;
+    let drawSession = null;
+    let panSession = null;
+    let extractedRows = [];
+    let leafletMap = null;
+    let leafletLayer = null;
+    let pagePixelSize = { width: 1, height: 1 };
+    let currentPageNumber = 1;
+    let drawStartLatLng = null;
+    let tempRectLayer = null;
+    let isResizingSelection = false;
+    let tesseractModule = null;
+    let ocrWorker = null;
+    let extractedSelectionIds = new Set();
+    let lastExtractedRowId = 0;
+    let pointsLeafletMap = null;
+    let pointsLayerGroup = null;
+    let pointsBaseLayer = null;
+    let pointsSatelliteLayer = null;
+    let isSatelliteMode = false;
+    const PDF_JS_MODULE_PATH = '../../LIP/vendor/pdfjs/pdf.min.mjs';
+    const PDF_JS_WORKER_PATH = '../../LIP/vendor/pdfjs/pdf.worker.min.mjs';
+    const TESSERACT_MODULE_PATH = '../../LIP/vendor/tesseract/tesseract.esm.min.js';
+    const TESSERACT_WORKER_PATH = '../../LIP/vendor/tesseract/worker.min.js';
+    const TESSERACT_CORE_PATH = '../../LIP/vendor/tesseract/tesseract-core.wasm.js';
+    const TESSERACT_LANG_PATH = '../../LIP/vendor/tesseract/lang';
+    const MAP_MIN_ZOOM = -5;
+    const MAP_MAX_ZOOM = 0;
+    const DEFAULT_ZOOM_PERCENT = 40;
+    const CRS_OPTIONS = {
+        DLTM: {
+            label: 'DLTM',
+            proj4: '+proj=tmerc +lat_0=0 +lon_0=55.3333333333333 +k=1 +x_0=500000 +y_0=0 +datum=WGS84 +units=m +no_defs +type=crs'
+        },
+        UTM40N: {
+            label: 'UTM Z40N',
+            proj4: '+proj=utm +zone=40 +datum=WGS84 +units=m +no_defs +type=crs'
+        },
+        UTM39N: {
+            label: 'UTM Z39N',
+            proj4: '+proj=utm +zone=39 +datum=WGS84 +units=m +no_defs +type=crs'
+        }
+    };
+
+    function showStep(stepName) {
+        uploadStep.classList.toggle('hidden', stepName !== 'upload');
+        viewerStep.classList.toggle('hidden', stepName !== 'viewer');
+        coordinatesStep.classList.toggle('hidden', stepName !== 'coordinates');
+        pointsMapStep.classList.toggle('hidden', stepName !== 'points-map');
+        if (stepName === 'viewer') {
+            setTimeout(() => leafletMap?.invalidateSize(), 0);
+        }
+        if (stepName === 'points-map') {
+            setTimeout(() => pointsLeafletMap?.invalidateSize(), 0);
+        }
+    }
+
+    function updateExtractActionState() {
+        extractBtn.disabled = !pdfDoc || selections.length === 0;
+    }
+
+    function updateResultsCount() {
+        resultsCount.textContent = `${extractedRows.length} سطر`;
+    }
+
+    function renderExtractedRows() {
+        resultsBody.innerHTML = '';
+        extractedRows.forEach((row) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${row.name ?? ''}</td>
+                <td>${row.northing ?? ''}</td>
+                <td>${row.easting ?? ''}</td>
+                <td>${row.elevation ?? ''}</td>
+                <td>${row.code ?? ''}</td>
+                <td><button type="button" class="row-del-btn" data-row-id="${row.id}">حذف</button></td>
+            `;
+            resultsBody.appendChild(tr);
+        });
+        updateResultsCount();
+        resultsShell.classList.toggle('hidden', extractedRows.length === 0);
+        exportBtn.disabled = extractedRows.length === 0;
+    }
+
+    function removeExtractedRow(rowId) {
+        extractedRows = extractedRows.filter((row) => row.id !== rowId);
+        renderExtractedRows();
+    }
+
+    async function getPdfApi() {
+        if (pdfApiModule) return pdfApiModule;
+        const mod = await import(PDF_JS_MODULE_PATH);
+        mod.GlobalWorkerOptions.workerSrc = PDF_JS_WORKER_PATH;
+        pdfApiModule = mod;
+        return mod;
+    }
+
+    async function getOcrWorker() {
+        if (ocrWorker) return ocrWorker;
+        if (!tesseractModule) {
+            const loaded = await import(TESSERACT_MODULE_PATH);
+            tesseractModule = loaded?.default ?? loaded;
+        }
+        if (!tesseractModule?.createWorker) {
+            return null;
+        }
+        ocrWorker = await tesseractModule.createWorker('eng', 1, {
+            workerPath: TESSERACT_WORKER_PATH,
+            corePath: TESSERACT_CORE_PATH,
+            langPath: `${TESSERACT_LANG_PATH}/`
+        });
+        await ocrWorker.setParameters({
+            preserve_interword_spaces: '1',
+            tessedit_pageseg_mode: '6',
+            user_defined_dpi: '300'
+        });
+        return ocrWorker;
+    }
+
+    function setMode(mode) {
+        toolMode = mode;
+        handToolBtn.classList.toggle('active', mode === 'hand');
+        selectToolBtn.classList.toggle('active', mode === 'select');
+        viewerWrap.classList.toggle('hand-mode', mode === 'hand');
+        if (leafletMap) {
+            if (mode === 'hand') {
+                leafletMap.dragging.enable();
+                leafletMap.doubleClickZoom.enable();
+                pagesHost.style.cursor = 'grab';
+            } else {
+                leafletMap.dragging.disable();
+                leafletMap.doubleClickZoom.disable();
+                pagesHost.style.cursor = 'crosshair';
+            }
+            renderAllSelections();
+        }
+    }
+
+    function updateZoomLabel() {
+        if (leafletMap) {
+            const z = clamp(leafletMap.getZoom(), MAP_MIN_ZOOM, MAP_MAX_ZOOM);
+            const ratio = (z - MAP_MIN_ZOOM) / (MAP_MAX_ZOOM - MAP_MIN_ZOOM);
+            const percent = Math.round(5 + (ratio * 50));
+            zoomLabel.textContent = `${percent}%`;
+            return;
+        }
+        zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+    }
+
+    function zoomLevelFromPercent(percent) {
+        const clampedPercent = clamp(percent, 5, 55);
+        const ratio = (clampedPercent - 5) / 50;
+        return MAP_MIN_ZOOM + (ratio * (MAP_MAX_ZOOM - MAP_MIN_ZOOM));
+    }
+
+    function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+    }
+
+    function updatePageLabel() {
+        const total = pdfDoc ? pdfDoc.numPages : 1;
+        pageLabel.textContent = `${currentPageNumber} / ${total}`;
+        prevPageBtn.disabled = currentPageNumber <= 1;
+        nextPageBtn.disabled = currentPageNumber >= total;
+    }
+
+    function latLngFromPixel(x, y) {
+        return L.latLng(y, x);
+    }
+
+    function ensureLeafletMap() {
+        if (leafletMap) return;
+        leafletMap = L.map(pagesHost, {
+            crs: L.CRS.Simple,
+            zoomControl: false,
+            attributionControl: false,
+            minZoom: MAP_MIN_ZOOM,
+            maxZoom: MAP_MAX_ZOOM,
+            zoomSnap: 0.25,
+            zoomDelta: 0.25
+        });
+        leafletMap.setView([0, 0], 0);
+        leafletMap.on('zoomend', updateZoomLabel);
+    }
+
+    function clearTempRect() {
+        if (tempRectLayer) {
+            leafletMap.removeLayer(tempRectLayer);
+            tempRectLayer = null;
+        }
+    }
+
+    function styleSelectionLayer(layer, isActive) {
+        layer.setStyle({
+            color: isActive ? '#f1873e' : '#0a7f8a',
+            weight: 2,
+            dashArray: '6,4',
+            fillOpacity: isActive ? 0.18 : 0.12
+        });
+    }
+
+
+    function createSelectionNode(pageEl, selectionId) {
+        const box = document.createElement('div');
+        box.className = 'table-selection';
+        box.dataset.selectionId = String(selectionId);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'selection-delete';
+        deleteBtn.type = 'button';
+        deleteBtn.title = 'حذف التحديد';
+        deleteBtn.setAttribute('aria-label', 'حذف التحديد');
+        deleteBtn.textContent = '×';
+        box.appendChild(deleteBtn);
+
+        ['nw', 'ne', 'sw', 'se'].forEach((dir) => {
+            const handle = document.createElement('span');
+            handle.className = `selection-handle ${dir}`;
+            handle.dataset.dir = dir;
+            box.appendChild(handle);
+        });
+        pageEl.appendChild(box);
+        return box;
+    }
+
+    function findSelectionById(selectionId) {
+        return selections.find((item) => item.id === selectionId) || null;
+    }
+
+    function setActiveSelection(selectionId, rerender = true) {
+        activeSelectionId = selectionId;
+        selections.forEach((item) => {
+            if (!item.layer) return;
+            styleSelectionLayer(item.layer, item.id === selectionId);
+        });
+        if (rerender && leafletMap) {
+            renderAllSelections();
+        }
+    }
+
+    function removeSelectionById(selectionId) {
+        const index = selections.findIndex((item) => item.id === selectionId);
+        if (index === -1) return;
+
+        const [removed] = selections.splice(index, 1);
+        if (removed?.layer && leafletMap) leafletMap.removeLayer(removed.layer);
+        if (removed?.deleteMarker && leafletMap) leafletMap.removeLayer(removed.deleteMarker);
+        if (removed?.handleMarkers && leafletMap) {
+            Object.values(removed.handleMarkers).forEach((marker) => leafletMap.removeLayer(marker));
+        }
+
+        if (!selections.length) {
+            activeSelectionId = null;
+            updateExtractActionState();
+            return;
+        }
+
+        if (activeSelectionId === selectionId || !findSelectionById(activeSelectionId)) {
+            activeSelectionId = selections[selections.length - 1].id;
+        }
+        setActiveSelection(activeSelectionId);
+        updateExtractActionState();
+    }
+
+    function getSelectionPixels(selection) {
+        const left = selection.leftRatio * pagePixelSize.width;
+        const top = selection.topRatio * pagePixelSize.height;
+        const right = left + (selection.widthRatio * pagePixelSize.width);
+        const bottom = top + (selection.heightRatio * pagePixelSize.height);
+        return { left, top, right, bottom };
+    }
+
+    function setSelectionPixels(selection, left, top, right, bottom) {
+        const minSize = 12;
+        const clampedLeft = clamp(left, 0, pagePixelSize.width - minSize);
+        const clampedTop = clamp(top, 0, pagePixelSize.height - minSize);
+        const clampedRight = clamp(right, clampedLeft + minSize, pagePixelSize.width);
+        const clampedBottom = clamp(bottom, clampedTop + minSize, pagePixelSize.height);
+
+        selection.leftRatio = clampedLeft / pagePixelSize.width;
+        selection.topRatio = clampedTop / pagePixelSize.height;
+        selection.widthRatio = (clampedRight - clampedLeft) / pagePixelSize.width;
+        selection.heightRatio = (clampedBottom - clampedTop) / pagePixelSize.height;
+    }
+
+    function clearSelectionHandles(selection) {
+        if (!selection?.handleMarkers || !leafletMap) return;
+        Object.values(selection.handleMarkers).forEach((marker) => leafletMap.removeLayer(marker));
+        selection.handleMarkers = null;
+        isResizingSelection = false;
+    }
+
+    function updateSelectionVisual(selection) {
+        if (!selection?.layer || selection.pageNumber !== currentPageNumber) return;
+        const { left, top, right, bottom } = getSelectionPixels(selection);
+        const bounds = L.latLngBounds(latLngFromPixel(left, top), latLngFromPixel(right, bottom));
+        selection.layer.setBounds(bounds);
+        if (selection.deleteMarker) {
+            selection.deleteMarker.setLatLng(latLngFromPixel(left, top));
+        }
+        if (selection.handleMarkers) {
+            selection.handleMarkers.nw.setLatLng(latLngFromPixel(left, top));
+            selection.handleMarkers.ne.setLatLng(latLngFromPixel(right, top));
+            selection.handleMarkers.sw.setLatLng(latLngFromPixel(left, bottom));
+            selection.handleMarkers.se.setLatLng(latLngFromPixel(right, bottom));
+        }
+    }
+
+    function resizeSelectionByCorner(selection, corner, latlng) {
+        const pointX = clamp(latlng.lng, 0, pagePixelSize.width);
+        const pointY = clamp(latlng.lat, 0, pagePixelSize.height);
+        const minSize = 12;
+        const current = getSelectionPixels(selection);
+        let { left, top, right, bottom } = current;
+
+        if (corner === 'nw') {
+            left = Math.min(pointX, right - minSize);
+            top = Math.min(pointY, bottom - minSize);
+        } else if (corner === 'ne') {
+            right = Math.max(pointX, left + minSize);
+            top = Math.min(pointY, bottom - minSize);
+        } else if (corner === 'sw') {
+            left = Math.min(pointX, right - minSize);
+            bottom = Math.max(pointY, top + minSize);
+        } else if (corner === 'se') {
+            right = Math.max(pointX, left + minSize);
+            bottom = Math.max(pointY, top + minSize);
+        }
+
+        setSelectionPixels(selection, left, top, right, bottom);
+        updateSelectionVisual(selection);
+    }
+
+    function createResizeHandles(selection) {
+        if (!leafletMap || selection.pageNumber !== currentPageNumber) return;
+        if (toolMode !== 'select' || selection.id !== activeSelectionId) return;
+        const { left, top, right, bottom } = getSelectionPixels(selection);
+        const makeHandle = (corner, x, y) => {
+            const marker = L.marker(latLngFromPixel(x, y), {
+                draggable: true,
+                keyboard: false,
+                icon: L.divIcon({
+                    className: '',
+                    html: '<div class="selection-resize-handle"></div>',
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7]
+                })
+            }).addTo(leafletMap);
+
+            marker.on('drag', (event) => {
+                resizeSelectionByCorner(selection, corner, event.target.getLatLng());
+            });
+            marker.on('dragstart', () => {
+                isResizingSelection = true;
+                clearTempRect();
+            });
+            marker.on('dragend', () => {
+                isResizingSelection = false;
+            });
+            marker.on('mousedown', (event) => {
+                isResizingSelection = true;
+                L.DomEvent.stopPropagation(event);
+            });
+            marker.on('mouseup', (event) => {
+                L.DomEvent.stopPropagation(event);
+                setTimeout(() => { isResizingSelection = false; }, 0);
+            });
+            marker.on('click', () => setActiveSelection(selection.id));
+            return marker;
+        };
+
+        selection.handleMarkers = {
+            nw: makeHandle('nw', left, top),
+            ne: makeHandle('ne', right, top),
+            sw: makeHandle('sw', left, bottom),
+            se: makeHandle('se', right, bottom)
+        };
+    }
+
+    function downloadText(data, fileName, mimeType = 'text/plain;charset=utf-8') {
+        const blob = new Blob([data], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    function escapeCsvCell(value) {
+        const text = String(value ?? '');
+        if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+        return text;
+    }
+
+    function splitLineToColumns(lineText) {
+        const cleaned = lineText
+            .replace(/\u00A0/g, ' ')
+            .replace(/[،]/g, ',')
+            .trim();
+
+        if (!cleaned) return [];
+
+        let parts = cleaned
+            .split(/\t+|\s{2,}|[|]+/)
+            .map((part) => part.trim())
+            .filter(Boolean);
+
+        if (parts.length <= 1) {
+            parts = cleaned
+                .split(/[;,]|(?<=\d)\s+(?=[-+]?\d)/)
+                .map((part) => part.trim())
+                .filter(Boolean);
+        }
+
+        if (parts.length <= 1) {
+            parts = cleaned.split(/\s+/).filter(Boolean);
+        }
+
+        return parts;
+    }
+
+    function normalizeExtractedText(text) {
+        return String(text || '')
+            .replace(/\u00A0/g, ' ')
+            .replace(/[،٬]/g, ',')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function normalizeNumberString(value) {
+        return String(value || '').replace(/,/g, '.');
+    }
+
+    function parseNumeric(value) {
+        const num = Number(normalizeNumberString(value));
+        return Number.isFinite(num) ? num : null;
+    }
+
+    function isLikelyHeaderLine(lineText) {
+        const text = normalizeExtractedText(lineText).toLowerCase();
+        if (!text) return true;
+        const headerHints = [
+            'point id',
+            'point x',
+            'point y',
+            'northing',
+            'easting',
+            'elevation',
+            'project',
+            'application',
+            'details',
+            'coordinate format',
+            'angle unit',
+            'pressure unit',
+            'tempurature unit'
+        ];
+        return headerHints.some((hint) => text.includes(hint));
+    }
+
+    function isPointIdToken(token) {
+        const t = String(token || '').trim();
+        if (!t) return false;
+        if (t.length > 24) return false;
+        if (!/[a-zA-Z0-9]/.test(t)) return false;
+        // avoid treating decimal coordinate as point id
+        if (/^-?\d+\.\d+$/.test(t)) return false;
+        return true;
+    }
+
+    function looksLikeCoord(num) {
+        return Number.isFinite(num) && Math.abs(num) >= 10000;
+    }
+
+    function looksLikeElevation(num) {
+        return Number.isFinite(num) && Math.abs(num) <= 10000;
+    }
+
+    function extractCoordinateRowsFromLines(lines, tableId, pageNumber, nextIdFactory, nextRowFactory) {
+        const sourceLines = Array.isArray(lines) ? lines : [];
+        const rows = [];
+        const signatures = new Set();
+
+        sourceLines.forEach((lineText) => {
+            if (!lineText || isLikelyHeaderLine(lineText)) return;
+            const normalized = normalizeExtractedText(lineText);
+            const tokens = normalized.split(/\s+/).filter(Boolean);
+            if (tokens.length < 3) return;
+
+            let i = 0;
+            while (i <= tokens.length - 3) {
+                const idToken = tokens[i];
+                const nToken = tokens[i + 1];
+                const eToken = tokens[i + 2];
+                const n = parseNumeric(nToken);
+                const e = parseNumeric(eToken);
+
+                if (!isPointIdToken(idToken) || !looksLikeCoord(n) || !looksLikeCoord(e)) {
+                    i += 1;
+                    continue;
+                }
+
+                let elevation = '';
+                let code = '';
+                let advance = 3;
+
+                const zToken = tokens[i + 3];
+                const z = parseNumeric(zToken);
+                if (looksLikeElevation(z)) {
+                    elevation = normalizeNumberString(zToken);
+                    advance += 1;
+                }
+
+                const codeToken = tokens[i + advance];
+                const maybeNextN = parseNumeric(tokens[i + advance + 1]);
+                const maybeNextE = parseNumeric(tokens[i + advance + 2]);
+                const startsNextPoint = isPointIdToken(codeToken) && looksLikeCoord(maybeNextN) && looksLikeCoord(maybeNextE);
+                if (codeToken && !startsNextPoint && !Number.isFinite(parseNumeric(codeToken)) && isPointIdToken(codeToken)) {
+                    code = codeToken;
+                    advance += 1;
+                }
+
+                const row = {
+                    id: nextIdFactory(),
+                    tableId,
+                    pageNumber,
+                    rowNumber: nextRowFactory(),
+                    name: idToken,
+                    northing: normalizeNumberString(nToken),
+                    easting: normalizeNumberString(eToken),
+                    elevation,
+                    code,
+                    cols: [idToken, nToken, eToken, elevation, code].filter(Boolean),
+                    rawText: normalized
+                };
+
+                const signature = `${row.name}|${row.northing}|${row.easting}|${row.elevation}|${row.code}`;
+                if (!signatures.has(signature)) {
+                    signatures.add(signature);
+                    rows.push(row);
+                }
+
+                i += advance;
+            }
+        });
+
+        return rows;
+    }
+
+    function numericDigitLength(value) {
+        return String(value || '').replace(/[^\d]/g, '').length;
+    }
+
+    function mapColumnsToCoordinateFields(lineText, cols) {
+        const normalized = normalizeExtractedText(lineText);
+        const fallbackCols = Array.isArray(cols) ? cols : [];
+
+        const matches = [...normalized.matchAll(/[-+]?\d+(?:[.,]\d+)?/g)].map((m) => ({
+            raw: m[0],
+            value: normalizeNumberString(m[0]),
+            index: m.index ?? 0,
+            end: (m.index ?? 0) + m[0].length
+        }));
+
+        if (matches.length >= 3) {
+            // Score each 3-number window and pick the most coordinate-like one.
+            let startIdx = 0;
+            let bestScore = Number.NEGATIVE_INFINITY;
+            for (let i = 0; i <= matches.length - 3; i += 1) {
+                const a = matches[i];
+                const b = matches[i + 1];
+                const c = matches[i + 2];
+                const aNum = parseNumeric(a.value);
+                const bNum = parseNumeric(b.value);
+                const cNum = parseNumeric(c.value);
+                if (aNum === null || bNum === null || cNum === null) continue;
+
+                const aDigits = numericDigitLength(a.value);
+                const bDigits = numericDigitLength(b.value);
+                let score = 0;
+
+                if (aDigits >= 6) score += 4;
+                else if (aDigits >= 5) score += 2;
+                else if (aDigits >= 4) score += 1;
+
+                if (bDigits >= 6) score += 4;
+                else if (bDigits >= 5) score += 2;
+                else if (bDigits >= 4) score += 1;
+
+                if (Math.abs(aNum) >= 100000) score += 3;
+                else if (Math.abs(aNum) >= 10000) score += 1;
+
+                if (Math.abs(bNum) >= 100000) score += 3;
+                else if (Math.abs(bNum) >= 10000) score += 1;
+
+                // Elevation is usually much smaller than N/E magnitudes.
+                if (Math.abs(cNum) <= 10000) score += 2;
+                else if (Math.abs(cNum) <= 100000) score += 1;
+
+                // Favor windows after an initial point/serial number.
+                if (i > 0) score += 1;
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    startIdx = i;
+                }
+            }
+
+            const n = matches[startIdx];
+            const e = matches[startIdx + 1];
+            const z = matches[startIdx + 2];
+
+            const name = normalizeExtractedText(normalized.slice(0, n.index));
+            const code = normalizeExtractedText(normalized.slice(z.end));
+
+            return {
+                name: name || (fallbackCols[0] ?? ''),
+                northing: n.value,
+                easting: e.value,
+                elevation: z.value,
+                code: code || (fallbackCols[4] ?? '')
+            };
+        }
+
+        // Fallback to column split if regex-based extraction is insufficient.
+        return {
+            name: fallbackCols[0] ?? '',
+            northing: normalizeNumberString(fallbackCols[1] ?? ''),
+            easting: normalizeNumberString(fallbackCols[2] ?? ''),
+            elevation: normalizeNumberString(fallbackCols[3] ?? ''),
+            code: fallbackCols[4] ?? ''
+        };
+    }
+
+    function isLikelyCoordinateRow(mapped, lineText) {
+        const numericCount = (String(lineText || '').match(/[-+]?\d+(?:[.,]\d+)?/g) || []).length;
+        if (numericCount < 3) return false;
+
+        const n = parseNumeric(mapped?.northing);
+        const e = parseNumeric(mapped?.easting);
+        const z = parseNumeric(mapped?.elevation);
+        if (n === null || e === null || z === null) return false;
+
+        if (Math.abs(n) < 10000 || Math.abs(e) < 10000) return false;
+        if (Math.abs(z) > 10000) return false;
+
+        return true;
+    }
+
+    function buildCoordinateDraftFromLineText(lineText, tableId, pageNumber, rowNumber, id) {
+        if (typeof lineText !== 'string' || !lineText.trim()) return null;
+        const cols = splitLineToColumns(lineText);
+        const mapped = mapColumnsToCoordinateFields(lineText, cols);
+
+        if (isLikelyCoordinateRow(mapped, lineText)) {
+            return {
+                id,
+                tableId,
+                pageNumber,
+                rowNumber,
+                name: mapped.name,
+                northing: mapped.northing,
+                easting: mapped.easting,
+                elevation: mapped.elevation,
+                code: mapped.code,
+                cols,
+                rawText: lineText
+            };
+        }
+
+        return null;
+    }
+
+    function buildPackedCoordinateDraftsFromLineText(lineText, tableId, pageNumber, nextIdFactory, nextRowFactory) {
+        const normalized = normalizeExtractedText(lineText);
+        if (!normalized) return [];
+
+        const tokens = normalized.split(/\s+/).filter(Boolean);
+        if (tokens.length < 6) return [];
+
+        const rows = [];
+        let i = 0;
+        while (i <= tokens.length - 3) {
+            const nameToken = tokens[i];
+            const nToken = tokens[i + 1];
+            const eToken = tokens[i + 2];
+            const n = parseNumeric(nToken);
+            const e = parseNumeric(eToken);
+
+            // Packed pattern: [point-id/name] [northing] [easting]
+            if (n !== null && e !== null && Math.abs(n) >= 10000 && Math.abs(e) >= 10000) {
+                let elevation = '';
+                let advance = 3;
+
+                // Optional elevation token if present and not starting next packed point.
+                if (i + 3 < tokens.length) {
+                    const zToken = tokens[i + 3];
+                    const z = parseNumeric(zToken);
+                    const nextN = parseNumeric(tokens[i + 4] ?? '');
+                    const nextE = parseNumeric(tokens[i + 5] ?? '');
+                    const nextLooksLikePacked = (
+                        nextN !== null &&
+                        nextE !== null &&
+                        Math.abs(nextN) >= 10000 &&
+                        Math.abs(nextE) >= 10000
+                    );
+                    if (z !== null && Math.abs(z) < 10000 && !nextLooksLikePacked) {
+                        elevation = normalizeNumberString(zToken);
+                        advance = 4;
+                    }
+                }
+
+                rows.push({
+                    id: nextIdFactory(),
+                    tableId,
+                    pageNumber,
+                    rowNumber: nextRowFactory(),
+                    name: nameToken,
+                    northing: normalizeNumberString(nToken),
+                    easting: normalizeNumberString(eToken),
+                    elevation,
+                    code: '',
+                    cols: [nameToken, nToken, eToken, elevation].filter(Boolean),
+                    rawText: `${nameToken} ${nToken} ${eToken}${elevation ? ` ${elevation}` : ''}`
+                });
+
+                i += advance;
+                continue;
+            }
+
+            i += 1;
+        }
+
+        // Only trust this parser when it detected multiple packed points.
+        return rows.length >= 2 ? rows : [];
+    }
+
+    function buildRowsFromLineWindows(lines, tableId, pageNumber, nextIdFactory) {
+        const normalizedLines = (Array.isArray(lines) ? lines : [])
+            .map((line) => normalizeExtractedText(line))
+            .filter(Boolean);
+        const rows = [];
+        const seenSignatures = new Set();
+
+        for (let start = 0; start < normalizedLines.length; start += 1) {
+            let bestDraft = null;
+            let bestEnd = start;
+            let bestScore = Number.NEGATIVE_INFINITY;
+
+            for (let end = start; end < normalizedLines.length && end <= start + 3; end += 1) {
+                const candidate = normalizedLines.slice(start, end + 1).join(' ').replace(/\s+/g, ' ').trim();
+                const draft = buildCoordinateDraftFromLineText(
+                    candidate,
+                    tableId,
+                    pageNumber,
+                    rows.length + 1,
+                    nextIdFactory()
+                );
+                if (!draft) continue;
+
+                const numericCount = (candidate.match(/[-+]?\d+(?:[.,]\d+)?/g) || []).length;
+                const score = (isLikelyCoordinateRow(draft, candidate) ? 1000 : 0) + (numericCount * 10) + candidate.length;
+                if (score > bestScore) {
+                    bestDraft = draft;
+                    bestEnd = end;
+                    bestScore = score;
+                }
+            }
+
+            if (!bestDraft) continue;
+
+            const signature = [
+                normalizeNumberString(bestDraft.northing),
+                normalizeNumberString(bestDraft.easting),
+                normalizeNumberString(bestDraft.elevation),
+                normalizeExtractedText(bestDraft.name)
+            ].join('|');
+
+            if (seenSignatures.has(signature)) {
+                continue;
+            }
+
+            seenSignatures.add(signature);
+            bestDraft.rowNumber = rows.length + 1;
+            rows.push(bestDraft);
+            start = bestEnd;
+        }
+
+        return rows;
+    }
+
+    function buildCsv(rows) {
+        const header = ['name', 'northing', 'easting', 'elevation', 'code'];
+
+        const lines = [header.join(',')];
+        rows.forEach((row) => {
+            const cells = [
+                row.name ?? '',
+                row.northing ?? '',
+                row.easting ?? '',
+                row.elevation ?? '',
+                row.code ?? ''
+            ];
+            lines.push(cells.map(escapeCsvCell).join(','));
+        });
+
+        return lines.join('\n');
+    }
+
+    async function extractTextRowsFromSelection(selection) {
+        const pdfApi = await getPdfApi();
+        const page = await pdfDoc.getPage(selection.pageNumber);
+        const viewport = page.getViewport({ scale: 1 });
+        const textContent = await page.getTextContent();
+
+        const rect = {
+            left: selection.leftRatio * viewport.width,
+            top: selection.topRatio * viewport.height,
+            width: selection.widthRatio * viewport.width,
+            height: selection.heightRatio * viewport.height
+        };
+        rect.right = rect.left + rect.width;
+        rect.bottom = rect.top + rect.height;
+        const flippedRect = {
+            left: rect.left,
+            right: rect.right,
+            top: viewport.height - rect.bottom,
+            bottom: viewport.height - rect.top
+        };
+        const pointInsideRect = (x, y, targetRect) => (
+            x >= targetRect.left &&
+            x <= targetRect.right &&
+            y >= targetRect.top &&
+            y <= targetRect.bottom
+        );
+
+        const words = [];
+        let directHits = 0;
+        let flippedHits = 0;
+        textContent.items.forEach((item) => {
+            const text = String(item.str || '').trim();
+            if (!text) return;
+
+            const tx = pdfApi.Util.transform(viewport.transform, item.transform);
+            const x = tx[4];
+            const y = tx[5];
+            const h = Math.max(1, item.height || Math.hypot(tx[2], tx[3]));
+            const w = Math.max(1, item.width || Math.hypot(tx[0], tx[1]));
+
+            const tokenRect = {
+                left: x,
+                top: y - h,
+                right: x + w,
+                bottom: y
+            };
+            const centerX = (tokenRect.left + tokenRect.right) / 2;
+            const centerY = (tokenRect.top + tokenRect.bottom) / 2;
+            const inDirect = pointInsideRect(centerX, centerY, rect);
+            const inFlipped = pointInsideRect(centerX, centerY, flippedRect);
+            if (!inDirect && !inFlipped) return;
+            if (inDirect) directHits += 1;
+            if (inFlipped) flippedHits += 1;
+
+            words.push({
+                text,
+                x: tokenRect.left,
+                y: (tokenRect.top + tokenRect.bottom) / 2,
+                h,
+                _inDirect: inDirect,
+                _inFlipped: inFlipped
+            });
+        });
+
+        if (!words.length) return [];
+
+        // Keep only one orientation to avoid pulling nearby outside text.
+        const preferFlipped = flippedHits > directHits;
+        const strictWords = words.filter((w) => (preferFlipped ? w._inFlipped : w._inDirect));
+        if (!strictWords.length) return [];
+
+        strictWords.sort((a, b) => (a.y - b.y) || (a.x - b.x));
+        const lineBuckets = [];
+
+        strictWords.forEach((word) => {
+            const yTolerance = Math.max(3, Math.min(12, word.h * 0.75));
+            let bucket = lineBuckets.find((line) => Math.abs(line.y - word.y) <= yTolerance);
+            if (!bucket) {
+                bucket = { y: word.y, h: word.h, words: [] };
+                lineBuckets.push(bucket);
+            }
+            bucket.words.push(word);
+            bucket.h = Math.max(bucket.h || 0, word.h || 0);
+        });
+
+        lineBuckets.sort((a, b) => a.y - b.y);
+        return lineBuckets.map((line) => {
+            line.words.sort((a, b) => a.x - b.x);
+            const text = line.words.map((w) => w.text).join(' ').replace(/\s+/g, ' ').trim();
+            return text;
+        }).filter(Boolean);
+    }
+
+    async function extractTextRowsFromSelectionOcr(selection) {
+        const worker = await getOcrWorker();
+        if (!tesseractModule) {
+            const loaded = await import(TESSERACT_MODULE_PATH);
+            tesseractModule = loaded?.default ?? loaded;
+        }
+        const page = await pdfDoc.getPage(selection.pageNumber);
+        const smallSelectionBoost = Math.min(selection.widthRatio || 1, selection.heightRatio || 1) < 0.08 ? 2 : 1;
+        const scale = 4 * smallSelectionBoost;
+        const viewport = page.getViewport({ scale });
+
+        const fullCanvas = document.createElement('canvas');
+        fullCanvas.width = Math.floor(viewport.width);
+        fullCanvas.height = Math.floor(viewport.height);
+        const fullCtx = fullCanvas.getContext('2d', { alpha: false });
+        await page.render({ canvasContext: fullCtx, viewport }).promise;
+
+        const left = clamp(selection.leftRatio * viewport.width, 0, viewport.width);
+        const top = clamp(selection.topRatio * viewport.height, 0, viewport.height);
+        const width = clamp(selection.widthRatio * viewport.width, 8, viewport.width - left);
+        const height = clamp(selection.heightRatio * viewport.height, 8, viewport.height - top);
+
+        let bestLines = [];
+        let bestScore = -1;
+        const cropRegions = [];
+        cropRegions.push({ left, top, width, height, label: 'tight' });
+
+        const padX = Math.max(24, width * 0.15);
+        const padY = Math.max(24, height * 0.2);
+        const expandedLeft = clamp(left - padX, 0, viewport.width);
+        const expandedTop = clamp(top - padY, 0, viewport.height);
+        const expandedRight = clamp(left + width + padX, 0, viewport.width);
+        const expandedBottom = clamp(top + height + padY, 0, viewport.height);
+        if ((expandedRight - expandedLeft) > width || (expandedBottom - expandedTop) > height) {
+            cropRegions.push({
+                left: expandedLeft,
+                top: expandedTop,
+                width: expandedRight - expandedLeft,
+                height: expandedBottom - expandedTop,
+                label: 'expanded'
+            });
+        }
+
+        const canvasesToDispose = [];
+        for (const region of cropRegions) {
+            const cropCanvas = createCropCanvasFromRegion(fullCanvas, region);
+            canvasesToDispose.push(cropCanvas);
+            const variants = buildOcrVariants(cropCanvas);
+            canvasesToDispose.push(...variants.map((variant) => variant.canvas));
+
+            for (const variant of variants) {
+                let result;
+                try {
+                    if (worker && typeof worker.setParameters === 'function') {
+                        await worker.setParameters({
+                            preserve_interword_spaces: '1',
+                            tessedit_pageseg_mode: variant.psm,
+                            user_defined_dpi: String(300 * smallSelectionBoost),
+                            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-.,()[]/_ '
+                        });
+                    }
+
+                    if (worker && typeof worker.recognize === 'function') {
+                        result = await worker.recognize(variant.canvas);
+                    } else if (tesseractModule && typeof tesseractModule.recognize === 'function') {
+                        result = await tesseractModule.recognize(variant.canvas, 'eng', {
+                            workerPath: TESSERACT_WORKER_PATH,
+                            corePath: TESSERACT_CORE_PATH,
+                            langPath: `${TESSERACT_LANG_PATH}/`
+                        });
+                    } else {
+                        throw new Error('No OCR API available (createWorker/recognize) in local Tesseract module.');
+                    }
+                } catch (variantError) {
+                    console.warn('OCR variant failed:', `${region.label}:${variant?.name}`, variantError);
+                    continue;
+                }
+
+                const lines = String(result?.data?.text || '')
+                    .split(/\r?\n/)
+                    .map((line) => line.replace(/\s+/g, ' ').trim())
+                    .filter(Boolean);
+                const numericWeight = lines.reduce((sum, line) => sum + ((line.match(/\d/g) || []).length), 0);
+                const score = (coordinateLikeScore(lines) * 100) + numericWeight;
+
+                if (score > bestScore || (score === bestScore && lines.join('').length > bestLines.join('').length)) {
+                    bestScore = score;
+                    bestLines = lines;
+                }
+            }
+        }
+
+        fullCanvas.width = 0;
+        fullCanvas.height = 0;
+        canvasesToDispose.forEach((canvas) => {
+            canvas.width = 0;
+            canvas.height = 0;
+        });
+
+        return bestLines;
+    }
+
+    function coordinateLikeScore(lines) {
+        return lines.reduce((score, line) => {
+            const nums = line.match(/[-+]?\d+(?:[.,]\d+)?/g) || [];
+            return score + (nums.length >= 3 ? 1 : 0);
+        }, 0);
+    }
+
+    function buildOcrVariants(cropCanvas) {
+        const width = Math.max(1, cropCanvas.width);
+        const height = Math.max(1, cropCanvas.height);
+        const minSide = Math.min(width, height);
+        const scaleFactor = minSide <= 80 ? 5 : minSide <= 140 ? 4 : minSide <= 220 ? 3 : 2;
+        const targetWidth = Math.max(32, Math.floor(width * scaleFactor));
+        const targetHeight = Math.max(32, Math.floor(height * scaleFactor));
+
+        const createBaseCanvas = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext('2d', { alpha: false });
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(cropCanvas, 0, 0, targetWidth, targetHeight);
+            return { canvas, ctx };
+        };
+
+        const buildGrayscaleCanvas = () => {
+            const { canvas, ctx } = createBaseCanvas();
+            const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = img.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = Math.round((data[i] * 0.299) + (data[i + 1] * 0.587) + (data[i + 2] * 0.114));
+                data[i] = gray;
+                data[i + 1] = gray;
+                data[i + 2] = gray;
+            }
+            ctx.putImageData(img, 0, 0);
+            return canvas;
+        };
+
+        const buildThresholdCanvas = () => {
+            const { canvas, ctx } = createBaseCanvas();
+            const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = img.data;
+            let minGray = 255;
+            let maxGray = 0;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = Math.round((data[i] * 0.299) + (data[i + 1] * 0.587) + (data[i + 2] * 0.114));
+                minGray = Math.min(minGray, gray);
+                maxGray = Math.max(maxGray, gray);
+                data[i] = gray;
+                data[i + 1] = gray;
+                data[i + 2] = gray;
+            }
+
+            const contrast = maxGray - minGray;
+            const threshold = contrast < 40
+                ? Math.round((minGray + maxGray) / 2)
+                : Math.round(minGray + (contrast * 0.62));
+
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = data[i];
+                const value = gray > threshold ? 255 : 0;
+                data[i] = value;
+                data[i + 1] = value;
+                data[i + 2] = value;
+            }
+
+            ctx.putImageData(img, 0, 0);
+            return canvas;
+        };
+
+        const buildSharpenedCanvas = () => {
+            const { canvas, ctx } = createBaseCanvas();
+            const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = img.data;
+            let minGray = 255;
+            let maxGray = 0;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = Math.round((data[i] * 0.299) + (data[i + 1] * 0.587) + (data[i + 2] * 0.114));
+                minGray = Math.min(minGray, gray);
+                maxGray = Math.max(maxGray, gray);
+                data[i] = gray;
+                data[i + 1] = gray;
+                data[i + 2] = gray;
+            }
+
+            const contrast = Math.max(1, maxGray - minGray);
+            for (let i = 0; i < data.length; i += 4) {
+                const normalized = (data[i] - minGray) / contrast;
+                const boosted = clamp(Math.round((normalized ** 0.85) * 255), 0, 255);
+                data[i] = boosted;
+                data[i + 1] = boosted;
+                data[i + 2] = boosted;
+            }
+
+            ctx.putImageData(img, 0, 0);
+            return canvas;
+        };
+
+        return [
+            { name: 'grayscale', canvas: buildGrayscaleCanvas(), psm: '6' },
+            { name: 'threshold', canvas: buildThresholdCanvas(), psm: '6' },
+            { name: 'sharpened', canvas: buildSharpenedCanvas(), psm: '11' }
+        ];
+    }
+
+    function createCropCanvasFromRegion(sourceCanvas, region) {
+        const cropCanvas = document.createElement('canvas');
+        cropCanvas.width = Math.max(1, Math.floor(region.width));
+        cropCanvas.height = Math.max(1, Math.floor(region.height));
+        const cropCtx = cropCanvas.getContext('2d', { alpha: false });
+        cropCtx.drawImage(
+            sourceCanvas,
+            Math.floor(region.left), Math.floor(region.top), Math.floor(region.width), Math.floor(region.height),
+            0, 0, Math.floor(region.width), Math.floor(region.height)
+        );
+        return cropCanvas;
+    }
+
+    function mergeCoordinateFragments(lines) {
+        const normalizedLines = (Array.isArray(lines) ? lines : [])
+            .map((line) => normalizeExtractedText(line))
+            .filter(Boolean);
+
+        if (!normalizedLines.length) return [];
+
+        const merged = [];
+        for (let i = 0; i < normalizedLines.length; i += 1) {
+            let candidate = normalizedLines[i];
+            const currentNumericCount = (candidate.match(/[-+]?\d+(?:[.,]\d+)?/g) || []).length;
+
+            if (currentNumericCount >= 3) {
+                merged.push(candidate);
+                continue;
+            }
+
+            let bestCandidate = candidate;
+            let bestNumericCount = currentNumericCount;
+
+            for (let j = i + 1; j < normalizedLines.length && j <= i + 2; j += 1) {
+                candidate = `${candidate} ${normalizedLines[j]}`.replace(/\s+/g, ' ').trim();
+                const numericCount = (candidate.match(/[-+]?\d+(?:[.,]\d+)?/g) || []).length;
+                if (numericCount > bestNumericCount) {
+                    bestCandidate = candidate;
+                    bestNumericCount = numericCount;
+                }
+                if (numericCount >= 3) {
+                    bestCandidate = candidate;
+                    i = j;
+                    break;
+                }
+            }
+
+            merged.push(bestCandidate);
+        }
+
+        return merged.filter(Boolean);
+    }
+
+    function shouldRunOcrForSelection(textRows, textScore) {
+        const rows = Array.isArray(textRows) ? textRows : [];
+        if (!rows.length) return true;
+
+        // Good text-layer result: skip OCR for speed.
+        const minGoodLines = Math.max(2, Math.floor(rows.length * 0.35));
+        if (textScore >= minGoodLines) return false;
+
+        const numericRichLines = rows.reduce((acc, line) => {
+            const nums = (String(line || '').match(/[-+]?\d+(?:[.,]\d+)?/g) || []).length;
+            return acc + (nums >= 2 ? 1 : 0);
+        }, 0);
+        if (numericRichLines >= Math.max(2, Math.floor(rows.length * 0.6))) return false;
+
+        return true;
+    }
+
+    async function extractBestRowsFromSelection(selection) {
+        const textRows = await extractTextRowsFromSelection(selection);
+        const mergedTextRows = mergeCoordinateFragments(textRows);
+        const textScore = coordinateLikeScore(mergedTextRows);
+
+        if (!shouldRunOcrForSelection(mergedTextRows, textScore)) {
+            return mergedTextRows;
+        }
+
+        let ocrRows = [];
+        let ocrScore = 0;
+        try {
+            // OCR runs only when text-layer quality looks weak.
+            ocrRows = mergeCoordinateFragments(await extractTextRowsFromSelectionOcr(selection));
+            ocrScore = coordinateLikeScore(ocrRows);
+        } catch (ocrError) {
+            console.warn('OCR fallback failed for selection:', selection?.id, ocrError);
+        }
+        if (ocrRows.length && ocrScore >= textScore) return ocrRows;
+        return mergedTextRows;
+    }
+
+    function applySelectionRect(selection) {
+        const pageEl = pagesHost.querySelector(`.pdf-page[data-page-number="${selection.pageNumber}"]`);
+        if (!pageEl || !selection.boxEl) return;
+        const pageRect = pageEl.getBoundingClientRect();
+        const left = selection.leftRatio * pageRect.width;
+        const top = selection.topRatio * pageRect.height;
+        const width = selection.widthRatio * pageRect.width;
+        const height = selection.heightRatio * pageRect.height;
+        selection.boxEl.style.left = `${left}px`;
+        selection.boxEl.style.top = `${top}px`;
+        selection.boxEl.style.width = `${width}px`;
+        selection.boxEl.style.height = `${height}px`;
+    }
+
+    function setSelectionByPixels(selection, pageEl, left, top, width, height) {
+        const pageRect = pageEl.getBoundingClientRect();
+        const clampedWidth = clamp(width, 22, pageRect.width);
+        const clampedHeight = clamp(height, 22, pageRect.height);
+        const clampedLeft = clamp(left, 0, pageRect.width - clampedWidth);
+        const clampedTop = clamp(top, 0, pageRect.height - clampedHeight);
+        selection.leftRatio = clampedLeft / pageRect.width;
+        selection.topRatio = clampedTop / pageRect.height;
+        selection.widthRatio = clampedWidth / pageRect.width;
+        selection.heightRatio = clampedHeight / pageRect.height;
+        applySelectionRect(selection);
+    }
+
+    function getLocalPointer(pageEl, clientX, clientY) {
+        const rect = pageEl.getBoundingClientRect();
+        return { x: clientX - rect.left, y: clientY - rect.top, rect };
+    }
+
+    function safeSetPointerCapture(target, pointerId) {
+        if (!target || typeof target.setPointerCapture !== 'function') return;
+        try {
+            target.setPointerCapture(pointerId);
+        } catch (_) {
+            // Ignore capture failures on unsupported targets/browsers.
+        }
+    }
+
+    function getCurrentVisiblePageNumber() {
+        const pages = [...pagesHost.querySelectorAll('.pdf-page')];
+        if (!pages.length) return 1;
+        const scrollTop = viewerWrap.scrollTop;
+        const midY = scrollTop + (viewerWrap.clientHeight / 2);
+
+        let bestPage = pages[0];
+        let bestDistance = Number.POSITIVE_INFINITY;
+        pages.forEach((page) => {
+            const pageMid = page.offsetTop + (page.offsetHeight / 2);
+            const d = Math.abs(pageMid - midY);
+            if (d < bestDistance) {
+                bestDistance = d;
+                bestPage = page;
+            }
+        });
+        return Number(bestPage.dataset.pageNumber || 1);
+    }
+
+    function scrollToPage(pageNumber) {
+        const page = pagesHost.querySelector(`.pdf-page[data-page-number="${pageNumber}"]`);
+        if (!page) return;
+        const maxTop = Math.max(0, viewerWrap.scrollHeight - viewerWrap.clientHeight);
+        viewerWrap.scrollTop = clamp(page.offsetTop, 0, maxTop);
+    }
+
+    function renderAllSelections() {
+        if (!leafletMap) return;
+        selections.forEach((selection) => {
+            if (selection.layer) {
+                leafletMap.removeLayer(selection.layer);
+                selection.layer = null;
+            }
+            if (selection.deleteMarker) {
+                leafletMap.removeLayer(selection.deleteMarker);
+                selection.deleteMarker = null;
+            }
+            clearSelectionHandles(selection);
+            if (selection.pageNumber !== currentPageNumber) return;
+            const x1 = selection.leftRatio * pagePixelSize.width;
+            const y1 = selection.topRatio * pagePixelSize.height;
+            const x2 = x1 + (selection.widthRatio * pagePixelSize.width);
+            const y2 = y1 + (selection.heightRatio * pagePixelSize.height);
+            const bounds = L.latLngBounds(latLngFromPixel(x1, y1), latLngFromPixel(x2, y2));
+            const layer = L.rectangle(bounds);
+            layer.addTo(leafletMap);
+            selection.layer = layer;
+            styleSelectionLayer(layer, selection.id === activeSelectionId);
+            layer.on('click', () => {
+                if (toolMode !== 'select') return;
+                setActiveSelection(selection.id);
+            });
+            layer.on('contextmenu', () => {
+                if (toolMode !== 'select') return;
+                removeSelectionById(selection.id);
+            });
+
+            const deleteIcon = L.divIcon({
+                className: '',
+                html: '<div class="selection-delete-map" title="حذف التحديد">×</div>',
+                iconSize: [22, 22],
+                iconAnchor: [11, 11]
+            });
+            const marker = L.marker(latLngFromPixel(x1, y1), {
+                icon: deleteIcon,
+                keyboard: false
+            }).addTo(leafletMap);
+            marker.on('click', () => removeSelectionById(selection.id));
+            selection.deleteMarker = marker;
+            createResizeHandles(selection);
+        });
+        if (!selections.length) {
+            activeSelectionId = null;
+            return;
+        }
+        if (!findSelectionById(activeSelectionId)) {
+            activeSelectionId = selections[selections.length - 1].id;
+        }
+        setActiveSelection(activeSelectionId, false);
+    }
+
+    async function renderPdf(keepPageNumber = null) {
+        if (!pdfDoc) return;
+        ensureLeafletMap();
+        if (keepPageNumber !== null) {
+            currentPageNumber = clamp(keepPageNumber, 1, pdfDoc.numPages);
+        }
+
+        const page = await pdfDoc.getPage(currentPageNumber);
+        const renderScale = 2;
+        const viewport = page.getViewport({ scale: renderScale });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        const context = canvas.getContext('2d', { alpha: false });
+        await page.render({ canvasContext: context, viewport }).promise;
+
+        const url = canvas.toDataURL('image/png');
+        const bounds = [[0, 0], [viewport.height, viewport.width]];
+        pagePixelSize = { width: viewport.width, height: viewport.height };
+
+        if (leafletLayer) leafletMap.removeLayer(leafletLayer);
+        leafletLayer = L.imageOverlay(url, bounds).addTo(leafletMap);
+        leafletMap.fitBounds(bounds, { animate: false, padding: [8, 8] });
+        leafletMap.setZoom(clamp(zoomLevelFromPercent(DEFAULT_ZOOM_PERCENT), MAP_MIN_ZOOM, MAP_MAX_ZOOM), { animate: false });
+
+        renderAllSelections();
+        updatePageLabel();
+        updateZoomLabel();
+        setTimeout(() => leafletMap.invalidateSize(), 0);
+    }
+
+    function attachPointerEvents() {
+        ensureLeafletMap();
+        setMode(toolMode);
+
+        leafletMap.on('mousedown', (event) => {
+            if (isResizingSelection) return;
+            if (toolMode !== 'select' || !pdfDoc) return;
+            drawStartLatLng = event.latlng;
+            clearTempRect();
+            tempRectLayer = L.rectangle(L.latLngBounds(drawStartLatLng, drawStartLatLng), {
+                color: '#f1873e',
+                weight: 2,
+                dashArray: '6,4',
+                fillOpacity: 0.15
+            }).addTo(leafletMap);
+        });
+
+        leafletMap.on('mousemove', (event) => {
+            if (isResizingSelection) return;
+            if (toolMode !== 'select' || !drawStartLatLng || !tempRectLayer) return;
+            tempRectLayer.setBounds(L.latLngBounds(drawStartLatLng, event.latlng));
+        });
+
+        leafletMap.on('mouseup', (event) => {
+            if (isResizingSelection) return;
+            if (toolMode !== 'select' || !drawStartLatLng) return;
+            const bounds = L.latLngBounds(drawStartLatLng, event.latlng);
+            drawStartLatLng = null;
+            if (!bounds.isValid()) {
+                clearTempRect();
+                return;
+            }
+
+            const x1 = clamp(Math.min(bounds.getWest(), bounds.getEast()), 0, pagePixelSize.width);
+            const x2 = clamp(Math.max(bounds.getWest(), bounds.getEast()), 0, pagePixelSize.width);
+            const y1 = clamp(Math.min(bounds.getNorth(), bounds.getSouth()), 0, pagePixelSize.height);
+            const y2 = clamp(Math.max(bounds.getNorth(), bounds.getSouth()), 0, pagePixelSize.height);
+            const width = x2 - x1;
+            const height = y2 - y1;
+            clearTempRect();
+            if (width < 12 || height < 12) return;
+
+            const selection = {
+                id: ++selectionCounter,
+                pageNumber: currentPageNumber,
+                leftRatio: x1 / pagePixelSize.width,
+                topRatio: y1 / pagePixelSize.height,
+                widthRatio: width / pagePixelSize.width,
+                heightRatio: height / pagePixelSize.height,
+                layer: null,
+                deleteMarker: null
+            };
+            selections.push(selection);
+            setActiveSelection(selection.id);
+            renderAllSelections();
+            updateExtractActionState();
+        });
+    }
+
+    function getSourceCrsFromSelection() {
+        const key = sourceCrsSelect.value;
+        return CRS_OPTIONS[key] ? key : 'DLTM';
+    }
+
+    function toWgs84(easting, northing, sourceCrsKey) {
+        const opt = CRS_OPTIONS[sourceCrsKey];
+        if (!opt || typeof window.proj4 !== 'function') return null;
+        const eNum = parseNumeric(easting);
+        const nNum = parseNumeric(northing);
+        if (eNum === null || nNum === null) return null;
+        try {
+            const [lon, lat] = window.proj4(opt.proj4, 'EPSG:4326', [eNum, nNum]);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+            return { lat, lon };
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function buildSdr(rows) {
+        const fitNumber = (value, width, decimals = 8, padChar = ' ') => {
+            const num = parseNumeric(value) ?? 0;
+            let text = num.toFixed(decimals);
+
+            // If number is longer than field, reduce decimals progressively.
+            if (text.length > width) {
+                for (let d = decimals - 1; d >= 0; d -= 1) {
+                    const candidate = num.toFixed(d);
+                    if (candidate.length <= width) {
+                        text = candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (text.length > width) {
+                text = text.slice(0, width);
+            }
+
+            return text.padEnd(width, padChar);
+        };
+
+        const fitText = (value, width) => {
+            const raw = String(value ?? '').trim();
+            if (raw.length >= width) return raw.slice(0, width);
+            return raw.padEnd(width, ' ');
+        };
+
+        const fitTextRight = (value, width) => {
+            const raw = String(value ?? '').trim();
+            if (raw.length >= width) return raw.slice(raw.length - width);
+            return raw.padStart(width, ' ');
+        };
+
+        const lines = [
+            '00NMSDR33                               111111',
+            '10NM>RED EXPORT 33  121111',
+            '13NMAngle Unit: Degrees',
+            '13DU1:Meters:',
+            '13NMPressure Unit: MmHg',
+            '13NMTempurature Unit: Celsius',
+            '13NMCoordinate Format: N-E',
+            '13CCPlane Curvature Correction: Yes'
+        ];
+
+        rows.forEach((row) => {
+            const nameField = fitTextRight(row.name, 16);
+            const northField = fitNumber(row.northing, 16, 8, '0');
+            const eastField = `${fitNumber(row.easting, 15, 8, '0')} `; // 15 + trailing space
+            const elevationField = fitNumber(row.elevation, 10, 8, ' ').padEnd(16, ' '); // e.g. "0.00000000      "
+            const codeField = fitText(row.code, 16);
+
+            // 4 + 16 + 16 + 16 + 16 + 16 = 84 chars total
+            const line = `08KI${nameField}${northField}${eastField}${elevationField}${codeField}`;
+            lines.push(line);
+        });
+
+        return lines.join('\r\n');
+    }
+
+    function buildDxf(rows) {
+        const lines = ['0', 'SECTION', '2', 'ENTITIES'];
+        rows.forEach((row) => {
+            const e = parseNumeric(row.easting);
+            const n = parseNumeric(row.northing);
+            const z = parseNumeric(row.elevation) ?? 0;
+            if (e === null || n === null) return;
+            lines.push('0', 'POINT', '8', 'COORDS', '10', String(e), '20', String(n), '30', String(z));
+        });
+        lines.push('0', 'ENDSEC', '0', 'EOF');
+        return lines.join('\n');
+    }
+
+    function buildKml(rows, sourceCrsKey) {
+        const placemarks = [];
+        rows.forEach((row) => {
+            const wgs = toWgs84(row.easting, row.northing, sourceCrsKey);
+            if (!wgs) return;
+            const z = parseNumeric(row.elevation) ?? 0;
+            const name = normalizeExtractedText(row.name || 'Point');
+            const code = normalizeExtractedText(row.code || '');
+            placemarks.push(`
+    <Placemark>
+      <name>${name}</name>
+      <description>${code}</description>
+      <Point><coordinates>${wgs.lon},${wgs.lat},${z}</coordinates></Point>
+    </Placemark>`);
+        });
+        return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Extracted Coordinates</name>${placemarks.join('')}
+  </Document>
+</kml>`;
+    }
+
+    function ensurePointsMap() {
+        if (pointsLeafletMap) return;
+        pointsLeafletMap = L.map(pointsMapHost, {
+            zoomControl: true,
+            attributionControl: true
+        });
+        pointsBaseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        });
+        pointsSatelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 20,
+            attribution: 'Tiles &copy; Esri'
+        });
+        pointsBaseLayer.addTo(pointsLeafletMap);
+        pointsLayerGroup = L.layerGroup().addTo(pointsLeafletMap);
+        pointsLeafletMap.setView([25.2048, 55.2708], 13);
+    }
+
+    function showPointsOnMap(sourceCrsKey) {
+        ensurePointsMap();
+        pointsLayerGroup.clearLayers();
+        const bounds = [];
+        extractedRows.forEach((row) => {
+            const wgs = toWgs84(row.easting, row.northing, sourceCrsKey);
+            if (!wgs) return;
+            const marker = L.marker([wgs.lat, wgs.lon]);
+            marker.bindTooltip(row.name || 'Point', {
+                permanent: true,
+                direction: 'top',
+                offset: [0, -18],
+                className: 'point-name-tooltip'
+            });
+            marker.bindPopup(
+                `<b>${row.name || 'Point'}</b><br>` +
+                `Northing: ${row.northing || '-'}<br>` +
+                `Easting: ${row.easting || '-'}<br>` +
+                `Elevation: ${row.elevation || '-'}<br>` +
+                `Code: ${row.code || '-'}`
+            );
+            marker.addTo(pointsLayerGroup);
+            bounds.push([wgs.lat, wgs.lon]);
+        });
+        if (!bounds.length) {
+            alert('لا توجد نقاط صالحة للعرض على الماب حسب نظام الإحداثيات المختار.');
+            return false;
+        }
+        pointsLeafletMap.fitBounds(bounds, { padding: [24, 24], maxZoom: 19 });
+        const currentZoom = pointsLeafletMap.getZoom();
+        pointsLeafletMap.setZoom(Math.min(20, currentZoom + 1));
+        showStep('points-map');
+        return true;
+    }
+
+    function applyPointsMapStyle(isSatellite) {
+        ensurePointsMap();
+        if (isSatellite) {
+            if (pointsLeafletMap.hasLayer(pointsBaseLayer)) pointsLeafletMap.removeLayer(pointsBaseLayer);
+            if (!pointsLeafletMap.hasLayer(pointsSatelliteLayer)) pointsSatelliteLayer.addTo(pointsLeafletMap);
+            toggleSatelliteBtn.textContent = 'عرض الشوارع';
+        } else {
+            if (pointsLeafletMap.hasLayer(pointsSatelliteLayer)) pointsLeafletMap.removeLayer(pointsSatelliteLayer);
+            if (!pointsLeafletMap.hasLayer(pointsBaseLayer)) pointsBaseLayer.addTo(pointsLeafletMap);
+            toggleSatelliteBtn.textContent = 'عرض القمر الصناعي';
+        }
+    }
+
+    uploadBtn.addEventListener('click', () => pdfInput.click());
+    handToolBtn.addEventListener('click', () => setMode('hand'));
+    selectToolBtn.addEventListener('click', () => setMode('select'));
+
+    zoomInBtn.addEventListener('click', async () => {
+        if (!leafletMap) return;
+        leafletMap.zoomIn(0.5);
+    });
+
+    zoomOutBtn.addEventListener('click', async () => {
+        if (!leafletMap) return;
+        leafletMap.zoomOut(0.5);
+    });
+
+    prevPageBtn.addEventListener('click', async () => {
+        if (!pdfDoc) return;
+        currentPageNumber = clamp(currentPageNumber - 1, 1, pdfDoc.numPages);
+        await renderPdf(currentPageNumber);
+    });
+
+    nextPageBtn.addEventListener('click', async () => {
+        if (!pdfDoc) return;
+        currentPageNumber = clamp(currentPageNumber + 1, 1, pdfDoc.numPages);
+        await renderPdf(currentPageNumber);
+    });
+
+    extractBtn.addEventListener('click', async () => {
+        if (!pdfDoc) {
+            alert('الرجاء رفع ملف PDF أولًا.');
+            return;
+        }
+        if (!selections.length) {
+            alert('لا يوجد أي تحديدات لاستخراجها.');
+            return;
+        }
+
+        const pendingSelections = selections
+            .filter((selection) => !extractedSelectionIds.has(selection.id))
+            .sort((a, b) => (a.pageNumber - b.pageNumber) || (a.id - b.id));
+
+        // If there are no new selections, re-extract from all current selections
+        // so algorithm updates are reflected immediately.
+        const targetSelections = pendingSelections.length
+            ? pendingSelections
+            : [...selections].sort((a, b) => (a.pageNumber - b.pageNumber) || (a.id - b.id));
+        const replaceMode = pendingSelections.length === 0;
+
+        const originalText = extractBtn.textContent;
+        extractBtn.disabled = true;
+        extractBtn.textContent = 'جاري العرض...';
+
+        try {
+            if (replaceMode) {
+                extractedRows = [];
+                extractedSelectionIds = new Set();
+                lastExtractedRowId = 0;
+            }
+
+            const newRows = [];
+            const baseTableId = replaceMode ? 0 : extractedSelectionIds.size;
+            let detectedTextLineCount = 0;
+
+            for (let i = 0; i < targetSelections.length; i += 1) {
+                const selection = targetSelections[i];
+                if (!selection || !Number.isFinite(selection.pageNumber)) {
+                    continue;
+                }
+                const selectionTableId = baseTableId + i + 1;
+                const selectionRowStart = newRows.length;
+                let lines = [];
+                try {
+                    lines = await extractBestRowsFromSelection(selection);
+                } catch (selectionError) {
+                    console.warn('Failed to extract selection:', selection?.id, selectionError);
+                    lines = [];
+                }
+                if (!Array.isArray(lines)) {
+                    lines = String(lines ?? '')
+                        .split(/\r?\n/)
+                        .map((line) => String(line).trim())
+                        .filter(Boolean);
+                }
+                detectedTextLineCount += lines.length;
+
+                let nextId = lastExtractedRowId;
+                let nextRow = newRows.length;
+                const parsedRows = extractCoordinateRowsFromLines(
+                    lines,
+                    selectionTableId,
+                    selection.pageNumber,
+                    () => {
+                        nextId += 1;
+                        return nextId;
+                    },
+                    () => {
+                        nextRow += 1;
+                        return nextRow;
+                    }
+                );
+                if (parsedRows.length) {
+                    lastExtractedRowId = nextId;
+                    newRows.push(...parsedRows);
+                }
+
+                extractedSelectionIds.add(selection.id);
+            }
+
+            if (!newRows.length && !extractedRows.length) {
+                if (detectedTextLineCount > 0) {
+                    alert('تم العثور على نص داخل المناطق المحددة، لكن لم أستطع تكوين صفوف إحداثيات صالحة منه. جرّب توسيع التحديد ليشمل الصف كاملًا أو حدّد الجدول بدقة أكبر.');
+                } else {
+                    alert('لم يتم العثور على نص داخل المناطق المحددة. تأكد أن الملف يحتوي نصًا أو أن منطقة التحديد تشمل الجدول بالكامل.');
+                }
+                return;
+            }
+
+            extractedRows = [...extractedRows, ...newRows];
+            renderExtractedRows();
+            showStep('coordinates');
+        } catch (error) {
+            console.error('Extraction failed:', error);
+            const reason = (error && error.message) ? `\nالسبب: ${error.message}` : '';
+            alert(`حدث خطأ أثناء استخراج البيانات.${reason}\nتأكد من تحميل ملفات OCR المحلية (worker/core/lang).`);
+        } finally {
+            updateExtractActionState();
+            extractBtn.textContent = originalText;
+        }
+    });
+
+    backToViewerBtn.addEventListener('click', () => showStep('viewer'));
+    backToCoordsBtn.addEventListener('click', () => showStep('coordinates'));
+    toggleSatelliteBtn.addEventListener('click', () => {
+        isSatelliteMode = !isSatelliteMode;
+        applyPointsMapStyle(isSatelliteMode);
+    });
+
+    exportBtn.addEventListener('click', () => {
+        if (!extractedRows.length) {
+            alert('لا توجد إحداثيات للتصدير.');
+            return;
+        }
+        exportModal.classList.remove('hidden');
+    });
+
+    closeExportModalBtn.addEventListener('click', () => {
+        exportModal.classList.add('hidden');
+    });
+
+    exportModal.addEventListener('click', (event) => {
+        if (event.target === exportModal) {
+            exportModal.classList.add('hidden');
+        }
+    });
+
+    showOnMapBtn.addEventListener('click', () => {
+        const sourceCrsKey = getSourceCrsFromSelection();
+        const shown = showPointsOnMap(sourceCrsKey);
+        if (shown) exportModal.classList.add('hidden');
+    });
+
+    exportFormatBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            if (!extractedRows.length) {
+                alert('لا توجد إحداثيات للتصدير.');
+                return;
+            }
+            const format = btn.dataset.exportFormat;
+            if (format === 'csv') {
+                downloadText(buildCsv(extractedRows), 'extracted-coordinates.csv', 'text/csv;charset=utf-8');
+                exportModal.classList.add('hidden');
+                return;
+            }
+            if (format === 'sdr') {
+                downloadText(buildSdr(extractedRows), 'extracted-coordinates.sdr', 'text/plain;charset=utf-8');
+                exportModal.classList.add('hidden');
+                return;
+            }
+            if (format === 'dxf') {
+                downloadText(buildDxf(extractedRows), 'extracted-coordinates.dxf', 'application/dxf;charset=utf-8');
+                exportModal.classList.add('hidden');
+                return;
+            }
+            if (format === 'kml') {
+                const defaultKey = getSourceCrsFromSelection();
+                const answer = window.prompt('اختر نظام الإحداثيات المصدر لتصدير KML: DLTM أو UTM40N أو UTM39N', defaultKey);
+                if (!answer) return;
+                const normalized = answer.trim().toUpperCase();
+                const map = { DLTM: 'DLTM', UTM40N: 'UTM40N', UTM39N: 'UTM39N', 'UTM Z40N': 'UTM40N', 'UTM Z39N': 'UTM39N' };
+                const key = map[normalized];
+                if (!key || !CRS_OPTIONS[key]) {
+                    alert('نظام غير مدعوم حاليًا. استخدم DLTM أو UTM40N أو UTM39N.');
+                    return;
+                }
+                const kmlContent = buildKml(extractedRows, key);
+                downloadText(kmlContent, 'extracted-coordinates.kml', 'application/vnd.google-earth.kml+xml;charset=utf-8');
+                exportModal.classList.add('hidden');
+            }
+        });
+    });
+
+    pdfInput.addEventListener('change', async () => {
+        const file = pdfInput.files?.[0];
+        if (!file) return;
+
+        fileHint.textContent = `تم اختيار: ${file.name}`;
+        viewerFileName.textContent = file.name;
+        showStep('viewer');
+
+        try {
+            const fileBuffer = await file.arrayBuffer();
+            const pdfApi = await getPdfApi();
+            pdfDoc = await pdfApi.getDocument({
+                data: fileBuffer,
+                isEvalSupported: false,
+                verbosity: pdfApi?.VerbosityLevel?.ERRORS ?? 0
+            }).promise;
+            currentPageNumber = 1;
+            selections = [];
+            activeSelectionId = null;
+            selectionCounter = 0;
+            extractedRows = [];
+            extractedSelectionIds = new Set();
+            lastExtractedRowId = 0;
+            renderExtractedRows();
+            updateZoomLabel();
+            await renderPdf(currentPageNumber);
+            updateExtractActionState();
+        } catch (error) {
+            console.error(error);
+            showStep('upload');
+            fileHint.textContent = 'حدث خطأ أثناء قراءة الملف. تأكد أن الملف PDF صالح.';
+        }
+    });
+
+    setMode('hand');
+    updateZoomLabel();
+    showStep('upload');
+    attachPointerEvents();
+    updateExtractActionState();
+    applyPointsMapStyle(isSatelliteMode);
+    resultsBody.addEventListener('click', (event) => {
+        const btn = event.target.closest('.row-del-btn');
+        if (!btn) return;
+        removeExtractedRow(Number(btn.dataset.rowId));
+    });
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        if (!window.AtlasAuth) return;
+        await window.AtlasAuth.initialize();
+        const allowed = await window.AtlasAuth.requirePageAccess("pages.coordinates-extractor");
+        if (!allowed) return;
+        window.AtlasAuth.decorateShell();
+    });
+</script>
+</body>
+</html>
+
+

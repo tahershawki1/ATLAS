@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
@@ -58,6 +58,13 @@
 
       <!-- Main Content -->
       <main id="mainContent" class="content-wrapper">
+        <div data-auth-shell></div>
+        <button class="global-back-btn" onclick="app.goBackGlobal()" aria-label="العودة">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transform: rotate(180deg);">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          <span>العودة</span>
+        </button>
         <!-- Home Menu -->
         <div id="homePage" class="page active">
           <div class="grid-menu">
@@ -122,8 +129,37 @@
               <span class="card-label">توقيع</span>
             </button>
 
-            <button class="menu-card coming-soon" disabled>
-              <div class="icon-wrapper disabled-icon">
+            <button class="menu-card" data-permission="pages.level-budget" onclick="window.location.href='pages/level-budget/'">
+              <div class="icon-wrapper new-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </div>
+              <span class="card-label">جدول الميزانية والتحقق</span>
+            </button>
+
+            <button class="menu-card" data-permission="admin.panel" onclick="window.location.href='pages/admin/?tab=sites'">
+              <div class="icon-wrapper survey-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M3 3h18v4H3z" />
+                  <path d="M7 9h10M7 13h10M7 17h6" />
+                </svg>
+              </div>
+              <span class="card-label">إدارة الشركات والمناطق والمواقع</span>
+            </button>
+
+            <button class="menu-card" data-permission="pages.coordinates-extractor" onclick="window.location.href='pages/coordinates-extractor/'">
+              <div class="icon-wrapper">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -134,10 +170,7 @@
                   <path d="M7 11V7a5 5 0 0110 0v4" />
                 </svg>
               </div>
-              <div class="label-group">
-                <span class="card-label">استخراج الاحداثيات</span>
-                <span class="badge">قريباً</span>
-              </div>
+              <span class="card-label">استخراج الاحداثيات</span>
             </button>
           </div>
         </div>
@@ -146,20 +179,9 @@
         <div id="newPage" class="page">
           <div class="page-header">
             <h2>جديد</h2>
-            <button class="back-btn" onclick="app.navigateBack()">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                style="transform: rotate(180deg);"
-              >
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-            </button>
           </div>
           <div class="list-buttons">
-            <button class="list-item" onclick="window.location.href='pages/new-level-mark/'">
+            <button class="list-item" data-permission="pages.new-level-mark" onclick="window.location.href='pages/new-level-mark/'">
               <div class="item-icon">
                 <svg
                   viewBox="0 0 24 24"
@@ -194,17 +216,6 @@
         <div id="checkPage" class="page">
           <div class="page-header">
             <h2>تشييك</h2>
-            <button class="back-btn" onclick="app.navigateBack()">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                style="transform: rotate(180deg);"
-              >
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-            </button>
           </div>
           <div class="list-buttons">
             <button class="list-item" onclick="app.action('check_unassigned')">
@@ -230,17 +241,6 @@
         <div id="surveyPage" class="page">
           <div class="page-header">
             <h2>رفع</h2>
-            <button class="back-btn" onclick="app.navigateBack()">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                style="transform: rotate(180deg);"
-              >
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-            </button>
           </div>
           <div class="list-buttons">
             <button class="list-item" onclick="app.action('gps_survey')">
@@ -281,17 +281,6 @@
         <div id="stakePage" class="page">
           <div class="page-header">
             <h2>توقيع</h2>
-            <button class="back-btn" onclick="app.navigateBack()">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                style="transform: rotate(180deg);"
-              >
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-            </button>
           </div>
           <div class="list-buttons">
             <button class="list-item" onclick="app.action('point_staking')">
@@ -324,15 +313,11 @@
               <span>توقيع منسوب</span>
             </button>
           </div>
+        </div>
         <!-- Action Form Page (Dynamic) -->
         <div id="actionPage" class="page">
           <div class="page-header">
             <h2 id="actionPageTitle">العمل</h2>
-            <button class="back-btn" onclick="app.navigateBack()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transform: rotate(180deg);">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-            </button>
           </div>
           
           <div class="action-card">
@@ -467,15 +452,98 @@
                       <div class="add-site-form">
                           <div class="form-group-light">
                               <label>اسم الشركة</label>
-                              <input type="text" id="newSiteCompany" placeholder="أدخل اسم الشركة">
+                              <div class="form-field-inline">
+                                  <select id="newSiteCompany" required></select>
+                                  <button type="button" class="field-add-btn" onclick="app.addNewSiteCompany()" title="إضافة شركة جديدة" aria-label="إضافة شركة جديدة">+</button>
+                              </div>
                           </div>
                           <div class="form-group-light">
                               <label>المنطقة</label>
-                              <input type="text" id="newSiteArea" placeholder="أدخل المنطقة">
+                              <div class="form-field-inline">
+                                  <input type="text" id="newSiteArea" list="newSiteAreaOptions" placeholder="اختر أو اكتب المنطقة" required>
+                                  <button type="button" class="field-add-btn company-dependent-add-btn hidden" onclick="app.addCompanyReference('area')" title="حفظ المنطقة للشركة" aria-label="حفظ المنطقة للشركة">+</button>
+                              </div>
+                              <datalist id="newSiteAreaOptions"></datalist>
                           </div>
                           <div class="form-group-light">
                               <label>رقم الأرض</label>
-                              <input type="text" id="newSitePlot" placeholder="أدخل رقم الأرض">
+                              <input type="text" id="newSitePlot" placeholder="أدخل رقم الأرض" required>
+                          </div>
+                          <div class="form-group-light">
+                              <label>اسم المالك</label>
+                              <input type="text" id="newSiteOwner" placeholder="أدخل اسم المالك" required>
+                          </div>
+                          <div class="form-group-light">
+                              <label>اسم الاستشاري</label>
+                              <div class="form-field-inline">
+                                  <input type="text" id="newSiteConsultant" list="newSiteConsultantOptions" placeholder="اختر أو اكتب الاستشاري" required>
+                                  <button type="button" class="field-add-btn company-dependent-add-btn hidden" onclick="app.addCompanyReference('consultant')" title="حفظ الاستشاري للشركة" aria-label="حفظ الاستشاري للشركة">+</button>
+                              </div>
+                              <datalist id="newSiteConsultantOptions"></datalist>
+                          </div>
+                          <div class="form-group-light">
+                              <label>اسم المشروع</label>
+                              <input type="text" id="newSiteProject" placeholder="أدخل اسم المشروع" required>
+                          </div>
+                          <div class="form-group-light">
+                              <label>اسم المقاول</label>
+                              <div class="form-field-inline">
+                                  <input type="text" id="newSiteContractor" list="newSiteContractorOptions" placeholder="اختر أو اكتب المقاول" required>
+                                  <button type="button" class="field-add-btn company-dependent-add-btn hidden" onclick="app.addCompanyReference('contractor')" title="حفظ المقاول للشركة" aria-label="حفظ المقاول للشركة">+</button>
+                              </div>
+                              <datalist id="newSiteContractorOptions"></datalist>
+                          </div>
+                          <div class="form-group-light">
+                              <label>سنة التقرير</label>
+                              <input type="text" id="newSiteReportYear" placeholder="أدخل سنة التقرير" required>
+                          </div>
+                          <div class="form-group-light">
+                              <label>شهر التقرير</label>
+                              <input type="text" id="newSiteReportMonth" placeholder="أدخل شهر التقرير" required>
+                          </div>
+                          <div class="form-group-light">
+                              <label>رقم التقرير في الشهر</label>
+                              <input type="text" id="newSiteReportNumberInMonth" placeholder="أدخل رقم التقرير في الشهر" required>
+                          </div>
+                          <div class="form-group-light">
+                              <label>رقم التقرير المصدر</label>
+                              <input type="text" id="newSiteSourceReportId" placeholder="أدخل رقم التقرير المصدر" required>
+                          </div>
+                          <div class="form-group-light">
+                              <label>تاريخ المسح</label>
+                              <input type="text" id="newSiteSurveyDate" placeholder="أدخل تاريخ المسح" required>
+                          </div>
+                          <div class="form-group-light">
+                              <label>موضوع التقرير</label>
+                              <input type="text" id="newSiteSubject" placeholder="أدخل موضوع التقرير" required>
+                          </div>
+                          <div class="form-group-light">
+                              <label>اسم المساح</label>
+                              <input type="text" id="newSiteSurveyor" placeholder="MR. " required>
+                          </div>
+                          <div class="form-group-light levels-form-group">
+                              <label>Levels Data</label>
+                              <div class="levels-entry-shell">
+                                  <div class="levels-entry-head">
+                                      <span>يمكن إدخال أكثر من سطر لكل موقع</span>
+                                      <button type="button" class="mini-add-row-btn" onclick="app.addNewSiteLevelRow()">+ إضافة سطر</button>
+                                  </div>
+                                  <div class="levels-entry-table-wrap">
+                                      <table class="levels-entry-table">
+                                          <thead>
+                                              <tr>
+                                                  <th>Row No</th>
+                                                  <th>Design Level</th>
+                                                  <th>As Built</th>
+                                                  <th>Difference</th>
+                                                  <th>Remarks</th>
+                                                  <th></th>
+                                              </tr>
+                                          </thead>
+                                          <tbody id="newSiteLevelsBody"></tbody>
+                                      </table>
+                                  </div>
+                              </div>
                           </div>
                           <button type="button" onclick="app.registerNewSite()" class="submit-btn highlight">إضافة الموقع وحفظه</button>
                       </div>
@@ -490,15 +558,19 @@
     </div>
 
     <script src="shared/sites_data.js"></script>
+    <script src="shared/dialogs.js"></script>
+    <script src="shared/auth.js"></script>
     <script src="shared/app.js"></script>
     <script>
       // Register Service Worker
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(reg => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
           console.log('[PWA] Service Worker registered');
           
           // Check for updates periodically
           setInterval(() => reg.update(), 60 * 1000);
+        }).catch((error) => {
+          console.warn('[PWA] Service Worker registration skipped:', error.message);
         });
 
         // Listen for update messages from SW
@@ -511,3 +583,8 @@
     </script>
   </body>
 </html>
+
+
+
+
+
