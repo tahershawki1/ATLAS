@@ -403,6 +403,47 @@
     await refreshUsers();
   }
 
+  async function createUserEnhanced() {
+    const username = $("#userUsername").value;
+    const fullName = $("#userFullName").value;
+    const password = $("#userPassword").value;
+    const isAdmin = $("#userRole").value === "admin";
+    const preset = $("#userAccessPreset")?.value || "field";
+
+    if (!norm(username) || !norm(password)) {
+      setStatus("يرجى إدخال اسم المستخدم وكلمة المرور");
+      return;
+    }
+
+    if (/\s/.test(username)) {
+      setStatus("اسم المستخدم يجب أن يكون بدون مسافات");
+      return;
+    }
+
+    try {
+      const createdUser = await window.AtlasStore.createUser({
+        username,
+        full_name: fullName,
+        password,
+        is_admin: isAdmin,
+        permissions: getPermissionsPreset(preset, isAdmin),
+      });
+
+      state.selectedUserId = createdUser?.id || state.selectedUserId;
+      $("#userUsername").value = "";
+      $("#userFullName").value = "";
+      $("#userPassword").value = "";
+      $("#userRole").value = "member";
+      if ($("#userAccessPreset")) $("#userAccessPreset").value = "field";
+
+      setStatus("تم إنشاء المستخدم، راجع صلاحياته الآن");
+      await refreshUsers();
+      activateTab("permissions");
+    } catch (error) {
+      setStatus(error.message || "تعذر إنشاء المستخدم");
+    }
+  }
+
   async function editUser(userId) {
     const user = state.users.find((entry) => entry.id === userId);
     if (!user) return;
@@ -701,6 +742,36 @@
     });
   }
 
+  function currentTab() {
+    return document.querySelector(".tab-btn.active")?.dataset.tab || "users";
+  }
+
+  function getPermissionsPreset(preset, isAdmin) {
+    if (isAdmin || preset === "admin") return ["*"];
+    if (preset === "field") {
+      return ["pages.new-level-mark", "pages.level-budget", "pages.coordinates-extractor"];
+    }
+    return [];
+  }
+
+  function ensureUserCreationPresetField() {
+    if ($("#userAccessPreset")) return;
+    const createBtn = $("#createUserBtn");
+    const roleField = $("#userRole")?.closest(".field");
+    if (!createBtn || !roleField) return;
+
+    const presetField = document.createElement("div");
+    presetField.className = "field";
+    presetField.innerHTML = '<label>قالب الصلاحيات</label><select id="userAccessPreset"><option value="field">الصفحات الأساسية</option><option value="custom">بدون صلاحيات - تحديد يدوي</option><option value="admin">كامل الصلاحيات</option></select>';
+
+    const helpText = document.createElement("p");
+    helpText.className = "muted";
+    helpText.textContent = "بعد إنشاء المستخدم سيتم اختياره مباشرة لمراجعة صلاحياته.";
+
+    createBtn.parentNode.insertBefore(presetField, createBtn);
+    createBtn.parentNode.insertBefore(helpText, createBtn);
+  }
+
   function bindActions() {
     document.body.addEventListener("click", async (event) => {
       const target = event.target.closest("[data-action]");
@@ -711,6 +782,7 @@
         state.selectedUserId = target.dataset.id;
         renderUsers();
         await renderPermissions();
+        if (currentTab() === "users") activateTab("permissions");
       }
       if (action === "edit-user") await editUser(target.dataset.id);
       if (action === "delete-user") await deleteUser(target.dataset.id);
@@ -756,16 +828,12 @@
 
     bindTabs();
     bindActions();
+    ensureUserCreationPresetField();
     const initialTab = new URLSearchParams(window.location.search).get("tab");
     if (["users", "sites", "permissions", "pages"].includes(initialTab)) {
       activateTab(initialTab);
     }
-    renderStaticPages();
-    await refreshUsers();
-    await refreshSites();
-    await renderUploadedPages();
-
-    $("#createUserBtn").addEventListener("click", createUser);
+    $("#createUserBtn").addEventListener("click", createUserEnhanced);
     $("#savePermissionsBtn").addEventListener("click", savePermissions);
     $("#addCompanyBtn").addEventListener("click", addCompany);
     $("#renameAreaBtn").addEventListener("click", renameArea);
@@ -788,6 +856,34 @@
     $("#siteCompanySelect").addEventListener("change", (event) => {
       state.selectedCompanyId = event.target.value;
     });
+    let bootFailed = false;
+    renderStaticPages();
+
+    try {
+      await refreshUsers();
+    } catch (error) {
+      bootFailed = true;
+      console.error("Failed to load users", error);
+      setStatus(error.message || "Failed to load users");
+    }
+
+    try {
+      await refreshSites();
+    } catch (error) {
+      bootFailed = true;
+      console.error("Failed to load sites", error);
+      setStatus(error.message || "Failed to load sites");
+    }
+
+    try {
+      await renderUploadedPages();
+    } catch (error) {
+      bootFailed = true;
+      console.error("Failed to load uploaded pages", error);
+      setStatus(error.message || "Failed to load uploaded pages");
+    }
+
+    if (bootFailed) return;
 
     setStatus("جاهز.");
   }

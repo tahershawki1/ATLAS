@@ -36,7 +36,7 @@ export async function onRequestPost(context) {
     },
     {
       headers: {
-        "set-cookie": setSessionCookie(token),
+        "set-cookie": setSessionCookie(token, context.request),
       },
     },
   );

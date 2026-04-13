@@ -1,15 +1,12 @@
 // Atlas Site - Service Worker
 // Handles offline caching and update notifications
 
-const CACHE_NAME = 'atlas-site-v3';
+const CACHE_NAME = 'atlas-site-v4';
 const ASSETS = [
-  './',
-  './index.html',
   './shared/app.js',
   './shared/style.css',
   './shared/mobile-fix.css',
   './shared/sites_data.js',
-  './pages/new-level-mark/',
   './manifest.json',
   './version.json',
   './icons/brand-logo.png',
@@ -69,13 +66,15 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const reqUrl = new URL(event.request.url);
   if (reqUrl.origin !== self.location.origin) return;
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') return;
+  if (reqUrl.pathname.startsWith('/api/')) return;
 
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
       // Return cached version immediately
       const fetchPromise = fetch(event.request).then(networkResponse => {
         // Update cache with fresh version
-        if (networkResponse && networkResponse.status === 200) {
+        if (networkResponse && networkResponse.status === 200 && !networkResponse.redirected) {
           const responseClone = networkResponse.clone();
           caches.open(CACHE_NAME).then(cache => {
             cache.put(event.request, responseClone).catch(() => {});

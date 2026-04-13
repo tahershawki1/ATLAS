@@ -32,6 +32,7 @@
   const state = {
     initialized: false,
     apiAvailable: false,
+    apiBindings: null,
     currentUser: null,
     mode: "local",
   };
@@ -56,6 +57,26 @@
     return `${window.location.pathname}${window.location.search}${window.location.hash}`;
   }
 
+  function buildUserId() {
+    if (typeof crypto?.randomUUID === "function") {
+      return `user-${crypto.randomUUID()}`;
+    }
+    return `user-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  }
+
+  function normalizeUsername(value) {
+    return normalize(value).toLowerCase();
+  }
+
+  function hasWhitespace(value) {
+    return /\s/.test(String(value ?? ""));
+  }
+
+  function normalizePermissions(permissions, isAdmin) {
+    if (Boolean(isAdmin)) return ["*"];
+    return Array.isArray(permissions) ? [...new Set(permissions.filter(Boolean))] : [];
+  }
+
   async function sha256(input) {
     const text = new TextEncoder().encode(String(input ?? ""));
     const digest = await crypto.subtle.digest("SHA-256", text);
@@ -71,13 +92,73 @@
     };
   }
 
+  async function normalizeStoredUser(user, defaultAdmin) {
+    const fallbackPassword =
+      normalize(user?.username).toLowerCase() === normalize(DEFAULT_ADMIN.username).toLowerCase()
+        ? DEFAULT_ADMIN.password_hint
+        : "";
+    const next = {
+      ...user,
+    };
+
+    if (!next.id) next.id = `user-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    if (!normalize(next.username) && normalize(next.full_name)) {
+      next.username = normalize(next.full_name).toLowerCase().replace(/\s+/g, "");
+    }
+    if (!normalize(next.full_name)) next.full_name = next.username || "user";
+    next.username = normalize(next.username).toLowerCase();
+    next.permissions = Array.isArray(next.permissions) ? [...new Set(next.permissions.filter(Boolean))] : [];
+    next.is_admin = Boolean(next.is_admin);
+    if (!normalize(next.created_at)) next.created_at = new Date().toISOString();
+
+    if (!normalize(next.password_hash)) {
+      const rawPassword = normalize(next.password_hint) || fallbackPassword;
+      if (rawPassword) next.password_hash = await sha256(rawPassword);
+    }
+
+    if (next.username === defaultAdmin.username) {
+      next.id = defaultAdmin.id;
+      next.full_name = next.full_name || defaultAdmin.full_name;
+      next.password_hint = next.password_hint || defaultAdmin.password_hint;
+      next.password_hash = next.password_hash || defaultAdmin.password_hash;
+      next.is_admin = true;
+      next.permissions = ["*"];
+    }
+
+    return next;
+  }
+
   async function ensureLocalUsers() {
     const existing = jsonParse(localStorage.getItem(STORAGE.localUsers), []);
-    if (Array.isArray(existing) && existing.length) return existing;
-
     const admin = await buildDefaultAdmin();
-    localStorage.setItem(STORAGE.localUsers, JSON.stringify([admin]));
-    return [admin];
+    const source = Array.isArray(existing) ? existing : [];
+
+    if (!source.length) {
+      localStorage.setItem(STORAGE.localUsers, JSON.stringify([admin]));
+      return [admin];
+    }
+
+    const normalizedUsers = [];
+    for (const entry of source) {
+      normalizedUsers.push(await normalizeStoredUser(entry, admin));
+    }
+
+    const hasAdmin = normalizedUsers.some(
+      (entry) => normalize(entry.username).toLowerCase() === normalize(admin.username).toLowerCase(),
+    );
+
+    if (!hasAdmin) normalizedUsers.unshift(admin);
+
+    const deduplicatedUsers = normalizedUsers.filter((entry, index, items) => {
+      return (
+        items.findIndex(
+          (candidate) => normalize(candidate.username).toLowerCase() === normalize(entry.username).toLowerCase(),
+        ) === index
+      );
+    });
+
+    localStorage.setItem(STORAGE.localUsers, JSON.stringify(deduplicatedUsers));
+    return deduplicatedUsers;
   }
 
   async function apiFetch(url, options = {}) {
@@ -112,11 +193,14 @@
   async function probeApi() {
     try {
       const payload = await apiFetch("/api/bootstrap", { method: "GET" });
-      state.apiAvailable = Boolean(payload?.ok);
+      state.apiBindings = payload?.bindings || null;
+      const hasUserBindings = Boolean(payload?.bindings?.data) && Boolean(payload?.bindings?.sessions);
+      state.apiAvailable = Boolean(payload?.ok && hasUserBindings);
       state.mode = state.apiAvailable ? "cloudflare" : "local";
       return state.apiAvailable;
     } catch (error) {
       state.apiAvailable = false;
+      state.apiBindings = null;
       state.mode = "local";
       return false;
     }
@@ -388,19 +472,22 @@
 
   async function localCreateUser(data) {
     const users = await ensureLocalUsers();
-    const username = normalize(data.username).toLowerCase();
+    const username = normalizeUsername(data.username);
+    if (hasWhitespace(username)) throw new Error("Username cannot contain spaces");
+    const password = normalize(data.password);
+    if (!password) throw new Error("Password is required");
     if (!username) throw new Error("اسم المستخدم مطلوب");
     if (users.some((user) => normalize(user.username).toLowerCase() === username)) {
       throw new Error("اسم المستخدم مستخدم بالفعل");
     }
 
     const next = {
-      id: `user-${Date.now()}`,
+      id: buildUserId(),
       username,
       full_name: normalize(data.full_name) || username,
-      password_hash: await sha256(data.password || "123456"),
+      password_hash: await sha256(password),
       is_admin: Boolean(data.is_admin),
-      permissions: Array.isArray(data.permissions) ? [...new Set(data.permissions)] : [],
+      permissions: normalizePermissions(data.permissions, data.is_admin),
       created_at: new Date().toISOString(),
     };
 
@@ -415,17 +502,23 @@
     if (index === -1) throw new Error("المستخدم غير موجود");
 
     const current = users[index];
+    const nextIsAdmin = current.username === DEFAULT_ADMIN.username
+      ? true
+      : Object.prototype.hasOwnProperty.call(data || {}, "is_admin")
+        ? Boolean(data.is_admin)
+        : current.is_admin;
     const next = {
       ...current,
       full_name: normalize(data.full_name) || current.full_name,
-      is_admin: Boolean(data.is_admin),
+      is_admin: nextIsAdmin,
       permissions: Array.isArray(data.permissions)
-        ? [...new Set(data.permissions.filter(Boolean))]
-        : current.permissions,
+        ? normalizePermissions(data.permissions, nextIsAdmin)
+        : normalizePermissions(current.permissions, nextIsAdmin),
     };
 
     if (normalize(data.username)) {
-      const username = normalize(data.username).toLowerCase();
+      const username = normalizeUsername(data.username);
+      if (hasWhitespace(username)) throw new Error("Username cannot contain spaces");
       const duplicate = users.some(
         (user) => user.id !== userId && normalize(user.username).toLowerCase() === username,
       );
@@ -435,6 +528,12 @@
 
     if (normalize(data.password)) {
       next.password_hash = await sha256(data.password);
+    }
+
+    if (current.username === DEFAULT_ADMIN.username) {
+      next.username = DEFAULT_ADMIN.username;
+      next.is_admin = true;
+      next.permissions = ["*"];
     }
 
     users[index] = next;

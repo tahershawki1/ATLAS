@@ -52,10 +52,76 @@ async function putJson(env, key, value) {
   return value;
 }
 
+function normalizeValue(value) {
+  return String(value ?? "").trim();
+}
+
+function buildUserId() {
+  return `user-${crypto.randomUUID()}`;
+}
+
+function normalizeUsername(value) {
+  return normalizeValue(value).toLowerCase();
+}
+
+function hasWhitespace(value) {
+  return /\s/.test(String(value ?? ""));
+}
+
+function normalizePermissions(permissions, isAdmin) {
+  if (Boolean(isAdmin)) return ["*"];
+  return Array.isArray(permissions) ? [...new Set(permissions.filter(Boolean))] : [];
+}
+
+async function normalizeStoredUsers(users, defaultAdmin) {
+  const source = Array.isArray(users) ? users : [];
+  const normalized = [];
+
+  for (const user of source) {
+    const fallbackPassword =
+      normalizeValue(user?.username).toLowerCase() === normalizeValue(defaultAdmin.username).toLowerCase()
+        ? defaultAdmin.password_hint
+        : "";
+    const next = { ...user };
+
+    if (!next.id) next.id = `user-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+    if (!normalizeValue(next.username) && normalizeValue(next.full_name)) {
+      next.username = normalizeValue(next.full_name).toLowerCase().replace(/\s+/g, "");
+    }
+    if (!normalizeValue(next.full_name)) next.full_name = next.username || "user";
+    next.username = normalizeValue(next.username).toLowerCase();
+    next.permissions = Array.isArray(next.permissions) ? [...new Set(next.permissions.filter(Boolean))] : [];
+    next.is_admin = Boolean(next.is_admin);
+    if (!normalizeValue(next.created_at)) next.created_at = new Date().toISOString();
+
+    if (!normalizeValue(next.password_hash)) {
+      const rawPassword = normalizeValue(next.password_hint) || fallbackPassword;
+      if (rawPassword) next.password_hash = await sha256(rawPassword);
+    }
+
+    if (next.username === defaultAdmin.username) {
+      next.id = defaultAdmin.id;
+      next.full_name = next.full_name || defaultAdmin.full_name;
+      next.password_hint = next.password_hint || defaultAdmin.password_hint;
+      next.password_hash = next.password_hash || defaultAdmin.password_hash;
+      next.is_admin = true;
+      next.permissions = ["*"];
+    }
+
+    if (next.username) normalized.push(next);
+  }
+
+  if (!normalized.some((entry) => entry.username === defaultAdmin.username)) {
+    normalized.unshift(defaultAdmin);
+  }
+
+  return normalized.filter((entry, index, items) => {
+    return items.findIndex((candidate) => candidate.username === entry.username) === index;
+  });
+}
+
 async function ensureUsers(env) {
   let users = await getJson(env, USERS_KEY, []);
-  if (Array.isArray(users) && users.length) return users;
-
   const defaultAdmin = {
     id: "user-admin",
     username: "admin",
@@ -66,7 +132,7 @@ async function ensureUsers(env) {
     permissions: ["*"],
     created_at: new Date().toISOString(),
   };
-  users = [defaultAdmin];
+  users = await normalizeStoredUsers(users, defaultAdmin);
   await putJson(env, USERS_KEY, users);
   return users;
 }
@@ -130,12 +196,28 @@ async function putPagesManifest(env, manifest) {
   return putJson(env, PAGES_MANIFEST_KEY, manifest);
 }
 
-function setSessionCookie(token, maxAgeSeconds = 60 * 60 * 24 * 7) {
-  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAgeSeconds}`;
+function setSessionCookie(token, request, maxAgeSeconds = 60 * 60 * 24 * 7) {
+  const isSecure = (() => {
+    try {
+      return new URL(request.url).protocol === "https:";
+    } catch (error) {
+      return true;
+    }
+  })();
+
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly;${isSecure ? " Secure;" : ""} SameSite=Lax; Max-Age=${maxAgeSeconds}`;
 }
 
-function clearSessionCookie() {
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+function clearSessionCookie(request) {
+  const isSecure = (() => {
+    try {
+      return new URL(request.url).protocol === "https:";
+    } catch (error) {
+      return true;
+    }
+  })();
+
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly;${isSecure ? " Secure;" : ""} SameSite=Lax; Max-Age=0`;
 }
 
 function slugify(value) {
@@ -175,6 +257,10 @@ export {
   putPagesManifest,
   redirectToLogin,
   requireUser,
+  buildUserId,
+  hasWhitespace,
+  normalizePermissions,
+  normalizeUsername,
   sanitizeUser,
   setSessionCookie,
   sha256,

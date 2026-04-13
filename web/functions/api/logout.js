@@ -10,7 +10,7 @@ export async function onRequestPost(context) {
     { ok: true },
     {
       headers: {
-        "set-cookie": clearSessionCookie(),
+        "set-cookie": clearSessionCookie(context.request),
       },
     },
   );

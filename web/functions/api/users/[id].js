@@ -1,4 +1,15 @@
-import { ensureUsers, json, putJson, requireUser, sanitizeUser, sha256, USERS_KEY } from "../_utils";
+import {
+  USERS_KEY,
+  ensureUsers,
+  hasWhitespace,
+  json,
+  normalizePermissions,
+  normalizeUsername,
+  putJson,
+  requireUser,
+  sanitizeUser,
+  sha256,
+} from "../_utils";
 
 export async function onRequestGet(context) {
   const auth = await requireUser(context, "admin.panel");
@@ -20,17 +31,23 @@ export async function onRequestPatch(context) {
 
   const payload = await context.request.json();
   const current = users[index];
+  const nextIsAdmin = current.username === "admin"
+    ? true
+    : Object.prototype.hasOwnProperty.call(payload || {}, "is_admin")
+      ? Boolean(payload?.is_admin)
+      : current.is_admin;
   const next = {
     ...current,
     full_name: String(payload?.full_name ?? current.full_name).trim() || current.full_name,
-    is_admin: Boolean(payload?.is_admin),
+    is_admin: nextIsAdmin,
     permissions: Array.isArray(payload?.permissions)
-      ? [...new Set(payload.permissions.filter(Boolean))]
-      : current.permissions,
+      ? normalizePermissions(payload.permissions, nextIsAdmin)
+      : normalizePermissions(current.permissions, nextIsAdmin),
   };
 
   if (String(payload?.username ?? "").trim()) {
-    const username = String(payload.username).trim().toLowerCase();
+    const username = normalizeUsername(payload.username);
+    if (hasWhitespace(username)) return json({ error: "Username cannot contain spaces" }, { status: 400 });
     const duplicate = users.some(
       (entry) => entry.id !== context.params.id && String(entry.username).trim().toLowerCase() === username,
     );
@@ -40,6 +57,12 @@ export async function onRequestPatch(context) {
 
   if (String(payload?.password ?? "").trim()) {
     next.password_hash = await sha256(String(payload.password));
+  }
+
+  if (current.username === "admin") {
+    next.username = "admin";
+    next.is_admin = true;
+    next.permissions = ["*"];
   }
 
   users[index] = next;
