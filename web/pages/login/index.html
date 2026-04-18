@@ -205,9 +205,11 @@
     const submitBtn = document.getElementById("submitBtn");
     const modeLabel = document.getElementById("modeLabel");
 
-    function getRedirectTarget() {
+    async function resolveRedirectTarget() {
       const params = new URLSearchParams(window.location.search);
-      return params.get("redirect") || "/index.html";
+      const explicitTarget = params.get("redirect");
+      if (explicitTarget) return explicitTarget;
+      return window.AtlasAuth.getDefaultAuthorizedUrl();
     }
 
     function setStatus(message, isOk = false) {
@@ -226,7 +228,7 @@
 
       const user = window.AtlasAuth.getCurrentUser();
       if (user) {
-        window.location.href = getRedirectTarget();
+        window.location.href = await resolveRedirectTarget();
       }
     });
 
@@ -240,7 +242,7 @@
         const password = document.getElementById("password").value;
         await window.AtlasAuth.login(username, password);
         setStatus("تم تسجيل الدخول بنجاح", true);
-        window.location.href = getRedirectTarget();
+        window.location.href = await resolveRedirectTarget();
       } catch (error) {
         setStatus(error.message || "تعذر تسجيل الدخول");
       } finally {

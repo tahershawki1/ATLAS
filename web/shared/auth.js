@@ -57,6 +57,15 @@
     return `${window.location.pathname}${window.location.search}${window.location.hash}`;
   }
 
+  function normalizeComparablePath(urlLike) {
+    try {
+      const url = new URL(urlLike, window.location.origin);
+      return url.pathname.replace(/\/+$/, "") || "/";
+    } catch (error) {
+      return "/";
+    }
+  }
+
   function buildUserId() {
     if (typeof crypto?.randomUUID === "function") {
       return `user-${crypto.randomUUID()}`;
@@ -320,7 +329,6 @@
   function canAccess(permission, user = state.currentUser) {
     if (!permission) return true;
     if (!user) return false;
-    if (permission === "pages.home") return true;
     if (Boolean(user.is_admin)) return true;
     return matchesPermission(user.permissions, permission);
   }
@@ -346,7 +354,14 @@
     }
 
     if (!canAccess(permission)) {
-      if (settings.redirectUnauthorized) window.location.href = "/index.html";
+      if (settings.redirectUnauthorized) {
+        const fallbackUrl = await getDefaultAuthorizedUrl();
+        if (normalizeComparablePath(fallbackUrl) !== normalizeComparablePath(window.location.href)) {
+          window.location.href = fallbackUrl;
+        } else {
+          renderAccessDenied(permission);
+        }
+      }
       return false;
     }
 
@@ -371,6 +386,37 @@
   async function getAllPages() {
     const dynamicPages = await getDynamicPages();
     return [...getStaticPages(), ...dynamicPages];
+  }
+
+  async function getDefaultAuthorizedUrl(user = state.currentUser) {
+    const pages = await getAllPages();
+    const fallback = pages.find((page) => canAccess(page.id, user));
+    return toAbsolute(fallback?.url || "/index.html");
+  }
+
+  function renderAccessDenied(permission) {
+    if (!document?.body) return;
+
+    document.body.innerHTML = `
+      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#f8fafc;font-family:Cairo,system-ui,sans-serif;">
+        <div style="width:min(100%,420px);background:#fff;border:1px solid rgba(30,64,175,.1);border-radius:16px;padding:24px;box-shadow:0 18px 40px rgba(15,23,42,.12);text-align:center;">
+          <h1 style="margin:0 0 10px;color:#1e3a8a;font-size:1.2rem;font-weight:900;">لا توجد صلاحية</h1>
+          <p style="margin:0 0 18px;color:#475569;font-size:.92rem;line-height:1.8;">هذا المستخدم لا يملك صلاحية فتح هذه الصفحة${permission ? ` (${permission})` : ""}.</p>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <button id="atlasDeniedLogoutBtn" type="button" style="min-height:42px;padding:0 16px;border:none;border-radius:10px;background:#1e3a8a;color:#fff;font-family:inherit;font-weight:800;cursor:pointer;">تسجيل الخروج</button>
+            <a href="/pages/login/" style="display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 16px;border-radius:10px;border:1px solid rgba(30,64,175,.14);background:#fff;color:#1e3a8a;text-decoration:none;font-weight:800;">صفحة الدخول</a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const logoutBtn = document.getElementById("atlasDeniedLogoutBtn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async () => {
+        await logout();
+        goToLogin("/index.html");
+      });
+    }
   }
 
   function applyPagePermissions(root = document) {
@@ -703,6 +749,7 @@
     getStaticPages,
     getDynamicPages,
     getAllPages,
+    getDefaultAuthorizedUrl,
     applyPagePermissions,
     decorateShell,
     state,

@@ -405,9 +405,8 @@
     document.addEventListener("DOMContentLoaded", async () => {
       if (!window.AtlasAuth) return;
       await window.AtlasAuth.initialize();
-      const allowed = await window.AtlasAuth.requirePageAccess("admin.panel");
+      const allowed = await window.AtlasAuth.requirePageAccess("pages.site-management");
       if (!allowed) return;
-      window.location.replace("../admin/?tab=sites");
     });
   </script>
   <div class="manage-page">

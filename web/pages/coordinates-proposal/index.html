@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Atlas Surveying - فحص المخطط واستخراج الإحداثيات</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../shared/style.css" />
+  <link rel="stylesheet" href="../../shared/mobile-fix.css" />
+  <script src="../../shared/auth.js"></script>
+  <style>
+    .custom-page {
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at top right, rgba(241, 135, 62, 0.16) 0%, transparent 38%),
+        radial-gradient(circle at bottom left, rgba(30, 64, 175, 0.15) 0%, transparent 40%),
+        linear-gradient(170deg, #f8fafc 0%, #eef2ff 52%, #f1f5f9 100%);
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 12px;
+      padding-bottom: 98px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .top-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .action-btn {
+      min-height: 44px;
+      border-radius: 12px;
+      border: 1px solid rgba(30, 64, 175, 0.14);
+      background: #fff;
+      color: var(--primary);
+      font-size: 0.82rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: var(--transition);
+      padding: 0 12px;
+      text-align: center;
+      font-family: inherit;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 18px rgba(30, 64, 175, 0.1);
+    }
+
+    .action-btn.primary {
+      border: none;
+      background: linear-gradient(135deg, #0a7f8a 0%, #1e3a8a 100%);
+      color: #fff;
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.18);
+    }
+
+    .action-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      border-radius: 22px;
+      padding: 12px;
+      box-shadow: 0 14px 28px rgba(30, 64, 175, 0.08);
+    }
+
+    .hero {
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.96) 0%, rgba(240, 249, 255, 0.88) 50%, rgba(255, 255, 255, 0.96) 100%);
+      border: 1px solid rgba(30, 64, 175, 0.12);
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 1px solid rgba(241, 135, 62, 0.4);
+      background: rgba(241, 135, 62, 0.14);
+      color: #9a3412;
+      padding: 0.15rem 0.6rem;
+      font-family: "Outfit", sans-serif;
+      font-size: 0.68rem;
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      color: var(--primary-dark);
+      font-size: 1.04rem;
+      line-height: 1.55;
+      font-weight: 900;
+    }
+
+    .muted {
+      margin: 6px 0 0;
+      color: #475569;
+      font-size: 0.8rem;
+      font-weight: 700;
+      line-height: 1.8;
+    }
+
+    .hero-steps {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .step-chip {
+      border-radius: 11px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      background: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      color: #0f172a;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .step-chip .num {
+      width: 23px;
+      height: 23px;
+      border-radius: 50%;
+      background: rgba(30, 64, 175, 0.13);
+      color: var(--primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Outfit", sans-serif;
+      font-size: 0.76rem;
+      font-weight: 900;
+      flex: 0 0 auto;
+    }
+
+    .section-title {
+      margin: 0 0 8px;
+      color: var(--primary);
+      font-size: 0.95rem;
+      font-weight: 900;
+      line-height: 1.4;
+    }
+
+    .drop-zone {
+      border: 2px dashed rgba(10, 127, 138, 0.34);
+      border-radius: 16px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 1) 0%, rgba(239, 246, 255, 0.74) 100%);
+      min-height: 122px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 12px;
+      cursor: pointer;
+      transition: var(--transition);
+      outline: none;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.is-dragover,
+    .drop-zone:focus-visible {
+      border-color: rgba(30, 64, 175, 0.55);
+      transform: translateY(-1px);
+      box-shadow: 0 12px 20px rgba(30, 64, 175, 0.12);
+    }
+
+    .drop-title {
+      margin: 0;
+      color: var(--primary);
+      font-size: 0.92rem;
+      font-weight: 900;
+      line-height: 1.5;
+    }
+
+    .drop-sub {
+      margin: 4px 0 0;
+      color: #64748b;
+      font-size: 0.74rem;
+      font-weight: 700;
+      line-height: 1.7;
+    }
+
+    .file-meta {
+      margin-top: 8px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      border-radius: 12px;
+      background: #fff;
+      padding: 8px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 5px;
+    }
+
+    .meta-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.74rem;
+      border-bottom: 1px dashed rgba(30, 64, 175, 0.12);
+      padding-bottom: 4px;
+    }
+
+    .meta-line:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .meta-label {
+      color: #64748b;
+      font-weight: 800;
+    }
+
+    .meta-value {
+      color: #0f172a;
+      font-weight: 800;
+      font-family: "Outfit", "Cairo", sans-serif;
+      text-align: left;
+      direction: ltr;
+      overflow-wrap: anywhere;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 9px;
+    }
+
+    .option-field {
+      border: 1px solid rgba(30, 64, 175, 0.11);
+      border-radius: 12px;
+      background: #fff;
+      padding: 8px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .option-field label {
+      color: #475569;
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    .option-field input[type="number"],
+    .option-field select {
+      width: 100%;
+      height: 39px;
+      border-radius: 10px;
+      border: 1.5px solid rgba(30, 64, 175, 0.16);
+      background: #f8fafc;
+      color: #0f172a;
+      font-size: 0.82rem;
+      font-weight: 800;
+      padding: 0 10px;
+      font-family: inherit;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .option-field input[type="number"]:focus,
+    .option-field select:focus {
+      background: #fff;
+      border-color: rgba(30, 64, 175, 0.42);
+      box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12);
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .check-row input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .scan-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .scan-hint {
+      margin-top: 8px;
+      border-radius: 12px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 40px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.76rem;
+      font-weight: 800;
+      line-height: 1.7;
+    }
+
+    .scan-hint.busy::before {
+      content: "";
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid rgba(30, 64, 175, 0.25);
+      border-top-color: rgba(30, 64, 175, 0.95);
+      animation: spin 0.8s linear infinite;
+      flex: 0 0 auto;
+    }
+
+    .scan-hint.error {
+      border-color: rgba(220, 38, 38, 0.25);
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .scan-hint.success {
+      border-color: rgba(16, 185, 129, 0.28);
+      background: #ecfdf5;
+      color: #065f46;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .preview-head,
+    .results-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .preview-note {
+      color: #64748b;
+      font-size: 0.73rem;
+      font-weight: 800;
+    }
+
+    .preview-wrap {
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      border-radius: 14px;
+      background: #fff;
+      padding: 8px;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      max-height: 58vh;
+    }
+
+    #previewCanvas {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      border-radius: 10px;
+      display: block;
+      background: #f8fafc;
+    }
+
+    .result-badge {
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-family: "Outfit", sans-serif;
+      font-size: 0.7rem;
+      font-weight: 900;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .result-badge.neutral {
+      background: #e2e8f0;
+      color: #334155;
+      border-color: rgba(100, 116, 139, 0.28);
+    }
+
+    .result-badge.success {
+      background: #dcfce7;
+      color: #065f46;
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+
+    .result-badge.warn {
+      background: #ffedd5;
+      color: #9a3412;
+      border-color: rgba(249, 115, 22, 0.32);
+    }
+
+    .result-badge.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border-color: rgba(239, 68, 68, 0.35);
+    }
+
+    .metrics {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .metric {
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      border-radius: 12px;
+      background: #fff;
+      padding: 8px;
+      text-align: center;
+    }
+
+    .metric .label {
+      color: #64748b;
+      font-size: 0.67rem;
+      font-weight: 800;
+      margin-bottom: 3px;
+    }
+
+    .metric .value {
+      color: #0f172a;
+      font-family: "Outfit", sans-serif;
+      font-size: 1.02rem;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    .result-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .table-wrap {
+      margin-top: 10px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      border-radius: 12px;
+      background: #fff;
+      overflow: auto;
+      max-height: 56vh;
+    }
+
+    .results-table {
+      width: 100%;
+      min-width: 880px;
+      border-collapse: collapse;
+      text-align: center;
+    }
+
+    .results-table th,
+    .results-table td {
+      border-bottom: 1px solid rgba(30, 64, 175, 0.08);
+      padding: 8px 6px;
+      font-size: 0.74rem;
+      line-height: 1.4;
+    }
+
+    .results-table th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #f8fafc;
+      color: var(--primary);
+      font-weight: 900;
+      letter-spacing: 0.1px;
+    }
+
+    .results-table td {
+      color: #0f172a;
+      font-weight: 700;
+      font-family: "Outfit", "Cairo", sans-serif;
+    }
+
+    .results-table tr.empty-row td {
+      text-align: center;
+      color: #64748b;
+      font-family: "Cairo", sans-serif;
+      font-size: 0.8rem;
+      padding: 14px 10px;
+    }
+
+    .raw-shell {
+      margin-top: 10px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      border-radius: 12px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .raw-shell summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 10px;
+      color: var(--primary);
+      font-size: 0.79rem;
+      font-weight: 900;
+      border-bottom: 1px solid rgba(30, 64, 175, 0.08);
+      user-select: none;
+    }
+
+    .raw-shell summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .raw-shell pre {
+      margin: 0;
+      padding: 10px;
+      max-height: 220px;
+      overflow: auto;
+      font-size: 0.71rem;
+      font-weight: 700;
+      line-height: 1.7;
+      color: #0f172a;
+      font-family: "Outfit", "Cairo", monospace;
+      direction: ltr;
+      text-align: left;
+      background: #f8fafc;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (min-width: 768px) {
+      .wrap {
+        padding: 16px;
+        gap: 12px;
+      }
+
+      .card {
+        padding: 14px;
+      }
+
+      .hero h1 {
+        font-size: 1.18rem;
+      }
+
+      .muted {
+        font-size: 0.84rem;
+      }
+
+      .options-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .scan-actions {
+        grid-template-columns: minmax(0, 1fr) 180px;
+      }
+
+      .result-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body class="page-scroll-enabled">
+  <div class="custom-page">
+    <div class="wrap">
+      <div data-auth-shell></div>
+
+      <div class="top-actions">
+        <button class="back-btn" onclick="window.location.href='../../index.html'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transform: rotate(180deg);" aria-hidden="true">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          <span>العودة للرئيسية</span>
+        </button>
+        <button class="action-btn" id="advancedBtn" type="button">فتح صفحة الاستخراج المتقدمة</button>
+      </div>
+
+      <section class="card hero">
+        <span class="hero-tag">SMART WORKFLOW</span>
+        <h1>فحص المخطط واستخراج الإحداثيات تلقائيًا</h1>
+        <p class="muted">
+          ارفع ملف المخطط (PDF أو صورة)، وستقوم الصفحة بتحليل النص والتحقق من وجود إحداثيات.
+          عند اكتشافها، يتم عرض جدول جاهز للمراجعة والتصدير.
+        </p>
+        <div class="hero-steps">
+          <div class="step-chip"><span class="num">1</span><span>رفع المخطط ومعاينة أولية</span></div>
+          <div class="step-chip"><span class="num">2</span><span>فحص نصي + OCR حسب الحاجة</span></div>
+          <div class="step-chip"><span class="num">3</span><span>استخراج النتائج وتصدير CSV / JSON</span></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="section-title">رفع المخطط</h2>
+        <div id="dropZone" class="drop-zone" role="button" tabindex="0" aria-label="رفع ملف مخطط">
+          <input id="fileInput" type="file" accept=".pdf,image/png,image/jpeg,image/jpg,image/webp" class="hidden" />
+          <div>
+            <p class="drop-title">اضغط لاختيار الملف أو اسحبه هنا</p>
+            <p class="drop-sub">الأنواع المدعومة: PDF / JPG / PNG / WEBP</p>
+          </div>
+        </div>
+
+        <div id="fileMeta" class="file-meta hidden">
+          <div class="meta-line"><span class="meta-label">اسم الملف</span><span id="metaName" class="meta-value">-</span></div>
+          <div class="meta-line"><span class="meta-label">النوع</span><span id="metaType" class="meta-value">-</span></div>
+          <div class="meta-line"><span class="meta-label">الحجم</span><span id="metaSize" class="meta-value">-</span></div>
+          <div class="meta-line"><span class="meta-label">عدد الصفحات</span><span id="metaPages" class="meta-value">-</span></div>
+        </div>
+
+        <div class="options-grid">
+          <div class="option-field">
+            <label for="maxPagesInput">حد أقصى لصفحات الفحص (للـ PDF)</label>
+            <input id="maxPagesInput" type="number" min="1" max="250" value="12" />
+          </div>
+          <div class="option-field">
+            <label for="coordTypeSelect">نمط الإحداثيات المستهدف</label>
+            <select id="coordTypeSelect">
+              <option value="any">كل الأنماط</option>
+              <option value="projected">Projected (Northing/Easting)</option>
+              <option value="latlon">Latitude / Longitude</option>
+            </select>
+          </div>
+          <div class="option-field" style="grid-column: 1 / -1;">
+            <div class="check-row">
+              <input id="ocrToggle" type="checkbox" checked />
+              <label for="ocrToggle">تفعيل OCR تلقائي إذا النص غير واضح</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="scan-actions">
+          <button id="scanBtn" class="action-btn primary" type="button" disabled>فحص واستخراج الإحداثيات</button>
+          <button id="resetBtn" class="action-btn" type="button">إعادة ضبط</button>
+        </div>
+
+        <div id="scanHint" class="scan-hint">اختر ملفًا لبدء الفحص.</div>
+      </section>
+
+      <section id="previewCard" class="card hidden">
+        <div class="preview-head">
+          <h2 class="section-title" style="margin: 0;">معاينة الملف</h2>
+          <span id="previewNote" class="preview-note">لا يوجد ملف</span>
+        </div>
+        <div class="preview-wrap">
+          <canvas id="previewCanvas"></canvas>
+        </div>
+      </section>
+
+      <section id="resultCard" class="card hidden">
+        <div class="results-head">
+          <h2 class="section-title" style="margin: 0;">نتيجة الفحص</h2>
+          <span id="resultBadge" class="result-badge neutral">بانتظار الفحص</span>
+        </div>
+        <p id="resultMessage" class="muted" style="margin-top: 0;">بعد تشغيل الفحص ستظهر النتيجة هنا.</p>
+
+        <div class="metrics">
+          <div class="metric"><div class="label">سطور تم تحليلها</div><div id="metricLines" class="value">0</div></div>
+          <div class="metric"><div class="label">إحداثيات مستخرجة</div><div id="metricRows" class="value">0</div></div>
+          <div class="metric"><div class="label">صفحات مفحوصة</div><div id="metricPages" class="value">0</div></div>
+          <div class="metric"><div class="label">مؤشر الثقة</div><div id="metricConfidence" class="value">0%</div></div>
+        </div>
+
+        <div id="resultActions" class="result-actions hidden">
+          <button id="exportCsvBtn" class="action-btn" type="button">تصدير CSV</button>
+          <button id="copyJsonBtn" class="action-btn" type="button">نسخ JSON</button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Point</th>
+                <th>Northing / Lat</th>
+                <th>Easting / Lon</th>
+                <th>Elevation</th>
+                <th>Code</th>
+                <th>Page</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody id="rowsBody">
+              <tr class="empty-row"><td colspan="8">لا توجد نتائج بعد.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <details class="raw-shell">
+          <summary>عرض النص الخام المستخرج</summary>
+          <pre id="rawTextHost">-</pre>
+        </details>
+      </section>
+    </div>
+  </div>
+
+  <script type="module">
+    const PDF_JS_MODULE_PATH = "../../LIP/vendor/pdfjs/pdf.min.mjs";
+    const PDF_JS_WORKER_PATH = "../../LIP/vendor/pdfjs/pdf.worker.min.mjs";
+    const TESSERACT_MODULE_PATH = "../../LIP/vendor/tesseract/tesseract.esm.min.js";
+    const TESSERACT_WORKER_PATH = "../../LIP/vendor/tesseract/worker.min.js";
+    const TESSERACT_CORE_PATH = "../../LIP/vendor/tesseract/tesseract-core.wasm.js";
+    const TESSERACT_LANG_PATH = "../../LIP/vendor/tesseract/lang";
+    const NUMBER_PATTERN = /[-+]?\d+(?:[.,]\d+)?/g;
+
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+    const scanBtn = document.getElementById("scanBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const advancedBtn = document.getElementById("advancedBtn");
+    const maxPagesInput = document.getElementById("maxPagesInput");
+    const coordTypeSelect = document.getElementById("coordTypeSelect");
+    const ocrToggle = document.getElementById("ocrToggle");
+    const scanHint = document.getElementById("scanHint");
+
+    const fileMeta = document.getElementById("fileMeta");
+    const metaName = document.getElementById("metaName");
+    const metaType = document.getElementById("metaType");
+    const metaSize = document.getElementById("metaSize");
+    const metaPages = document.getElementById("metaPages");
+
+    const previewCard = document.getElementById("previewCard");
+    const previewCanvas = document.getElementById("previewCanvas");
+    const previewNote = document.getElementById("previewNote");
+
+    const resultCard = document.getElementById("resultCard");
+    const resultBadge = document.getElementById("resultBadge");
+    const resultMessage = document.getElementById("resultMessage");
+    const metricLines = document.getElementById("metricLines");
+    const metricRows = document.getElementById("metricRows");
+    const metricPages = document.getElementById("metricPages");
+    const metricConfidence = document.getElementById("metricConfidence");
+    const resultActions = document.getElementById("resultActions");
+    const rowsBody = document.getElementById("rowsBody");
+    const rawTextHost = document.getElementById("rawTextHost");
+    const exportCsvBtn = document.getElementById("exportCsvBtn");
+    const copyJsonBtn = document.getElementById("copyJsonBtn");
+
+    const state = {
+      file: null,
+      fileBuffer: null,
+      fileKind: null,
+      pdfApi: null,
+      pdfDoc: null,
+      tesseractModule: null,
+      ocrWorker: null,
+      lines: [],
+      rows: [],
+      pagesScanned: 0,
+      ocrUsed: false,
+      busy: false,
+    };
+
+    function normalizeText(value) {
+      return String(value ?? "")
+        .replace(/\u00A0/g, " ")
+        .replace(/[،٬]/g, ",")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function normalizeNumberString(value) {
+      return String(value ?? "").replace(/,/g, ".");
+    }
+
+    function parseNumeric(value) {
+      const num = Number(normalizeNumberString(value));
+      return Number.isFinite(num) ? num : null;
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function isPdfFile(file) {
+      const name = String(file?.name || "").toLowerCase();
+      const type = String(file?.type || "").toLowerCase();
+      return type.includes("pdf") || name.endsWith(".pdf");
+    }
+
+    function isImageFile(file) {
+      const type = String(file?.type || "").toLowerCase();
+      const name = String(file?.name || "").toLowerCase();
+      return type.startsWith("image/") || [".jpg", ".jpeg", ".png", ".webp"].some((ext) => name.endsWith(ext));
+    }
+
+    function formatBytes(bytes) {
+      if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+      const units = ["B", "KB", "MB", "GB"];
+      const exp = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+      const value = bytes / (1024 ** exp);
+      return `${value.toFixed(value >= 10 || exp === 0 ? 0 : 1)} ${units[exp]}`;
+    }
+
+    function setHint(message, tone = "neutral", isBusy = false) {
+      scanHint.textContent = message;
+      scanHint.classList.toggle("busy", Boolean(isBusy));
+      scanHint.classList.toggle("error", tone === "error");
+      scanHint.classList.toggle("success", tone === "success");
+    }
+
+    function setResultBadge(label, tone = "neutral") {
+      resultBadge.textContent = label;
+      resultBadge.className = `result-badge ${tone}`;
+    }
+
+    function setBusy(isBusy) {
+      state.busy = isBusy;
+      scanBtn.disabled = isBusy || !state.file;
+      resetBtn.disabled = isBusy;
+      dropZone.style.pointerEvents = isBusy ? "none" : "auto";
+      fileInput.disabled = isBusy;
+      maxPagesInput.disabled = isBusy;
+      coordTypeSelect.disabled = isBusy;
+      ocrToggle.disabled = isBusy;
+    }
+
+    async function getPdfApi() {
+      if (state.pdfApi) return state.pdfApi;
+      const mod = await import(PDF_JS_MODULE_PATH);
+      mod.GlobalWorkerOptions.workerSrc = PDF_JS_WORKER_PATH;
+      state.pdfApi = mod;
+      return mod;
+    }
+
+    async function loadPdfDoc() {
+      if (state.pdfDoc) return state.pdfDoc;
+      const pdfApi = await getPdfApi();
+      state.pdfDoc = await pdfApi.getDocument({
+        data: state.fileBuffer,
+        isEvalSupported: false,
+        verbosity: pdfApi?.VerbosityLevel?.ERRORS ?? 0,
+      }).promise;
+      return state.pdfDoc;
+    }
+
+    async function getOcrWorker() {
+      if (state.ocrWorker) return state.ocrWorker;
+      if (!state.tesseractModule) {
+        const loaded = await import(TESSERACT_MODULE_PATH);
+        state.tesseractModule = loaded?.default ?? loaded;
+      }
+      if (!state.tesseractModule?.createWorker) return null;
+      state.ocrWorker = await state.tesseractModule.createWorker("eng", 1, {
+        workerPath: TESSERACT_WORKER_PATH,
+        corePath: TESSERACT_CORE_PATH,
+        langPath: `${TESSERACT_LANG_PATH}/`,
+      });
+      await state.ocrWorker.setParameters({
+        preserve_interword_spaces: "1",
+        tessedit_pageseg_mode: "6",
+        user_defined_dpi: "300",
+      });
+      return state.ocrWorker;
+    }
+
+    function buildLinesFromPdfItems(items) {
+      const words = [];
+      items.forEach((item) => {
+        const text = normalizeText(item?.str);
+        if (!text) return;
+        const tx = item?.transform || [];
+        const x = Number(tx[4] || 0);
+        const y = Number(tx[5] || 0);
+        const h = Math.max(1, Number(item?.height || Math.hypot(tx[2] || 0, tx[3] || 0) || 8));
+        words.push({ text, x, y, h });
+      });
+      if (!words.length) return [];
+
+      words.sort((a, b) => (b.y - a.y) || (a.x - b.x));
+      const lines = [];
+      words.forEach((word) => {
+        const tolerance = Math.max(3, Math.min(12, word.h * 0.72));
+        let line = lines.find((bucket) => Math.abs(bucket.y - word.y) <= tolerance);
+        if (!line) {
+          line = { y: word.y, words: [] };
+          lines.push(line);
+        }
+        line.words.push(word);
+      });
+
+      lines.sort((a, b) => b.y - a.y);
+      return lines
+        .map((line) => line.words.sort((a, b) => a.x - b.x).map((word) => word.text).join(" "))
+        .map((line) => normalizeText(line))
+        .filter(Boolean);
+    }
+
+    function createCropCanvas(sourceCanvas) {
+      const width = sourceCanvas.width;
+      const height = sourceCanvas.height;
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d", { alpha: false });
+      ctx.drawImage(sourceCanvas, 0, 0);
+
+      const img = ctx.getImageData(0, 0, width, height);
+      const data = img.data;
+      let minGray = 255;
+      let maxGray = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = Math.round((data[i] * 0.299) + (data[i + 1] * 0.587) + (data[i + 2] * 0.114));
+        data[i] = gray;
+        data[i + 1] = gray;
+        data[i + 2] = gray;
+        minGray = Math.min(minGray, gray);
+        maxGray = Math.max(maxGray, gray);
+      }
+
+      const contrast = Math.max(1, maxGray - minGray);
+      const threshold = contrast < 35
+        ? Math.round((minGray + maxGray) / 2)
+        : Math.round(minGray + (contrast * 0.6));
+
+      for (let i = 0; i < data.length; i += 4) {
+        const value = data[i] > threshold ? 255 : 0;
+        data[i] = value;
+        data[i + 1] = value;
+        data[i + 2] = value;
+      }
+
+      ctx.putImageData(img, 0, 0);
+      return canvas;
+    }
+
+    async function recognizeLinesFromCanvas(sourceCanvas) {
+      const worker = await getOcrWorker();
+      if (!state.tesseractModule) {
+        const loaded = await import(TESSERACT_MODULE_PATH);
+        state.tesseractModule = loaded?.default ?? loaded;
+      }
+      const ocrCanvas = createCropCanvas(sourceCanvas);
+      let result = null;
+      try {
+        if (worker && typeof worker.recognize === "function") {
+          result = await worker.recognize(ocrCanvas);
+        } else if (state.tesseractModule && typeof state.tesseractModule.recognize === "function") {
+          result = await state.tesseractModule.recognize(ocrCanvas, "eng", {
+            workerPath: TESSERACT_WORKER_PATH,
+            corePath: TESSERACT_CORE_PATH,
+            langPath: `${TESSERACT_LANG_PATH}/`,
+          });
+        } else {
+          throw new Error("OCR غير متاح في المكتبات المحلية.");
+        }
+      } finally {
+        ocrCanvas.width = 0;
+        ocrCanvas.height = 0;
+      }
+
+      return String(result?.data?.text || "")
+        .split(/\r?\n/)
+        .map((line) => normalizeText(line))
+        .filter(Boolean);
+    }
+
+    async function renderPdfPreview() {
+      const doc = await loadPdfDoc();
+      const page = await doc.getPage(1);
+      const previewContainerWidth = Math.max(300, previewCanvas.parentElement.clientWidth - 18);
+      const initialViewport = page.getViewport({ scale: 1 });
+      const scale = clamp(previewContainerWidth / Math.max(1, initialViewport.width), 0.5, 2.4);
+      const viewport = page.getViewport({ scale });
+
+      previewCanvas.width = Math.floor(viewport.width);
+      previewCanvas.height = Math.floor(viewport.height);
+      const ctx = previewCanvas.getContext("2d", { alpha: false });
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      previewNote.textContent = `PDF • الصفحة 1 من ${doc.numPages}`;
+    }
+
+    async function loadImageElement(file) {
+      const url = URL.createObjectURL(file);
+      try {
+        const image = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("تعذر تحميل الصورة."));
+          img.src = url;
+        });
+        return image;
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    async function renderImagePreview() {
+      const image = await loadImageElement(state.file);
+      const maxWidth = Math.max(300, previewCanvas.parentElement.clientWidth - 18);
+      const maxHeight = Math.max(260, Math.round(window.innerHeight * 0.56));
+      const scale = Math.min(maxWidth / image.width, maxHeight / image.height, 1);
+      const width = Math.max(1, Math.floor(image.width * scale));
+      const height = Math.max(1, Math.floor(image.height * scale));
+
+      previewCanvas.width = width;
+      previewCanvas.height = height;
+      const ctx = previewCanvas.getContext("2d", { alpha: false });
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(image, 0, 0, width, height);
+      previewNote.textContent = `Image • ${image.width} x ${image.height}`;
+    }
+
+    function countNumericRichLines(lines) {
+      return lines.reduce((count, line) => {
+        const numeric = String(line).match(NUMBER_PATTERN) || [];
+        return count + (numeric.length >= 3 ? 1 : 0);
+      }, 0);
+    }
+
+    async function extractLineEntriesFromPdf({ withOcr, maxPages }) {
+      const doc = await loadPdfDoc();
+      const total = clamp(maxPages, 1, doc.numPages);
+      const entries = [];
+      let usedOcr = false;
+
+      for (let pageNumber = 1; pageNumber <= total; pageNumber += 1) {
+        setHint(`جاري فحص الصفحة ${pageNumber} من ${total}...`, "neutral", true);
+
+        const page = await doc.getPage(pageNumber);
+        const textContent = await page.getTextContent();
+        const pageLines = buildLinesFromPdfItems(textContent.items);
+        pageLines.forEach((line) => entries.push({ text: line, page: pageNumber, source: "text-layer" }));
+
+        const textQuality = countNumericRichLines(pageLines);
+        const needsOcr = withOcr && (pageLines.length === 0 || textQuality === 0);
+
+        if (needsOcr) {
+          setHint(`OCR للصفحة ${pageNumber}...`, "neutral", true);
+          const viewport = page.getViewport({ scale: 2.2 });
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.floor(viewport.width);
+          canvas.height = Math.floor(viewport.height);
+          const ctx = canvas.getContext("2d", { alpha: false });
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          const ocrLines = await recognizeLinesFromCanvas(canvas);
+          ocrLines.forEach((line) => entries.push({ text: line, page: pageNumber, source: "ocr" }));
+          canvas.width = 0;
+          canvas.height = 0;
+          usedOcr = true;
+        }
+      }
+
+      return { entries, pagesScanned: total, usedOcr };
+    }
+
+    async function extractLineEntriesFromImage({ withOcr }) {
+      if (!withOcr) {
+        return { entries: [], pagesScanned: 1, usedOcr: false };
+      }
+
+      setHint("جاري OCR للصورة...", "neutral", true);
+      const image = await loadImageElement(state.file);
+      const maxSide = 2200;
+      const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.floor(image.width * scale));
+      canvas.height = Math.max(1, Math.floor(image.height * scale));
+      const ctx = canvas.getContext("2d", { alpha: false });
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const lines = await recognizeLinesFromCanvas(canvas);
+      canvas.width = 0;
+      canvas.height = 0;
+      return {
+        entries: lines.map((line) => ({ text: line, page: 1, source: "ocr" })),
+        pagesScanned: 1,
+        usedOcr: true,
+      };
+    }
+
+    function isLikelyHeaderLine(line) {
+      const text = normalizeText(line).toLowerCase();
+      if (!text) return true;
+      const hints = [
+        "point id",
+        "northing",
+        "easting",
+        "elevation",
+        "coordinate",
+        "project details",
+        "application",
+        "angle unit",
+        "pressure unit",
+        "tempurature unit",
+        "coordinate format",
+      ];
+      return hints.some((hint) => text.includes(hint));
+    }
+
+    function isPointIdToken(token) {
+      const value = String(token || "").trim();
+      if (!value) return false;
+      if (value.length > 24) return false;
+      if (!/[a-zA-Z0-9]/.test(value)) return false;
+      if (/^-?\d+\.\d+$/.test(value)) return false;
+      return true;
+    }
+
+    function isNumericToken(value) {
+      return parseNumeric(value) !== null;
+    }
+
+    function looksLikeProjected(value) {
+      return Number.isFinite(value) && Math.abs(value) >= 10000;
+    }
+
+    function looksLikeElevation(value) {
+      return Number.isFinite(value) && Math.abs(value) <= 10000;
+    }
+
+    function inferNameFromLine(line) {
+      const token = normalizeText(line)
+        .split(/\s+/)
+        .find((part) => isPointIdToken(part) && /[a-zA-Z]/.test(part));
+      return token || "";
+    }
+
+    function extractProjectedRowsFromLine(line) {
+      const normalized = normalizeText(line);
+      const tokens = normalized.split(/\s+/).filter(Boolean);
+      const rows = [];
+
+      for (let i = 0; i <= tokens.length - 3; i += 1) {
+        const nameToken = tokens[i];
+        const northingToken = tokens[i + 1];
+        const eastingToken = tokens[i + 2];
+        const northing = parseNumeric(northingToken);
+        const easting = parseNumeric(eastingToken);
+
+        if (!isPointIdToken(nameToken) || !looksLikeProjected(northing) || !looksLikeProjected(easting)) {
+          continue;
+        }
+
+        let elevation = "";
+        let code = "";
+        let advance = 3;
+
+        const zToken = tokens[i + 3];
+        const zValue = parseNumeric(zToken);
+        if (looksLikeElevation(zValue)) {
+          elevation = normalizeNumberString(zToken);
+          advance += 1;
+        }
+
+        const codeToken = tokens[i + advance];
+        const nextN = parseNumeric(tokens[i + advance + 1]);
+        const nextE = parseNumeric(tokens[i + advance + 2]);
+        const startsNextPoint = isPointIdToken(codeToken) && looksLikeProjected(nextN) && looksLikeProjected(nextE);
+        if (codeToken && !startsNextPoint && !isNumericToken(codeToken) && codeToken.length <= 24) {
+          code = codeToken;
+          advance += 1;
+        }
+
+        rows.push({
+          name: nameToken,
+          northing: normalizeNumberString(northingToken),
+          easting: normalizeNumberString(eastingToken),
+          elevation,
+          code,
+          kind: "PROJECTED",
+        });
+        i += advance - 1;
+      }
+
+      return rows;
+    }
+
+    function pushLatLonRow(rows, latRaw, lonRaw, fallbackName, rawLine) {
+      const lat = parseNumeric(latRaw);
+      const lon = parseNumeric(lonRaw);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+      if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return;
+
+      rows.push({
+        name: fallbackName || inferNameFromLine(rawLine) || "WGS84-POINT",
+        northing: normalizeNumberString(latRaw),
+        easting: normalizeNumberString(lonRaw),
+        elevation: "",
+        code: "LATLON",
+        kind: "LATLON",
+      });
+    }
+
+    function extractLatLonRowsFromLine(line) {
+      const normalized = normalizeText(line);
+      const rows = [];
+      if (!normalized) return rows;
+
+      const fallbackName = inferNameFromLine(normalized);
+
+      const namedLatLon = normalized.match(/(?:lat(?:itude)?)\s*[:=]?\s*(-?\d{1,2}(?:[.,]\d+)?)[^0-9-+]{1,20}(?:lon|lng|longitude)\s*[:=]?\s*(-?\d{1,3}(?:[.,]\d+)?)/i);
+      if (namedLatLon) {
+        pushLatLonRow(rows, namedLatLon[1], namedLatLon[2], fallbackName, normalized);
+      }
+
+      const namedLonLat = normalized.match(/(?:lon|lng|longitude)\s*[:=]?\s*(-?\d{1,3}(?:[.,]\d+)?)[^0-9-+]{1,20}(?:lat(?:itude)?)\s*[:=]?\s*(-?\d{1,2}(?:[.,]\d+)?)/i);
+      if (namedLonLat) {
+        pushLatLonRow(rows, namedLonLat[2], namedLonLat[1], fallbackName, normalized);
+      }
+
+      const pairRegex = /(-?\d{1,3}(?:[.,]\d{4,}))\s*[,;/]\s*(-?\d{1,3}(?:[.,]\d{4,}))/g;
+      let match;
+      while ((match = pairRegex.exec(normalized)) !== null) {
+        const first = parseNumeric(match[1]);
+        const second = parseNumeric(match[2]);
+        if (first === null || second === null) continue;
+
+        if (Math.abs(first) <= 90 && Math.abs(second) <= 180) {
+          pushLatLonRow(rows, match[1], match[2], fallbackName, normalized);
+          continue;
+        }
+        if (Math.abs(first) <= 180 && Math.abs(second) <= 90) {
+          pushLatLonRow(rows, match[2], match[1], fallbackName, normalized);
+        }
+      }
+
+      return rows;
+    }
+
+    function parseLineEntriesToRows(entries, mode) {
+      const rows = [];
+      const signatures = new Set();
+      let fallbackCounter = 1;
+
+      entries.forEach((entry) => {
+        const line = normalizeText(entry?.text);
+        if (!line || isLikelyHeaderLine(line)) return;
+
+        const lineRows = [];
+        if (mode !== "latlon") {
+          lineRows.push(...extractProjectedRowsFromLine(line));
+        }
+        if (mode !== "projected") {
+          lineRows.push(...extractLatLonRowsFromLine(line));
+        }
+
+        lineRows.forEach((draft) => {
+          const name = normalizeText(draft.name) || `AUTO-${fallbackCounter++}`;
+          const row = {
+            id: rows.length + 1,
+            name,
+            northing: normalizeNumberString(draft.northing || ""),
+            easting: normalizeNumberString(draft.easting || ""),
+            elevation: normalizeNumberString(draft.elevation || ""),
+            code: normalizeText(draft.code || ""),
+            page: entry.page ?? 1,
+            source: entry.source || "text-layer",
+            kind: draft.kind || "PROJECTED",
+            rawText: line,
+          };
+          const signature = `${row.name}|${row.northing}|${row.easting}|${row.elevation}|${row.code}|${row.page}`;
+          if (signatures.has(signature)) return;
+          signatures.add(signature);
+          rows.push(row);
+        });
+      });
+
+      return rows;
+    }
+
+    function calculateConfidence(rows, lines) {
+      if (!rows.length || !lines.length) return 0;
+      const completeRatio = rows.filter((row) => row.northing && row.easting).length / rows.length;
+      const withElevationRatio = rows.filter((row) => row.elevation).length / rows.length;
+      const coverageRatio = Math.min(1, rows.length / Math.max(1, lines.length * 0.35));
+      return clamp(Math.round((completeRatio * 55) + (withElevationRatio * 15) + (coverageRatio * 30)), 0, 100);
+    }
+
+    function renderRows(rows) {
+      if (!rows.length) {
+        rowsBody.innerHTML = '<tr class="empty-row"><td colspan="8">لم يتم العثور على إحداثيات صالحة في الملف.</td></tr>';
+        return;
+      }
+
+      rowsBody.innerHTML = rows
+        .map((row, idx) => `
+          <tr>
+            <td>${idx + 1}</td>
+            <td>${escapeHtml(row.name)}</td>
+            <td>${escapeHtml(row.northing)}</td>
+            <td>${escapeHtml(row.easting)}</td>
+            <td>${escapeHtml(row.elevation || "-")}</td>
+            <td>${escapeHtml(row.code || "-")}</td>
+            <td>${escapeHtml(String(row.page))}</td>
+            <td>${escapeHtml(row.source)}</td>
+          </tr>
+        `)
+        .join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function renderRawText(entries) {
+      if (!entries.length) {
+        rawTextHost.textContent = "-";
+        return;
+      }
+      const maxLines = 260;
+      const lines = entries.slice(0, maxLines).map((entry) => `[P${entry.page}][${entry.source}] ${entry.text}`);
+      if (entries.length > maxLines) {
+        lines.push(`... (${entries.length - maxLines} سطر إضافي)`);
+      }
+      rawTextHost.textContent = lines.join("\n");
+    }
+
+    function updateMetrics({ lines, rows, pages, confidence }) {
+      metricLines.textContent = String(lines);
+      metricRows.textContent = String(rows);
+      metricPages.textContent = String(pages);
+      metricConfidence.textContent = `${confidence}%`;
+    }
+
+    function clearResults() {
+      state.lines = [];
+      state.rows = [];
+      state.pagesScanned = 0;
+      state.ocrUsed = false;
+
+      resultCard.classList.add("hidden");
+      setResultBadge("بانتظار الفحص", "neutral");
+      resultMessage.textContent = "بعد تشغيل الفحص ستظهر النتيجة هنا.";
+      updateMetrics({ lines: 0, rows: 0, pages: 0, confidence: 0 });
+      rowsBody.innerHTML = '<tr class="empty-row"><td colspan="8">لا توجد نتائج بعد.</td></tr>';
+      renderRawText([]);
+      resultActions.classList.add("hidden");
+    }
+
+    async function handleSelectedFile(file) {
+      if (!file) return;
+
+      const supported = isPdfFile(file) || isImageFile(file);
+      if (!supported) {
+        setHint("نوع الملف غير مدعوم. استخدم PDF أو صورة.", "error", false);
+        return;
+      }
+
+      setBusy(true);
+      clearResults();
+      setHint("جاري تجهيز الملف...", "neutral", true);
+
+      try {
+        state.file = file;
+        state.fileBuffer = await file.arrayBuffer();
+        state.fileKind = isPdfFile(file) ? "pdf" : "image";
+        state.pdfDoc = null;
+
+        metaName.textContent = file.name;
+        metaType.textContent = state.fileKind.toUpperCase();
+        metaSize.textContent = formatBytes(file.size);
+        metaPages.textContent = state.fileKind === "pdf" ? "..." : "1";
+        fileMeta.classList.remove("hidden");
+
+        if (state.fileKind === "pdf") {
+          const doc = await loadPdfDoc();
+          metaPages.textContent = String(doc.numPages);
+          await renderPdfPreview();
+        } else {
+          await renderImagePreview();
+        }
+
+        previewCard.classList.remove("hidden");
+        setHint("الملف جاهز. اضغط فحص واستخراج الإحداثيات.", "success", false);
+      } catch (error) {
+        console.error(error);
+        setHint(`تعذر قراءة الملف: ${error.message || "خطأ غير معروف"}`, "error", false);
+        state.file = null;
+        state.fileBuffer = null;
+        state.fileKind = null;
+        state.pdfDoc = null;
+        fileMeta.classList.add("hidden");
+        previewCard.classList.add("hidden");
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function resetAll() {
+      state.file = null;
+      state.fileBuffer = null;
+      state.fileKind = null;
+      state.pdfDoc = null;
+      fileInput.value = "";
+      fileMeta.classList.add("hidden");
+      previewCard.classList.add("hidden");
+      clearResults();
+      setHint("اختر ملفًا لبدء الفحص.", "neutral", false);
+      scanBtn.disabled = true;
+    }
+
+    async function runScan() {
+      if (!state.file || state.busy) return;
+      setBusy(true);
+      clearResults();
+      resultCard.classList.remove("hidden");
+      setResultBadge("جاري الفحص", "neutral");
+
+      const maxPages = clamp(parseInt(maxPagesInput.value || "12", 10) || 12, 1, 250);
+      const mode = coordTypeSelect.value;
+      const withOcr = Boolean(ocrToggle.checked);
+
+      try {
+        setHint("بدء تحليل الملف...", "neutral", true);
+        let extraction = { entries: [], pagesScanned: 0, usedOcr: false };
+
+        if (state.fileKind === "pdf") {
+          extraction = await extractLineEntriesFromPdf({ withOcr, maxPages });
+        } else {
+          extraction = await extractLineEntriesFromImage({ withOcr });
+        }
+
+        state.lines = extraction.entries;
+        state.pagesScanned = extraction.pagesScanned;
+        state.ocrUsed = extraction.usedOcr;
+        state.rows = parseLineEntriesToRows(extraction.entries, mode);
+
+        const confidence = calculateConfidence(state.rows, state.lines);
+        updateMetrics({
+          lines: state.lines.length,
+          rows: state.rows.length,
+          pages: state.pagesScanned,
+          confidence,
+        });
+
+        renderRows(state.rows);
+        renderRawText(state.lines);
+
+        if (state.rows.length > 0) {
+          setResultBadge("تم اكتشاف إحداثيات", "success");
+          resultMessage.textContent = state.ocrUsed
+            ? "تم العثور على إحداثيات. تم استخدام OCR في بعض الأجزاء لتحسين النتيجة."
+            : "تم العثور على إحداثيات من النص المباشر داخل الملف.";
+          setHint(`اكتمل الفحص: تم استخراج ${state.rows.length} سطر إحداثيات.`, "success", false);
+          resultActions.classList.remove("hidden");
+        } else {
+          setResultBadge("لا توجد إحداثيات واضحة", "warn");
+          resultMessage.textContent = withOcr
+            ? "لم أتمكن من استخراج صفوف إحداثيات صالحة. جرّب ملفًا أوضح أو نطاق صفحات أقل."
+            : "لم يتم العثور على إحداثيات. فعّل OCR ثم أعد المحاولة.";
+          setHint("اكتمل الفحص ولكن بدون إحداثيات قابلة للاستخراج.", "error", false);
+          resultActions.classList.add("hidden");
+        }
+      } catch (error) {
+        console.error(error);
+        setResultBadge("خطأ أثناء الفحص", "error");
+        resultMessage.textContent = `حدث خطأ أثناء التحليل: ${error.message || "خطأ غير معروف"}`;
+        updateMetrics({ lines: 0, rows: 0, pages: 0, confidence: 0 });
+        renderRows([]);
+        renderRawText([]);
+        resultActions.classList.add("hidden");
+        setHint(`فشل الفحص: ${error.message || "خطأ غير معروف"}`, "error", false);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function buildCsv(rows) {
+      const header = ["point", "northing_or_lat", "easting_or_lon", "elevation", "code", "page", "source"];
+      const lines = [header.join(",")];
+      rows.forEach((row) => {
+        const cells = [
+          row.name ?? "",
+          row.northing ?? "",
+          row.easting ?? "",
+          row.elevation ?? "",
+          row.code ?? "",
+          row.page ?? "",
+          row.source ?? "",
+        ];
+        lines.push(cells.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(","));
+      });
+      return lines.join("\n");
+    }
+
+    function downloadText(text, fileName, mimeType) {
+      const blob = new Blob([text], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function copyJsonRows() {
+      const payload = JSON.stringify(state.rows, null, 2);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(payload);
+        setHint("تم نسخ JSON إلى الحافظة.", "success", false);
+        return;
+      }
+      window.prompt("انسخ البيانات:", payload);
+    }
+
+    function bindDragAndDrop() {
+      dropZone.addEventListener("click", () => fileInput.click());
+      dropZone.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          fileInput.click();
+        }
+      });
+
+      dropZone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        dropZone.classList.add("is-dragover");
+      });
+
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("is-dragover");
+      });
+
+      dropZone.addEventListener("drop", async (event) => {
+        event.preventDefault();
+        dropZone.classList.remove("is-dragover");
+        const file = event.dataTransfer?.files?.[0];
+        if (file) await handleSelectedFile(file);
+      });
+    }
+
+    function bindEvents() {
+      fileInput.addEventListener("change", async () => {
+        const file = fileInput.files?.[0];
+        if (file) await handleSelectedFile(file);
+      });
+
+      scanBtn.addEventListener("click", runScan);
+      resetBtn.addEventListener("click", resetAll);
+      advancedBtn.addEventListener("click", () => {
+        window.location.href = "../coordinates-extractor/";
+      });
+
+      exportCsvBtn.addEventListener("click", () => {
+        if (!state.rows.length) return;
+        downloadText(buildCsv(state.rows), "extracted-coordinates.csv", "text/csv;charset=utf-8");
+      });
+
+      copyJsonBtn.addEventListener("click", async () => {
+        if (!state.rows.length) return;
+        try {
+          await copyJsonRows();
+        } catch (error) {
+          console.error(error);
+          setHint("تعذر النسخ للحافظة.", "error", false);
+        }
+      });
+    }
+
+    async function initializePage() {
+      if (window.AtlasAuth) {
+        await window.AtlasAuth.initialize();
+        const allowed = await window.AtlasAuth.requirePageAccess("pages.coordinates-extractor");
+        if (!allowed) return false;
+        window.AtlasAuth.decorateShell();
+        window.AtlasAuth.applyPagePermissions();
+      }
+      bindDragAndDrop();
+      bindEvents();
+      setHint("اختر ملفًا لبدء الفحص.", "neutral", false);
+      return true;
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      await initializePage();
+    });
+
+    window.addEventListener("beforeunload", async () => {
+      if (state.ocrWorker && typeof state.ocrWorker.terminate === "function") {
+        try {
+          await state.ocrWorker.terminate();
+        } catch (_) {
+          // Ignore shutdown errors.
+        }
+      }
+    });
+  </script>
+</body>
+</html>
