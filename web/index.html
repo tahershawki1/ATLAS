@@ -23,7 +23,7 @@
     <link rel="stylesheet" href="shared/style.css" />
     <link rel="stylesheet" href="shared/mobile-fix.css" />
   </head>
-  <body>
+  <body class="page-scroll-enabled">
     <!-- Update Banner -->
     <div id="updateBanner" class="update-banner">
         <span>تحديث جديد متاح!</span>
@@ -68,7 +68,7 @@
         <!-- Home Menu -->
         <div id="homePage" class="page active">
           <div class="grid-menu">
-            <button class="menu-card" onclick="app.navigateTo('new')">
+            <button class="menu-card" onclick="window.location.href='pages/new/'">
               <div class="icon-wrapper new-icon">
                 <svg
                   viewBox="0 0 24 24"
@@ -82,7 +82,7 @@
               <span class="card-label">جديد</span>
             </button>
 
-            <button class="menu-card" onclick="app.navigateTo('check')">
+            <button class="menu-card" onclick="window.location.href='pages/check/'">
               <div class="icon-wrapper check-icon">
                 <svg
                   viewBox="0 0 24 24"
@@ -98,7 +98,7 @@
               <span class="card-label">تشييك</span>
             </button>
 
-            <button class="menu-card" onclick="app.navigateTo('survey')">
+            <button class="menu-card" onclick="window.location.href='pages/survey/'">
               <div class="icon-wrapper survey-icon">
                 <svg
                   viewBox="0 0 24 24"
@@ -114,7 +114,7 @@
               <span class="card-label">رفع</span>
             </button>
 
-            <button class="menu-card" onclick="app.navigateTo('stakeout')">
+            <button class="menu-card" onclick="window.location.href='pages/point-staking/'">
               <div class="icon-wrapper stake-icon">
                 <svg
                   viewBox="0 0 24 24"
@@ -190,146 +190,6 @@
             </button>
           </div>
         </div>
-
-        <!-- New Page -->
-        <div id="newPage" class="page">
-          <div class="page-header">
-            <h2>جديد</h2>
-          </div>
-          <div class="list-buttons">
-            <button class="list-item" data-permission="pages.new-level-mark" onclick="window.location.href='pages/new-level-mark/'">
-              <div class="item-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M12 2v20M2 12h20" />
-                </svg>
-              </div>
-              <span>علام جيت لفل جديد</span>
-            </button>
-            <button class="list-item" onclick="app.action('survey_consultant')">
-              <div class="item-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M2 12h20M12 2v20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93"
-                  />
-                </svg>
-              </div>
-              <span>رفع أرض للاستشاري</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Check Page -->
-        <div id="checkPage" class="page">
-          <div class="page-header">
-            <h2>تشييك</h2>
-          </div>
-          <div class="list-buttons">
-            <button class="list-item" onclick="app.action('check_unassigned')">
-              <div class="item-icon">1</div>
-              <span>TBA</span>
-            </button>
-            <button class="list-item" onclick="app.action('excavation_bottom')">
-              <div class="item-icon">2</div>
-              <span>قاع حفر</span>
-            </button>
-            <button class="list-item" onclick="app.action('tie_beam')">
-              <div class="item-icon">3</div>
-              <span>تايبيم</span>
-            </button>
-            <button class="list-item" onclick="app.action('roofs')">
-              <div class="item-icon">4</div>
-              <span>أسقف</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Survey (Raising) Page -->
-        <div id="surveyPage" class="page">
-          <div class="page-header">
-            <h2>رفع</h2>
-          </div>
-          <div class="list-buttons">
-            <button class="list-item" onclick="app.action('gps_survey')">
-              <div class="item-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-                  />
-                </svg>
-              </div>
-              <span>رفع بال GPS</span>
-            </button>
-            <button
-              class="list-item"
-              onclick="app.action('total_station_survey')"
-            >
-              <div class="item-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M12 22v-9m0 0l-4-9m4 9l4-9M5 22h14" />
-                </svg>
-              </div>
-              <span>رفع Totalstation</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Stakeout (Signature) Page -->
-        <div id="stakePage" class="page">
-          <div class="page-header">
-            <h2>توقيع</h2>
-          </div>
-          <div class="list-buttons">
-            <button class="list-item" onclick="app.action('point_staking')">
-              <div class="item-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z"
-                  />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-              </div>
-              <span>توقيع نقاط</span>
-            </button>
-            <button class="list-item" onclick="app.action('level_staking')">
-              <div class="item-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M3 6l9 6 9-6M3 18l9-6 9 6M12 12v10" />
-                </svg>
-              </div>
-              <span>توقيع منسوب</span>
-            </button>
-          </div>
-        </div>
         <!-- Action Form Page (Dynamic) -->
         <div id="actionPage" class="page">
           <div class="page-header">
@@ -367,7 +227,7 @@
         <div class="status-indicator">
           <span class="status-dot"></span>
           <span class="status-text">Atlas Engineering System</span>
-          <span class="version-tag">v1.0.0</span>
+          <span class="version-tag">v2.0.0</span>
         </div>
       </footer>
 

@@ -1,7 +1,7 @@
 // Atlas Site - Service Worker
 // Handles offline caching and update notifications
 
-const CACHE_NAME = 'atlas-site-v4';
+const CACHE_NAME = 'atlas-site-v5';
 const ASSETS = [
   './shared/app.js',
   './shared/style.css',

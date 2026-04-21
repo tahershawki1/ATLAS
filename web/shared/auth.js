@@ -57,6 +57,17 @@
     return `${window.location.pathname}${window.location.search}${window.location.hash}`;
   }
 
+  function isHomePageRoute(pathname = window.location.pathname) {
+    const normalized = String(pathname || "")
+      .replace(/\\/g, "/")
+      .toLowerCase()
+      .replace(/\/+$/, "");
+
+    if (!normalized || normalized === "/") return true;
+    if (normalized.includes("/pages/")) return false;
+    return normalized.endsWith("/index.html");
+  }
+
   function normalizeComparablePath(urlLike) {
     try {
       const url = new URL(urlLike, window.location.origin);
@@ -269,6 +280,18 @@
     }
 
     state.initialized = true;
+
+    if (document?.body) {
+      const isHomeRoute = isHomePageRoute();
+      document.body.classList.toggle("atlas-home-page", isHomeRoute);
+      document.body.classList.toggle("atlas-non-home-page", !isHomeRoute);
+
+      const topHeader = document.querySelector(".main-header");
+      if (topHeader) {
+        topHeader.hidden = !isHomeRoute;
+      }
+    }
+
     return state;
   }
 
@@ -431,6 +454,13 @@
   function decorateShell(options = {}) {
     const mount = document.querySelector(options.mountSelector || "[data-auth-shell]");
     if (!mount || mount.dataset.authRendered === "true") return;
+
+    const homeOnly = options.homeOnly !== false;
+    if (homeOnly && !isHomePageRoute()) {
+      mount.hidden = true;
+      return;
+    }
+    mount.hidden = false;
 
     const user = getCurrentUser();
     const userLabel = user?.full_name || user?.username || "مستخدم";

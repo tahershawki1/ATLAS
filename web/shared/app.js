@@ -4,6 +4,7 @@
     history: ["home"],
     selectedSite: null,
     pendingAction: null,
+    routeBackUrl: null,
     currentSelection: { companyId: null, area: null, plotId: null },
     pendingSites: [],
     customSiteDb: [],
@@ -22,12 +23,7 @@
 
   pages: {
     home: { id: "homePage", title: "الرئيسية" },
-    new: { id: "newPage", title: "جديد" },
-    check: { id: "checkPage", title: "تشييك" },
-    survey: { id: "surveyPage", title: "رفع" },
-    stakeout: { id: "stakePage", title: "توقيع" },
     action: { id: "actionPage", title: "العمل" },
-    history: { id: "historyPage", title: "السجل" },
   },
 
   deepClone(value) {
@@ -450,6 +446,42 @@
     );
   },
 
+  consumeRequestedAction() {
+    const url = new URL(window.location.href);
+    const actionId = this.normalizeValue(url.searchParams.get("action"));
+    const returnTo = this.normalizeValue(url.searchParams.get("returnTo"));
+
+    this.state.routeBackUrl = null;
+    if (actionId && returnTo) {
+      try {
+        this.state.routeBackUrl = new URL(returnTo, window.location.origin).toString();
+      } catch (error) {
+        console.warn("Invalid returnTo route", error);
+      }
+    }
+
+    if (!actionId) return null;
+
+    url.searchParams.delete("action");
+    url.searchParams.delete("returnTo");
+    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+    return actionId;
+  },
+
+  canReturnToSourcePage() {
+    return (
+      this.state.currentPage === "action" &&
+      Boolean(this.state.routeBackUrl) &&
+      this.state.history.length <= 2
+    );
+  },
+
+  returnToSourcePage() {
+    if (!this.canReturnToSourcePage()) return false;
+    window.location.href = this.state.routeBackUrl;
+    return true;
+  },
+
   async init() {
     console.log("Atlas App Initialized");
     this.state.customSiteDb = await this.loadCustomSiteDb();
@@ -483,6 +515,9 @@
       window.AtlasAuth.decorateShell();
       window.AtlasAuth.applyPagePermissions();
     }
+
+    const requestedAction = this.consumeRequestedAction();
+    if (requestedAction) this.action(requestedAction);
   },
 
   populateCompanies() {
@@ -1346,6 +1381,8 @@
   },
 
   goBackGlobal() {
+    if (this.returnToSourcePage()) return;
+
     if (this.state.history.length > 1) {
       this.navigateBack();
       return;
@@ -1356,11 +1393,18 @@
       return;
     }
 
-    this.navigateTo("home");
+    this.state.currentPage = "home";
+    this.state.history = ["home"];
+    this.render();
   },
 
   render() {
-    const current = this.pages[this.state.currentPage];
+    const current = this.pages[this.state.currentPage] || this.pages.home;
+    if (!this.pages[this.state.currentPage]) {
+      this.state.currentPage = "home";
+      this.state.history = ["home"];
+    }
+    const isHomePage = this.state.currentPage === "home";
 
     // Update Title
     document.getElementById("navTitle").textContent = current.title;
@@ -1371,11 +1415,21 @@
       .forEach((p) => p.classList.remove("active"));
     document.getElementById(current.id).classList.add("active");
 
+    const topHeader = document.querySelector(".main-header");
+    if (topHeader) {
+      topHeader.hidden = !isHomePage;
+    }
+
+    const authShellMount = document.querySelector("[data-auth-shell]");
+    if (authShellMount) {
+      authShellMount.hidden = !isHomePage;
+    }
+
     const globalBackBtn = document.querySelector(".global-back-btn");
     if (globalBackBtn) {
       globalBackBtn.classList.toggle(
         "is-visible",
-        this.state.currentPage !== "home",
+        !isHomePage,
       );
     }
 
@@ -1384,6 +1438,11 @@
   },
 
   action(id) {
+    if (id === "point_staking") {
+      window.location.href = "pages/point-staking/";
+      return;
+    }
+
     // Gatekeeper: Check for site selection
     if (!this.state.selectedSite) {
       this.showSiteSelector(id);
@@ -1466,7 +1525,14 @@
     this.showToast("جاري حفظ التقرير...");
     setTimeout(() => {
       this.showToast("تم إرسال التقرير بنجاح ✅");
-      this.navigateBack();
+      if (this.returnToSourcePage()) return;
+      if (this.state.history.length > 1) {
+        this.navigateBack();
+        return;
+      }
+      this.state.currentPage = "home";
+      this.state.history = ["home"];
+      this.render();
     }, 1200);
   },
 

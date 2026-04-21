@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atlas Surveying - توقيع نقاط</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../shared/style.css">
+    <link rel="stylesheet" href="../../shared/mobile-fix.css">
+    <link rel="stylesheet" href="../../LIP/vendor/leaflet/leaflet.css">
+    <script src="../../shared/auth.js"></script>
+    <style>
+        .custom-page {
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            background: radial-gradient(circle at top right, #f2f8ff 0%, #e0ecf8 100%);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .form-container {
+            padding: 12px;
+            max-width: 720px;
+            margin: 0 auto;
+            width: 100%;
+            padding-bottom: 88px;
+        }
+
+        .header-btns {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .back-btn-header {
+            background: #ffffff;
+            border: 1px solid rgba(30, 64, 175, 0.1);
+            color: var(--primary);
+            flex: 1;
+            height: 44px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            font-weight: 800;
+            gap: 8px;
+            padding: 0 14px;
+            font-size: 0.88rem;
+        }
+
+        .back-btn-header:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(15px);
+            border-radius: 18px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 1);
+            box-shadow: 0 15px 35px rgba(30, 64, 175, 0.08);
+            margin-bottom: 0.9rem;
+        }
+
+        .title {
+            color: var(--primary);
+            font-weight: 900;
+            margin-bottom: 8px;
+            font-size: 1.06rem;
+            line-height: 1.35;
+        }
+
+        .sub-title {
+            color: var(--text-dim);
+            font-size: 0.84rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+
+        .upload-shell {
+            border: 2px dashed rgba(30, 64, 175, 0.28);
+            border-radius: 18px;
+            background: #ffffff;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .file-btn {
+            width: 100%;
+            height: 48px;
+            border-radius: 14px;
+            border: 1px solid rgba(30, 64, 175, 0.15);
+            background: #f8fafc;
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 0.92rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .file-btn:hover {
+            transform: translateY(-2px);
+            background: #ffffff;
+            box-shadow: 0 8px 20px rgba(30, 64, 175, 0.08);
+        }
+
+        .status-text {
+            margin-top: 12px;
+            margin-bottom: 0;
+            color: var(--text-dim);
+            font-size: 0.84rem;
+            line-height: 1.65;
+            font-weight: 700;
+        }
+
+        .status-text.error {
+            color: #b91c1c;
+        }
+
+        .options-row {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            align-items: center;
+            gap: 8px;
+            text-align: right;
+        }
+
+        .options-row label {
+            color: var(--text-main);
+            font-weight: 800;
+            font-size: 0.83rem;
+        }
+
+        .options-row select {
+            width: 100%;
+            min-height: 40px;
+            border-radius: 12px;
+            border: 1px solid rgba(30, 64, 175, 0.15);
+            padding: 0 10px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            background: #ffffff;
+            color: var(--text-main);
+        }
+
+        .map-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            gap: 8px;
+        }
+
+        .points-count {
+            min-height: 30px;
+            border-radius: 999px;
+            border: 1px solid rgba(30, 64, 175, 0.15);
+            background: #f0f7ff;
+            color: var(--primary);
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 0.76rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+        }
+
+        .legend-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .legend-chip {
+            border: 1px solid rgba(30, 64, 175, 0.13);
+            border-radius: 999px;
+            background: #ffffff;
+            color: #334155;
+            font-size: 0.72rem;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            border: 1px solid rgba(15, 23, 42, 0.2);
+        }
+
+        .map-shell {
+            position: relative;
+            border-radius: 14px;
+            border: 1px solid rgba(30, 64, 175, 0.12);
+            overflow: hidden;
+            background: #edf2f7;
+        }
+
+        .map-area {
+            width: 100%;
+            height: clamp(340px, 62dvh, 680px);
+        }
+
+        .overlay-tools {
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            z-index: 520;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .overlay-tools > * {
+            pointer-events: auto;
+        }
+
+        .actions-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .sign-btn {
+            width: 100%;
+            min-height: 44px;
+            border: 0;
+            border-radius: 12px;
+            color: #ffffff;
+            background: linear-gradient(135deg, #0f766e 0%, #0891b2 100%);
+            font-weight: 900;
+            font-size: 0.9rem;
+            cursor: pointer;
+            box-shadow: 0 12px 26px rgba(8, 145, 178, 0.26);
+            transition: var(--transition);
+        }
+
+        .sign-btn:disabled {
+            background: #22c55e;
+            cursor: default;
+            box-shadow: 0 10px 20px rgba(34, 197, 94, 0.26);
+        }
+
+        .invisible-btn {
+            width: 100%;
+            min-height: 44px;
+            border: 0;
+            border-radius: 12px;
+            color: #ffffff;
+            background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%);
+            font-weight: 900;
+            font-size: 0.9rem;
+            cursor: pointer;
+            box-shadow: 0 12px 26px rgba(220, 38, 38, 0.28);
+            transition: var(--transition);
+        }
+
+        .invisible-btn:disabled {
+            background: #991b1b;
+            cursor: default;
+            box-shadow: 0 10px 20px rgba(153, 27, 27, 0.3);
+        }
+
+        .point-nav {
+            display: grid;
+            grid-template-columns: 44px minmax(0, 1fr) 44px;
+            align-items: center;
+            gap: 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(30, 64, 175, 0.16);
+            background: rgba(255, 255, 255, 0.96);
+            min-height: 50px;
+            padding: 6px;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+        }
+
+        .point-name {
+            text-align: center;
+            color: var(--text-main);
+            font-weight: 900;
+            font-size: 0.87rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 4px;
+        }
+
+        .nav-btn {
+            min-width: 44px;
+            min-height: 36px;
+            border-radius: 10px;
+            border: 1px solid rgba(30, 64, 175, 0.22);
+            background: #ffffff;
+            color: var(--primary);
+            font-size: 1rem;
+            font-weight: 900;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .point-name-tooltip {
+            background: rgba(15, 23, 42, 0.9);
+            color: #ffffff;
+            border: 0;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 7px;
+            box-shadow: none;
+        }
+
+        .point-name-tooltip:before {
+            border-top-color: rgba(15, 23, 42, 0.9);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="page-scroll-enabled">
+<div class="custom-page">
+    <div class="form-container">
+        <div class="header-btns">
+            <button class="back-btn-header" type="button" onclick="window.location.href='../../index.html'">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" style="transform: rotate(180deg);"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                <span>العودة للرئيسية</span>
+            </button>
+        </div>
+
+        <section class="card">
+            <h1 class="title">توقيع نقاط</h1>
+            <p class="sub-title">ارفع ملف النقاط المطلوب توقيعها: PDF أو DWG أو SDR أو CSV</p>
+            <div class="upload-shell">
+                <input type="file" id="pointsInput" class="hidden" accept=".pdf,.dwg,.sdr,.csv,application/pdf,text/csv">
+                <button id="uploadBtn" class="file-btn" type="button">رفع ملف النقاط</button>
+                <p id="fileHint" class="sub-title" style="margin-top:10px;margin-bottom:0;">لم يتم اختيار ملف بعد</p>
+
+                <div class="options-row">
+                    <label for="crsSelect">نظام الإحداثيات</label>
+                    <select id="crsSelect">
+                        <option value="DLTM">DLTM</option>
+                        <option value="UTM40N">UTM Z40N</option>
+                        <option value="UTM39N">UTM Z39N</option>
+                    </select>
+                </div>
+            </div>
+            <p id="statusText" class="status-text">بعد رفع الملف، اختر نقطة من الخريطة ثم اضغط زر توقيع.</p>
+        </section>
+
+        <section id="mapSection" class="card hidden">
+            <div class="map-head">
+                <h2 class="title" style="margin-bottom:0;">خريطة النقاط</h2>
+                <span id="pointsCount" class="points-count">0 نقطة</span>
+            </div>
+
+            <div class="legend-row">
+                <span class="legend-chip"><span class="legend-dot" style="background:#0ea5e9;"></span>غير موقعة</span>
+                <span class="legend-chip"><span class="legend-dot" style="background:#16a34a;"></span>موقعة</span>
+                <span class="legend-chip"><span class="legend-dot" style="background:#f59e0b;"></span>مختارة</span>
+                <span class="legend-chip"><span class="legend-dot" style="background:#ef4444;"></span>غير مرئية</span>
+            </div>
+
+            <div class="map-shell">
+                <div id="pointsMap" class="map-area"></div>
+                <div id="overlayTools" class="overlay-tools hidden">
+                    <div class="actions-row">
+                        <button id="signBtn" class="sign-btn" type="button">توقيع</button>
+                        <button id="invisibleBtn" class="invisible-btn" type="button">غير مرئية</button>
+                    </div>
+                    <div class="point-nav">
+                        <button id="nextBtn" class="nav-btn" type="button" aria-label="النقطة التالية">◀</button>
+                        <div id="pointName" class="point-name">-</div>
+                        <button id="prevBtn" class="nav-btn" type="button" aria-label="النقطة السابقة">▶</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script src="../../LIP/vendor/leaflet/leaflet.js"></script>
+<script src="../../LIP/vendor/proj4/proj4.js"></script>
+<script>
+    const pointsInput = document.getElementById('pointsInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const fileHint = document.getElementById('fileHint');
+    const statusText = document.getElementById('statusText');
+    const crsSelect = document.getElementById('crsSelect');
+    const mapSection = document.getElementById('mapSection');
+    const pointsCount = document.getElementById('pointsCount');
+    const pointsMapHost = document.getElementById('pointsMap');
+    const overlayTools = document.getElementById('overlayTools');
+    const signBtn = document.getElementById('signBtn');
+    const invisibleBtn = document.getElementById('invisibleBtn');
+    const pointName = document.getElementById('pointName');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    const CRS_OPTIONS = {
+        DLTM: {
+            proj4: '+proj=tmerc +lat_0=0 +lon_0=55.3333333333333 +k=1 +x_0=500000 +y_0=0 +datum=WGS84 +units=m +no_defs +type=crs'
+        },
+        UTM40N: {
+            proj4: '+proj=utm +zone=40 +datum=WGS84 +units=m +no_defs +type=crs'
+        },
+        UTM39N: {
+            proj4: '+proj=utm +zone=39 +datum=WGS84 +units=m +no_defs +type=crs'
+        }
+    };
+
+    const state = {
+        pointsRaw: [],
+        pointsMap: [],
+        markers: [],
+        signed: new Set(),
+        invisible: new Set(),
+        selectedIndex: -1,
+        map: null,
+        layer: null
+    };
+
+    const MAP_MAX_ZOOM = 23;
+    const SINGLE_POINT_ZOOM = 22;
+    const AUTO_ZOOM_BOOST = 2;
+
+    function setStatus(message, isError = false) {
+        statusText.textContent = message;
+        statusText.classList.toggle('error', isError);
+    }
+
+    function normalizeText(value) {
+        return String(value || '')
+            .replace(/\u00A0/g, ' ')
+            .replace(/[،٬]/g, ',')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function normalizeNumberString(value) {
+        return String(value || '').replace(/,/g, '.').trim();
+    }
+
+    function parseNumeric(value) {
+        const num = Number(normalizeNumberString(value));
+        return Number.isFinite(num) ? num : null;
+    }
+
+    function dedupePoints(rows) {
+        const map = new Map();
+        rows.forEach((row, index) => {
+            const key = [
+                normalizeText(row.name),
+                normalizeNumberString(row.northing),
+                normalizeNumberString(row.easting),
+                normalizeNumberString(row.elevation),
+                normalizeText(row.code)
+            ].join('|').toLowerCase();
+            if (map.has(key)) return;
+            map.set(key, {
+                id: `pt-${index + 1}`,
+                name: normalizeText(row.name) || `P${map.size + 1}`,
+                northing: normalizeNumberString(row.northing),
+                easting: normalizeNumberString(row.easting),
+                elevation: normalizeNumberString(row.elevation),
+                code: normalizeText(row.code)
+            });
+        });
+        return Array.from(map.values());
+    }
+
+    function splitColumns(text) {
+        return String(text || '')
+            .replace(/\u00A0/g, ' ')
+            .replace(/[،]/g, ',')
+            .split(/\t+|\s{2,}|[,;|]+|\s+/)
+            .map((part) => part.trim())
+            .filter(Boolean);
+    }
+
+    function parseGenericLines(lines) {
+        const rows = [];
+        lines.forEach((line) => {
+            const clean = normalizeText(line);
+            if (!clean) return;
+            const tokens = splitColumns(clean);
+            if (tokens.length < 3) return;
+
+            for (let i = 0; i <= tokens.length - 3; i += 1) {
+                const name = tokens[i];
+                const north = tokens[i + 1];
+                const east = tokens[i + 2];
+                const n = parseNumeric(north);
+                const e = parseNumeric(east);
+                if (n === null || e === null) continue;
+
+                const projected = Math.abs(n) >= 10000 && Math.abs(e) >= 10000;
+                const latLon = (Math.abs(n) <= 90 && Math.abs(e) <= 180) || (Math.abs(e) <= 90 && Math.abs(n) <= 180);
+                if (!projected && !latLon) continue;
+
+                const zToken = tokens[i + 3];
+                const z = parseNumeric(zToken);
+                rows.push({
+                    name: /[a-zA-Z]/.test(name) || /\d/.test(name) ? name : `P${rows.length + 1}`,
+                    northing: north,
+                    easting: east,
+                    elevation: z === null ? '' : zToken,
+                    code: ''
+                });
+                i += z === null ? 2 : 3;
+            }
+        });
+        return dedupePoints(rows);
+    }
+
+    function parseCsvLine(line, delimiter) {
+        const out = [];
+        let part = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i += 1) {
+            const ch = line[i];
+            if (ch === '"') {
+                if (inQuotes && line[i + 1] === '"') {
+                    part += '"';
+                    i += 1;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+                continue;
+            }
+            if (ch === delimiter && !inQuotes) {
+                out.push(part.trim());
+                part = '';
+                continue;
+            }
+            part += ch;
+        }
+        out.push(part.trim());
+        return out;
+    }
+
+    function detectDelimiter(line) {
+        const candidates = [',', ';', '\t', '|'];
+        let best = ',';
+        let bestScore = -1;
+        candidates.forEach((candidate) => {
+            const score = String(line || '').split(candidate).length;
+            if (score > bestScore) {
+                bestScore = score;
+                best = candidate;
+            }
+        });
+        return best;
+    }
+
+    function findHeaderIndex(headers, keys) {
+        return headers.findIndex((header) => keys.some((key) => header.includes(key)));
+    }
+
+    function parseCsv(text) {
+        const lines = String(text || '').split(/\r?\n/).filter((line) => line.trim());
+        if (!lines.length) return [];
+
+        const delimiter = detectDelimiter(lines[0]);
+        const header = parseCsvLine(lines[0], delimiter).map((col) => normalizeText(col).toLowerCase());
+        const idxName = findHeaderIndex(header, ['name', 'point', 'id', 'pt']);
+        const idxNorth = findHeaderIndex(header, ['northing', 'north', 'y']);
+        const idxEast = findHeaderIndex(header, ['easting', 'east', 'x']);
+        const idxLat = findHeaderIndex(header, ['latitude', 'lat']);
+        const idxLon = findHeaderIndex(header, ['longitude', 'lon', 'lng']);
+        const idxElev = findHeaderIndex(header, ['elevation', 'elev', 'z', 'level', 'rl']);
+        const idxCode = findHeaderIndex(header, ['code', 'description', 'desc']);
+        const hasHeader = [idxName, idxNorth, idxEast, idxLat, idxLon].some((idx) => idx >= 0);
+
+        if (!hasHeader) return parseGenericLines(lines);
+
+        const rows = [];
+        for (let i = 1; i < lines.length; i += 1) {
+            const cols = parseCsvLine(lines[i], delimiter);
+            let northing = idxNorth >= 0 ? cols[idxNorth] : '';
+            let easting = idxEast >= 0 ? cols[idxEast] : '';
+            if (!northing && idxLat >= 0) northing = cols[idxLat];
+            if (!easting && idxLon >= 0) easting = cols[idxLon];
+            if (parseNumeric(northing) === null || parseNumeric(easting) === null) continue;
+            rows.push({
+                name: idxName >= 0 ? cols[idxName] : `P${i}`,
+                northing,
+                easting,
+                elevation: idxElev >= 0 ? cols[idxElev] : '',
+                code: idxCode >= 0 ? cols[idxCode] : ''
+            });
+        }
+        return dedupePoints(rows);
+    }
+
+    function parseSdr(text) {
+        const lines = String(text || '').split(/\r?\n/);
+        const rows = [];
+        lines.forEach((line) => {
+            if (!/^08KI/i.test(line || '')) return;
+            const northing = line.slice(20, 36).trim();
+            const easting = line.slice(36, 52).trim();
+            if (parseNumeric(northing) === null || parseNumeric(easting) === null) return;
+            rows.push({
+                name: line.slice(4, 20).trim(),
+                northing,
+                easting,
+                elevation: line.slice(52, 68).trim(),
+                code: line.slice(68, 84).trim()
+            });
+        });
+        if (rows.length) return dedupePoints(rows);
+        return parseGenericLines(lines);
+    }
+
+    function parseDwg(text) {
+        const lines = String(text || '').split(/\r?\n/).map((line) => line.trim());
+        const dxfRows = [];
+
+        for (let i = 0; i < lines.length; i += 1) {
+            if (lines[i].toUpperCase() !== 'POINT') continue;
+            let east = '';
+            let north = '';
+            let elev = '';
+            for (let j = i + 1; j < lines.length - 1 && j < i + 36; j += 2) {
+                const code = lines[j];
+                const value = lines[j + 1];
+                if (code === '10') east = value;
+                if (code === '20') north = value;
+                if (code === '30') elev = value;
+            }
+            if (parseNumeric(north) === null || parseNumeric(east) === null) continue;
+            dxfRows.push({
+                name: `P${dxfRows.length + 1}`,
+                northing: north,
+                easting: east,
+                elevation: elev,
+                code: ''
+            });
+        }
+
+        const genericRows = parseGenericLines(lines);
+        return dedupePoints([...dxfRows, ...genericRows]);
+    }
+
+    function toLatLng(point) {
+        const north = parseNumeric(point.northing);
+        const east = parseNumeric(point.easting);
+        if (north === null || east === null) return null;
+
+        if (Math.abs(north) <= 90 && Math.abs(east) <= 180) {
+            return { lat: north, lon: east };
+        }
+        if (Math.abs(east) <= 90 && Math.abs(north) <= 180) {
+            return { lat: east, lon: north };
+        }
+
+        const crs = CRS_OPTIONS[crsSelect.value];
+        if (!crs || typeof window.proj4 !== 'function') return null;
+
+        try {
+            const [lon, lat] = window.proj4(crs.proj4, 'EPSG:4326', [east, north]);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+            return { lat, lon };
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function ensureMap() {
+        if (state.map) return;
+        state.map = L.map(pointsMapHost, {
+            zoomControl: true,
+            attributionControl: true,
+            maxZoom: MAP_MAX_ZOOM
+        });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: MAP_MAX_ZOOM,
+            maxNativeZoom: 20,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(state.map);
+        state.layer = L.layerGroup().addTo(state.map);
+        state.map.setView([25.2048, 55.2708], 13);
+    }
+
+    function updatePanel() {
+        if (!state.pointsMap.length || state.selectedIndex < 0) {
+            overlayTools.classList.add('hidden');
+            return;
+        }
+        overlayTools.classList.remove('hidden');
+        const point = state.pointsMap[state.selectedIndex];
+        pointName.textContent = `${point.name || 'Point'} (${state.selectedIndex + 1}/${state.pointsMap.length})`;
+        prevBtn.disabled = state.selectedIndex <= 0;
+        nextBtn.disabled = state.selectedIndex >= state.pointsMap.length - 1;
+        const isSigned = state.signed.has(point.id);
+        const isInvisible = state.invisible.has(point.id);
+        signBtn.disabled = isSigned && !isInvisible;
+        signBtn.textContent = isSigned && !isInvisible ? 'تم التوقيع' : 'توقيع';
+        invisibleBtn.disabled = isInvisible;
+        invisibleBtn.textContent = isInvisible ? 'غير مرئية ✓' : 'غير مرئية';
+    }
+
+    function updateMarkersStyle() {
+        state.markers.forEach((marker, index) => {
+            const point = state.pointsMap[index];
+            const selected = index === state.selectedIndex;
+            const signed = state.signed.has(point.id);
+            const invisible = state.invisible.has(point.id);
+
+            let radius = 7;
+            let weight = 2;
+            let color = '#075985';
+            let fillColor = '#0ea5e9';
+
+            if (invisible) {
+                color = '#991b1b';
+                fillColor = '#ef4444';
+            } else if (signed) {
+                color = '#166534';
+                fillColor = '#16a34a';
+            }
+
+            if (selected) {
+                radius = 9;
+                weight = 3;
+                if (invisible) {
+                    color = '#7f1d1d';
+                    fillColor = '#f87171';
+                } else if (signed) {
+                    color = '#14532d';
+                    fillColor = '#22c55e';
+                } else {
+                    color = '#b45309';
+                    fillColor = '#f59e0b';
+                }
+            }
+
+            marker.setStyle({
+                radius,
+                weight,
+                color,
+                fillColor,
+                fillOpacity: 0.95
+            });
+            if (selected) marker.bringToFront();
+        });
+    }
+
+    function selectPoint(index, pan = true) {
+        if (index < 0 || index >= state.pointsMap.length) return;
+        state.selectedIndex = index;
+        updateMarkersStyle();
+        updatePanel();
+        if (pan) {
+            const point = state.pointsMap[index];
+            state.map.panTo([point.lat, point.lon], { animate: true, duration: 0.35 });
+        }
+    }
+
+    function renderMap() {
+        mapSection.classList.remove('hidden');
+        ensureMap();
+        state.map.invalidateSize({ pan: false });
+        state.layer.clearLayers();
+        state.pointsMap = [];
+        state.markers = [];
+        state.selectedIndex = -1;
+
+        const bounds = [];
+        state.pointsRaw.forEach((point, index) => {
+            const latLng = toLatLng(point);
+            if (!latLng) return;
+            const mapped = {
+                ...point,
+                id: point.id || `pt-${index + 1}`,
+                lat: latLng.lat,
+                lon: latLng.lon
+            };
+            const marker = L.circleMarker([mapped.lat, mapped.lon], {
+                radius: 7,
+                weight: 2,
+                color: '#075985',
+                fillColor: '#0ea5e9',
+                fillOpacity: 0.95
+            });
+            marker.bindTooltip(mapped.name || `P${index + 1}`, {
+                permanent: true,
+                direction: 'top',
+                offset: [0, -10],
+                className: 'point-name-tooltip'
+            });
+
+            const markerIndex = state.pointsMap.length;
+            marker.on('click', () => selectPoint(markerIndex));
+
+            marker.addTo(state.layer);
+            state.pointsMap.push(mapped);
+            state.markers.push(marker);
+            bounds.push([mapped.lat, mapped.lon]);
+        });
+
+        pointsCount.textContent = `${state.pointsMap.length} نقطة`;
+
+        if (!state.pointsMap.length) {
+            overlayTools.classList.add('hidden');
+            setStatus('لم أتمكن من عرض نقاط على الماب. غيّر نظام الإحداثيات أو راجع الملف.', true);
+            return;
+        }
+
+        state.map.invalidateSize({ pan: false });
+        if (bounds.length === 1) {
+            state.map.setView(bounds[0], SINGLE_POINT_ZOOM, { animate: false });
+        } else {
+            state.map.fitBounds(bounds, {
+                paddingTopLeft: [24, 24],
+                paddingBottomRight: [24, 120],
+                maxZoom: MAP_MAX_ZOOM
+            });
+            const boosted = Math.min(MAP_MAX_ZOOM, state.map.getZoom() + AUTO_ZOOM_BOOST);
+            state.map.setZoom(boosted, { animate: false });
+        }
+
+        selectPoint(0, false);
+        setTimeout(() => state.map?.invalidateSize({ pan: false }), 0);
+    }
+
+    function signCurrent() {
+        if (state.selectedIndex < 0 || state.selectedIndex >= state.pointsMap.length) return;
+        const point = state.pointsMap[state.selectedIndex];
+        const wasInvisible = state.invisible.has(point.id);
+        if (state.signed.has(point.id) && !wasInvisible) return;
+        state.invisible.delete(point.id);
+        state.signed.add(point.id);
+        updateMarkersStyle();
+        updatePanel();
+        setStatus(
+            wasInvisible
+                ? `تم إعادة توقيع النقطة: ${point.name || `Point ${state.selectedIndex + 1}`}`
+                : `تم توقيع النقطة: ${point.name || `Point ${state.selectedIndex + 1}`}`
+        );
+    }
+
+    function markCurrentInvisible() {
+        if (state.selectedIndex < 0 || state.selectedIndex >= state.pointsMap.length) return;
+        const point = state.pointsMap[state.selectedIndex];
+        if (state.invisible.has(point.id)) return;
+        state.signed.delete(point.id);
+        state.invisible.add(point.id);
+        updateMarkersStyle();
+        updatePanel();
+        setStatus(`تم تعليم النقطة كغير مرئية: ${point.name || `Point ${state.selectedIndex + 1}`}`);
+    }
+
+    function movePoint(step) {
+        if (!state.pointsMap.length) return;
+        const target = state.selectedIndex + step;
+        if (target < 0 || target >= state.pointsMap.length) return;
+        selectPoint(target);
+    }
+
+    async function readPoints(file) {
+        const ext = (file.name.split('.').pop() || '').toLowerCase();
+        if (ext === 'pdf') {
+            return {
+                points: [],
+                warning: 'تم رفع PDF. العرض المباشر للنقاط على الماب متاح حالياً لملفات DWG وSDR وCSV.'
+            };
+        }
+
+        let text = '';
+        try {
+            text = await file.text();
+        } catch (_) {
+            const buffer = await file.arrayBuffer();
+            text = new TextDecoder('utf-8', { fatal: false }).decode(buffer);
+        }
+
+        if (ext === 'csv') return { points: parseCsv(text), warning: '' };
+        if (ext === 'sdr') return { points: parseSdr(text), warning: '' };
+        if (ext === 'dwg') return { points: parseDwg(text), warning: '' };
+        return { points: parseGenericLines(text.split(/\r?\n/)), warning: '' };
+    }
+
+    uploadBtn.addEventListener('click', () => pointsInput.click());
+
+    pointsInput.addEventListener('change', async () => {
+        const file = pointsInput.files?.[0];
+        if (!file) return;
+        fileHint.textContent = `تم اختيار: ${file.name}`;
+        setStatus('جاري قراءة الملف...');
+
+        try {
+            const { points, warning } = await readPoints(file);
+            if (warning) {
+                mapSection.classList.add('hidden');
+                setStatus(warning);
+                return;
+            }
+
+            state.pointsRaw = points;
+            state.signed = new Set();
+            state.invisible = new Set();
+
+            if (!state.pointsRaw.length) {
+                mapSection.classList.add('hidden');
+                const dwg = file.name.toLowerCase().endsWith('.dwg');
+                setStatus(
+                    dwg
+                        ? 'تعذر استخراج نقاط من DWG. يفضل تصديره كملف CSV أو SDR أو DXF نصي.'
+                        : 'لم يتم العثور على نقاط صالحة داخل الملف.',
+                    true
+                );
+                return;
+            }
+
+            renderMap();
+            setStatus(`تم تحميل ${state.pointsRaw.length} نقطة. اختر نقطة ثم اضغط توقيع.`);
+        } catch (error) {
+            console.error(error);
+            mapSection.classList.add('hidden');
+            setStatus('حدث خطأ أثناء قراءة الملف. تأكد من أن صيغة الملف صحيحة.', true);
+        }
+    });
+
+    crsSelect.addEventListener('change', () => {
+        if (!state.pointsRaw.length) return;
+        renderMap();
+    });
+
+    signBtn.addEventListener('click', signCurrent);
+    invisibleBtn.addEventListener('click', markCurrentInvisible);
+    prevBtn.addEventListener('click', () => movePoint(-1));
+    nextBtn.addEventListener('click', () => movePoint(1));
+
+    window.addEventListener('resize', () => state.map?.invalidateSize());
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!window.AtlasAuth) return;
+        await window.AtlasAuth.initialize();
+        const allowed = await window.AtlasAuth.requirePageAccess('pages.home');
+        if (!allowed) return;
+        window.AtlasAuth.decorateShell();
+    });
+</script>
+</body>
+</html>

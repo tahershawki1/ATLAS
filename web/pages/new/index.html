@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Atlas Surveying - جديد</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@400;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../shared/style.css" />
+    <link rel="stylesheet" href="../../shared/mobile-fix.css" />
+    <link rel="stylesheet" href="../../shared/submenu-page.css" />
+    <script src="../../shared/auth.js"></script>
+    <script src="../../shared/submenu-page.js" defer></script>
+  </head>
+  <body class="page-scroll-enabled" data-page-permission="pages.home">
+    <div class="submenu-page">
+      <main class="submenu-main">
+        <div data-auth-shell></div>
+
+        <div class="page-header">
+          <button class="back-btn" type="button" onclick="window.location.href='../../index.html'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            <span>الرئيسية</span>
+          </button>
+          <h2>جديد</h2>
+        </div>
+
+        <section class="submenu-status" aria-label="الموقع المختار">
+          <span class="submenu-status-label">الموقع المختار</span>
+          <strong id="selectedSiteSummary" class="submenu-status-value">لم يتم اختيار موقع بعد</strong>
+        </section>
+
+        <div class="list-buttons">
+          <button class="list-item" type="button" data-permission="pages.new-level-mark" onclick="window.location.href='../new-level-mark/'">
+            <div class="item-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v20M2 12h20" />
+              </svg>
+            </div>
+            <span>علام جيت لفل جديد</span>
+          </button>
+
+          <button class="list-item" type="button" onclick="AtlasSubmenuPage.goToAction('survey_consultant')">
+            <div class="item-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 12h20M12 2v20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93" />
+              </svg>
+            </div>
+            <span>رفع أرض للاستشاري</span>
+          </button>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

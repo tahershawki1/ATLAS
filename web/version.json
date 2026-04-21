@@ -1,9 +1,9 @@
 {
-  "web_version": "1.0.3",
-  "mobile_version": "1.0.1",
-  "build_number": 4,
+  "web_version": "2.0.0",
+  "mobile_version": "2.0.0",
+  "build_number": 5,
   "apk_url": "https://atlas-e73.pages.dev/downloads/atlas_app_final.apk",
-  "last_updated": "2026-02-21",
+  "last_updated": "2026-04-21",
   "changelog": [
     "تحديث تقرير الجيت لفل",
     "تصدير التقرير بخيارات PDF و Word",

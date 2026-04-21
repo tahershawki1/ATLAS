@@ -720,34 +720,37 @@
             }
 
             body.custom-page {
-                width: min(calc(100vw - 28px), 430px);
-                max-width: 430px;
-                min-height: 0;
-                height: min(920px, calc(100vh - 28px));
-                margin: 14px auto;
-                padding: 0;
-                justify-content: flex-start;
-                align-items: stretch;
-                overflow: hidden;
-                position: relative;
-                border: 1px solid rgba(30, 64, 175, 0.12);
-                border-radius: 32px;
-                box-shadow: 0 28px 70px rgba(15, 23, 42, 0.22);
+                width: 100% !important;
+                max-width: none !important;
+                min-height: 100vh !important;
+                min-height: 100dvh !important;
+                height: auto !important;
+                max-height: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+                border: none !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
             }
 
             body.custom-page > .form-container {
                 flex: 1 1 auto;
-                overflow-y: auto;
-                padding-bottom: 72px;
+                width: min(100%, 780px) !important;
+                max-width: 780px !important;
+                margin: 0 auto !important;
+                overflow: visible;
+                padding-bottom: 96px;
             }
 
             #pointModal,
             #levelsImportModal {
-                position: absolute !important;
+                position: fixed !important;
                 inset: 0 !important;
                 width: auto !important;
                 height: auto !important;
-                border-radius: inherit;
+                border-radius: 0;
             }
         }
     </style>

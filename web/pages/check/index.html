@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Atlas Surveying - تشييك</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@400;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../shared/style.css" />
+    <link rel="stylesheet" href="../../shared/mobile-fix.css" />
+    <link rel="stylesheet" href="../../shared/submenu-page.css" />
+    <script src="../../shared/auth.js"></script>
+    <script src="../../shared/submenu-page.js" defer></script>
+  </head>
+  <body class="page-scroll-enabled" data-page-permission="pages.home">
+    <div class="submenu-page">
+      <main class="submenu-main">
+        <div data-auth-shell></div>
+
+        <div class="page-header">
+          <button class="back-btn" type="button" onclick="window.location.href='../../index.html'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            <span>الرئيسية</span>
+          </button>
+          <h2>تشييك</h2>
+        </div>
+
+        <section class="submenu-status" aria-label="الموقع المختار">
+          <span class="submenu-status-label">الموقع المختار</span>
+          <strong id="selectedSiteSummary" class="submenu-status-value">لم يتم اختيار موقع بعد</strong>
+        </section>
+
+        <div class="list-buttons">
+          <button class="list-item" type="button" onclick="AtlasSubmenuPage.goToAction('check_unassigned')">
+            <div class="item-icon">1</div>
+            <span>TBA</span>
+          </button>
+
+          <button class="list-item" type="button" onclick="AtlasSubmenuPage.goToAction('excavation_bottom')">
+            <div class="item-icon">2</div>
+            <span>قاع حفر</span>
+          </button>
+
+          <button class="list-item" type="button" onclick="AtlasSubmenuPage.goToAction('tie_beam')">
+            <div class="item-icon">3</div>
+            <span>تايبيم</span>
+          </button>
+
+          <button class="list-item" type="button" onclick="AtlasSubmenuPage.goToAction('roofs')">
+            <div class="item-icon">4</div>
+            <span>أسقف</span>
+          </button>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
