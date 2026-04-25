@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="../../shared/style.css" />
   <link rel="stylesheet" href="../../shared/mobile-fix.css" />
   <script src="../../shared/auth.js"></script>
+    <script src="../../shared/coordinates-export.js"></script>
   <style>
     .manage-page {
       min-height: 100vh;
@@ -649,6 +650,12 @@
       const merged = clone(base || []).filter(
         (company) => !deletedIds.has(String(company.id)),
       );
+      const plotMergeKey = (plot, source, index) => {
+        const id = norm(plot?.id);
+        const reportKey = norm(plot?.source_report_id) || norm(plot?.report_number_in_month) || norm(plot?.survey_date) || `${source}-${index}`;
+        return id ? `${id}::${reportKey}` : "";
+      };
+
       custom.forEach((customCompany) => {
         if (customCompany?.is_deleted) return;
         const target = merged.find((c) => String(c.id) === String(customCompany.id)) || merged.find((c) => norm(c.name).toLowerCase() === norm(customCompany.name).toLowerCase());
@@ -660,9 +667,18 @@
         }
         target.name = customCompany.name || target.name;
         const deletedPlots = new Set((customCompany.deleted_plots || []).map((id) => String(id)));
-        const byId = new Map((target.plots || []).map((p) => [String(p.id), { ...p, _source: "base" }]));
-        (customCompany.plots || []).forEach((p) => byId.set(String(p.id), { ...clone(p), _source: "custom" }));
-        deletedPlots.forEach((id) => byId.delete(String(id)));
+        const byId = new Map(
+          (target.plots || []).map((p, index) => [
+            plotMergeKey(p, "base", index),
+            { ...p, _source: "base" },
+          ]),
+        );
+        (customCompany.plots || []).forEach((p, index) => byId.set(plotMergeKey(p, "custom", index), { ...clone(p), _source: "custom" }));
+        deletedPlots.forEach((id) => {
+          Array.from(byId.keys()).forEach((key) => {
+            if (key === String(id) || key.startsWith(`${id}::`)) byId.delete(key);
+          });
+        });
         target.plots = Array.from(byId.values());
         if (customCompany.is_custom) target.is_custom = true;
       });
@@ -687,10 +703,22 @@
       return companies.find((c) => String(c.id) === String(companyId));
     }
 
+    function plotSelectionKey(plot, index = 0) {
+      const id = norm(plot?.id);
+      const reportKey = norm(plot?.source_report_id) || norm(plot?.report_number_in_month) || norm(plot?.survey_date) || `row-${index}`;
+      return id ? `${id}::${reportKey}` : "";
+    }
+
+    function plotDisplayLabel(plot) {
+      const suffix = [norm(plot?.source_report_id) && `#${norm(plot.source_report_id)}`, norm(plot?.survey_date)].filter(Boolean).join(" - ");
+      return suffix ? `${plot.id} (${suffix})` : String(plot?.id || "");
+    }
+
     function getPlot(companyId, plotId) {
       const company = getCompanyById(companyId);
       if (!company) return null;
-      const plot = (company.plots || []).find((p) => String(p.id) === String(plotId));
+      const plot = (company.plots || []).find((p, index) => plotSelectionKey(p, index) === String(plotId))
+        || (company.plots || []).find((p) => String(p.id) === String(plotId));
       return plot ? { company, plot } : null;
     }
 
@@ -738,10 +766,10 @@
       if (!browseState.plotId) {
         pathEl.textContent = `${company.name} / ${browseState.area} / المواقع`;
         const plots = (company.plots || []).filter((p) => norm(p.area) === browseState.area);
-        listEl.innerHTML = plots.map((plot) => {
+        listEl.innerHTML = plots.map((plot, index) => {
           const status = plot._source === "custom" ? "محلي" : "أساسي";
-          return `<button type="button" class="browse-btn" onclick="browseOpenPlot(${jsArg(plot.id)})">
-            <span>${esc(plot.id)}</span>
+          return `<button type="button" class="browse-btn" onclick="browseOpenPlot(${jsArg(plotSelectionKey(plot, index))})">
+            <span>${esc(plotDisplayLabel(plot))}</span>
             <small>${status}</small>
           </button>`;
         }).join("") || `<div class="muted">لا توجد مواقع داخل هذه المنطقة.</div>`;
@@ -778,10 +806,10 @@
           <div class="detail-item"><label>عدد مستويات Levels</label><span>${levelsCount}</span></div>
         </div>
         <div class="toolbar">
-          <button class="btn-primary" type="button" onclick="loadPlot(${jsArg(company.id)},${jsArg(plot.id)})">تعديل البيانات</button>
+          <button class="btn-primary" type="button" onclick="loadPlot(${jsArg(company.id)},${jsArg(browseState.plotId)})">تعديل البيانات</button>
           ${plot._source === "custom"
-            ? `<button class="btn-secondary" type="button" onclick="deletePlot(${jsArg(company.id)},${jsArg(plot.id)})">حذف محلي</button>`
-            : `<button class="btn-secondary" type="button" onclick="clonePlot(${jsArg(company.id)},${jsArg(plot.id)})">نسخ محلي</button>`}
+            ? `<button class="btn-secondary" type="button" onclick="deletePlot(${jsArg(company.id)},${jsArg(browseState.plotId)})">حذف محلي</button>`
+            : `<button class="btn-secondary" type="button" onclick="clonePlot(${jsArg(company.id)},${jsArg(browseState.plotId)})">نسخ محلي</button>`}
         </div>
       `;
     }
@@ -881,11 +909,11 @@
         container.innerHTML = `<div class="muted">الشركة غير موجودة.</div>`;
         return;
       }
-      container.innerHTML = (company.plots || []).map((plot) => `
+      container.innerHTML = (company.plots || []).map((plot, index) => `
         <div class="manager-row">
-          <span>${esc(plot.id)} - ${esc(plot.area)}</span>
-          <button type="button" onclick="loadPlotForManager(${jsArg(company.id)},${jsArg(plot.id)})">تعديل</button>
-          <button type="button" class="danger" onclick="deletePlot(${jsArg(company.id)},${jsArg(plot.id)})">حذف</button>
+          <span>${esc(plotDisplayLabel(plot))} - ${esc(plot.area)}</span>
+          <button type="button" onclick="loadPlotForManager(${jsArg(company.id)},${jsArg(plotSelectionKey(plot, index))})">تعديل</button>
+          <button type="button" class="danger" onclick="deletePlot(${jsArg(company.id)},${jsArg(plotSelectionKey(plot, index))})">حذف</button>
         </div>
       `).join("") || `<div class="muted">لا توجد مواقع.</div>`;
     }
@@ -1070,7 +1098,7 @@
       document.getElementById("editSurveyor").value = norm(plot.surveyor) || "MR. ";
       openFormView();
       openManagerView("editor");
-      browseState = { companyId: String(company.id), area: norm(plot.area), plotId: String(plot.id) };
+      browseState = { companyId: String(company.id), area: norm(plot.area), plotId: String(plotId) };
       renderBrowser();
     }
 
@@ -1080,10 +1108,10 @@
       const plot = selected?.plot;
       if (!company || !plot) return;
       const entry = upsertCustomCompany(company.id, company.name);
-      if (!entry.plots.some((p) => String(p.id) === String(plot.id))) entry.plots.push(clone(plot));
+      if (!entry.plots.some((p, index) => plotSelectionKey(p, index) === String(plotId))) entry.plots.push(clone(plot));
       saveCustomDb();
       refreshData();
-      browseState = { companyId: String(company.id), area: norm(plot.area), plotId: String(plot.id) };
+      browseState = { companyId: String(company.id), area: norm(plot.area), plotId: String(plotId) };
       renderBrowser();
       loadPlot(companyId, plotId);
     }
@@ -1096,13 +1124,14 @@
       if (!(await askConfirm(`حذف الموقع ${plot.id}؟`))) return;
 
       const entry = upsertCustomCompany(company.id, company.name);
-      const idx = entry.plots.findIndex((p) => String(p.id) === String(plot.id));
+      const selectedKey = String(plotId);
+      const idx = entry.plots.findIndex((p, index) => plotSelectionKey(p, index) === selectedKey);
       if (idx !== -1) entry.plots.splice(idx, 1);
-      if (!entry.deleted_plots.includes(String(plot.id))) entry.deleted_plots.push(String(plot.id));
+      if (!entry.deleted_plots.includes(selectedKey)) entry.deleted_plots.push(selectedKey);
 
       saveCustomDb();
       refreshData();
-      if (browseState.plotId === String(plot.id) && browseState.area === norm(plot.area)) {
+      if (browseState.plotId === selectedKey && browseState.area === norm(plot.area)) {
         browseState.plotId = null;
         renderBrowser();
       }
@@ -1155,3 +1184,5 @@
   </script>
 </body>
 </html>
+
+

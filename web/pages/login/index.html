@@ -174,10 +174,7 @@
         <h2>وضع التشغيل</h2>
         <p id="modeLabel" class="muted">جاري التحقق من وضع التشغيل...</p>
         <div class="quick-note">
-          المستخدم الافتراضي لأول تشغيل:
-          <strong>admin</strong>
-          /
-          <strong>admin123</strong>
+          لا يتم عرض بيانات الدخول الافتراضية داخل التطبيق. يجب تغيير كلمة مرور المدير قبل نشر الموقع للعامة.
         </div>
       </section>
 
@@ -186,11 +183,11 @@
         <form id="loginForm">
           <div class="field">
             <label for="username">اسم المستخدم</label>
-            <input id="username" name="username" type="text" autocomplete="username" required value="admin" />
+            <input id="username" name="username" type="text" autocomplete="username" required />
           </div>
           <div class="field">
             <label for="password">كلمة المرور</label>
-            <input id="password" name="password" type="password" autocomplete="current-password" required value="admin123" />
+            <input id="password" name="password" type="password" autocomplete="current-password" required />
           </div>
           <button id="submitBtn" class="login-btn" type="submit">دخول</button>
           <div id="status" class="status"></div>
@@ -200,6 +197,7 @@
   </div>
 
   <script src="../../shared/auth.js"></script>
+    <script src="../../shared/coordinates-export.js"></script>
   <script>
     const statusEl = document.getElementById("status");
     const submitBtn = document.getElementById("submitBtn");
@@ -252,3 +250,5 @@
   </script>
 </body>
 </html>
+
+

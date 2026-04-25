@@ -38,6 +38,7 @@ function sanitizeUser(user) {
 }
 
 async function getJson(env, key, fallback) {
+  if (!env?.ATLAS_DATA) return fallback;
   const raw = await env.ATLAS_DATA.get(key);
   if (!raw) return fallback;
   try {
@@ -48,6 +49,7 @@ async function getJson(env, key, fallback) {
 }
 
 async function putJson(env, key, value) {
+  if (!env?.ATLAS_DATA) throw new Error("ATLAS_DATA binding is required");
   await env.ATLAS_DATA.put(key, JSON.stringify(value));
   return value;
 }
@@ -122,14 +124,22 @@ async function normalizeStoredUsers(users, defaultAdmin) {
 
 async function ensureUsers(env) {
   let users = await getJson(env, USERS_KEY, []);
+  const configuredDefaultPassword = normalizeValue(env?.ATLAS_ADMIN_PASSWORD);
+  const allowDevelopmentDefault = normalizeValue(env?.ATLAS_ALLOW_DEFAULT_ADMIN) === "1";
+  if (!users.length && !configuredDefaultPassword && !allowDevelopmentDefault) {
+    throw new Error("ATLAS_ADMIN_PASSWORD is required before the first admin user is created");
+  }
+
+  const defaultPassword = configuredDefaultPassword || "admin123";
   const defaultAdmin = {
     id: "user-admin",
     username: "admin",
     full_name: "مدير النظام",
-    password_hint: "admin123",
-    password_hash: await sha256("admin123"),
+    password_hint: "",
+    password_hash: await sha256(defaultPassword),
     is_admin: true,
     permissions: ["*"],
+    must_change_password: !configuredDefaultPassword,
     created_at: new Date().toISOString(),
   };
   users = await normalizeStoredUsers(users, defaultAdmin);
@@ -138,6 +148,7 @@ async function ensureUsers(env) {
 }
 
 async function getSession(env, request) {
+  if (!env?.ATLAS_SESSIONS || !env?.ATLAS_DATA) return null;
   const token = cookieValue(request, SESSION_COOKIE);
   if (!token) return null;
   const raw = await env.ATLAS_SESSIONS.get(token);

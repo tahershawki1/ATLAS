@@ -22,10 +22,17 @@
 
   const STATIC_PAGES = [
     { id: "pages.home", label: "الرئيسية", url: "/index.html" },
+    { id: "pages.new", label: "قائمة الأعمال الجديدة", url: "/pages/new/" },
+    { id: "pages.check", label: "قائمة أعمال التحقق", url: "/pages/check/" },
+    { id: "pages.survey", label: "قائمة أعمال الرفع", url: "/pages/survey/" },
+    { id: "pages.point-staking", label: "توقيع النقاط", url: "/pages/point-staking/" },
     { id: "pages.new-level-mark", label: "علام جيت لفل جديد", url: "/pages/new-level-mark/" },
     { id: "pages.level-budget", label: "جدول الميزانية والتحقق", url: "/pages/level-budget/" },
     { id: "pages.coordinates-extractor", label: "استخراج الاحداثيات", url: "/pages/coordinates-extractor/" },
+    { id: "pages.coordinates-proposal", label: "اقتراح الإحداثيات", url: "/pages/coordinates-proposal/" },
+    { id: "pages.coordinates-export", label: "تصدير الإحداثيات", url: "/pages/coordinates-export/" },
     { id: "pages.site-management", label: "إدارة الشركات والمناطق والمواقع", url: "/pages/site-management/" },
+    { id: "sites.write", label: "إضافة وتعديل بيانات المواقع", url: "/index.html", is_permission: true },
     { id: "admin.panel", label: "لوحة الإدارة", url: "/pages/admin/" },
   ];
 
@@ -210,7 +217,30 @@
     return payload;
   }
 
+  function shouldSkipApiProbe() {
+    const host = String(window.location.hostname || "").toLowerCase();
+    const isLocalHost =
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      host === "[::1]";
+
+    if (!isLocalHost) return false;
+
+    const params = new URLSearchParams(window.location.search || "");
+    const forcedByQuery = params.get("atlas_api") === "1";
+    const forcedByStorage = localStorage.getItem("atlasForceApiProbe") === "1";
+    return !(forcedByQuery || forcedByStorage);
+  }
+
   async function probeApi() {
+    if (shouldSkipApiProbe()) {
+      state.apiAvailable = false;
+      state.apiBindings = null;
+      state.mode = "local";
+      return false;
+    }
+
     try {
       const payload = await apiFetch("/api/bootstrap", { method: "GET" });
       state.apiBindings = payload?.bindings || null;
@@ -413,7 +443,7 @@
 
   async function getDefaultAuthorizedUrl(user = state.currentUser) {
     const pages = await getAllPages();
-    const fallback = pages.find((page) => canAccess(page.id, user));
+    const fallback = pages.find((page) => !page.is_permission && canAccess(page.id, user));
     return toAbsolute(fallback?.url || "/index.html");
   }
 
@@ -714,14 +744,10 @@
 
       await initialize();
       if (state.apiAvailable && state.currentUser) {
-        try {
-          await apiFetch("/api/sites", {
-            method: "PUT",
-            body: JSON.stringify({ custom_sites: next }),
-          });
-        } catch (error) {
-          console.warn("Remote custom sites save failed", error);
-        }
+        await apiFetch("/api/sites", {
+          method: "PUT",
+          body: JSON.stringify({ custom_sites: next }),
+        });
       }
 
       return next;
@@ -785,3 +811,4 @@
     state,
   };
 })();
+

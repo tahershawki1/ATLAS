@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="../../shared/mobile-fix.css">
     <link rel="stylesheet" href="../../LIP/vendor/leaflet/leaflet.css">
     <script src="../../shared/auth.js"></script>
+    <script src="../../shared/coordinates-export.js"></script>
     <style>
         .custom-page {
             min-height: 100vh;
@@ -111,6 +112,25 @@
             transform: translateY(-2px);
             background: #ffffff;
             box-shadow: 0 8px 20px rgba(30, 64, 175, 0.08);
+        }
+
+        .export-open-btn {
+            width: 100%;
+            height: 42px;
+            margin-top: 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(30, 64, 175, 0.16);
+            background: #ffffff;
+            color: var(--primary);
+            font-size: 0.84rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .export-open-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
         }
 
         .status-text {
@@ -358,6 +378,7 @@
             <div class="upload-shell">
                 <input type="file" id="pointsInput" class="hidden" accept=".pdf,.dwg,.sdr,.csv,application/pdf,text/csv">
                 <button id="uploadBtn" class="file-btn" type="button">رفع ملف النقاط</button>
+                <button id="exportCoordsBtn" class="export-open-btn" type="button" disabled>تصدير الإحداثيات</button>
                 <p id="fileHint" class="sub-title" style="margin-top:10px;margin-bottom:0;">لم يتم اختيار ملف بعد</p>
 
                 <div class="options-row">
@@ -411,6 +432,7 @@
     const fileHint = document.getElementById('fileHint');
     const statusText = document.getElementById('statusText');
     const crsSelect = document.getElementById('crsSelect');
+    const exportCoordsBtn = document.getElementById('exportCoordsBtn');
     const mapSection = document.getElementById('mapSection');
     const pointsCount = document.getElementById('pointsCount');
     const pointsMapHost = document.getElementById('pointsMap');
@@ -440,6 +462,7 @@
         signed: new Set(),
         invisible: new Set(),
         selectedIndex: -1,
+        sourceFileName: '',
         map: null,
         layer: null
     };
@@ -468,6 +491,48 @@
     function parseNumeric(value) {
         const num = Number(normalizeNumberString(value));
         return Number.isFinite(num) ? num : null;
+    }
+
+    function suggestedExportBaseName() {
+        if (window.AtlasCoordinatesExport?.deriveSuggestedFileBaseName) {
+            return window.AtlasCoordinatesExport.deriveSuggestedFileBaseName(
+                state.sourceFileName,
+                'points-staking',
+            );
+        }
+        return 'points-staking';
+    }
+
+    function openCoordinatesExportForm() {
+        if (!window.AtlasCoordinatesExport) {
+            setStatus('تعذر فتح فورم تصدير الإحداثيات الآن.', true);
+            return;
+        }
+        if (!state.pointsRaw.length) {
+            setStatus('لا توجد نقاط جاهزة للتصدير.', true);
+            return;
+        }
+        window.AtlasCoordinatesExport.open(state.pointsRaw, {
+            sourceTitle: 'توقيع النقاط',
+            sourcePage: 'point-staking',
+            sourceCrs: crsSelect?.value || 'DLTM',
+            suggestedBaseName: suggestedExportBaseName(),
+        });
+    }
+
+    if (window.AtlasCoordinatesExport?.registerProvider) {
+        window.AtlasCoordinatesExport.registerProvider(
+            () => ({
+                rows: state.pointsRaw,
+                meta: {
+                    sourceTitle: 'توقيع النقاط',
+                    sourcePage: 'point-staking',
+                    sourceCrs: crsSelect?.value || 'DLTM',
+                    suggestedBaseName: suggestedExportBaseName(),
+                },
+            }),
+            { id: 'point-staking' },
+        );
     }
 
     function dedupePoints(rows) {
@@ -912,23 +977,30 @@
     pointsInput.addEventListener('change', async () => {
         const file = pointsInput.files?.[0];
         if (!file) return;
+        state.sourceFileName = file.name;
         fileHint.textContent = `تم اختيار: ${file.name}`;
         setStatus('جاري قراءة الملف...');
 
         try {
             const { points, warning } = await readPoints(file);
             if (warning) {
+                state.pointsRaw = [];
                 mapSection.classList.add('hidden');
+                exportCoordsBtn.disabled = true;
                 setStatus(warning);
+                window.AtlasCoordinatesExport?.updateButtonState?.();
                 return;
             }
 
             state.pointsRaw = points;
             state.signed = new Set();
             state.invisible = new Set();
+            exportCoordsBtn.disabled = state.pointsRaw.length === 0;
+            window.AtlasCoordinatesExport?.updateButtonState?.();
 
             if (!state.pointsRaw.length) {
                 mapSection.classList.add('hidden');
+                exportCoordsBtn.disabled = true;
                 const dwg = file.name.toLowerCase().endsWith('.dwg');
                 setStatus(
                     dwg
@@ -936,6 +1008,7 @@
                         : 'لم يتم العثور على نقاط صالحة داخل الملف.',
                     true
                 );
+                window.AtlasCoordinatesExport?.updateButtonState?.();
                 return;
             }
 
@@ -943,8 +1016,11 @@
             setStatus(`تم تحميل ${state.pointsRaw.length} نقطة. اختر نقطة ثم اضغط توقيع.`);
         } catch (error) {
             console.error(error);
+            state.pointsRaw = [];
             mapSection.classList.add('hidden');
+            exportCoordsBtn.disabled = true;
             setStatus('حدث خطأ أثناء قراءة الملف. تأكد من أن صيغة الملف صحيحة.', true);
+            window.AtlasCoordinatesExport?.updateButtonState?.();
         }
     });
 
@@ -955,6 +1031,7 @@
 
     signBtn.addEventListener('click', signCurrent);
     invisibleBtn.addEventListener('click', markCurrentInvisible);
+    exportCoordsBtn.addEventListener('click', openCoordinatesExportForm);
     prevBtn.addEventListener('click', () => movePoint(-1));
     nextBtn.addEventListener('click', () => movePoint(1));
 
@@ -964,10 +1041,12 @@
     document.addEventListener('DOMContentLoaded', async () => {
         if (!window.AtlasAuth) return;
         await window.AtlasAuth.initialize();
-        const allowed = await window.AtlasAuth.requirePageAccess('pages.home');
+        const allowed = await window.AtlasAuth.requirePageAccess('pages.point-staking');
         if (!allowed) return;
         window.AtlasAuth.decorateShell();
     });
 </script>
 </body>
 </html>
+
+

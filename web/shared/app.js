@@ -5,7 +5,7 @@
     selectedSite: null,
     pendingAction: null,
     routeBackUrl: null,
-    currentSelection: { companyId: null, area: null, plotId: null },
+    currentSelection: { companyId: null, area: null, plotId: null, plotIndex: null },
     pendingSites: [],
     customSiteDb: [],
   },
@@ -84,16 +84,28 @@
     }
   },
 
-  saveCustomSiteDb() {
+  async saveCustomSiteDb({ silent = false } = {}) {
     localStorage.setItem(
       this.storageKeys.customSitesDb,
       JSON.stringify(this.state.customSiteDb),
     );
+
     if (window.AtlasStore?.saveCustomSites) {
-      window.AtlasStore.saveCustomSites(this.state.customSiteDb).catch((error) => {
+      if (window.AtlasAuth && !window.AtlasAuth.canAccess("sites.write")) {
+        if (!silent) this.showToast("لا توجد صلاحية لحفظ بيانات المواقع على الخادم");
+        return false;
+      }
+
+      try {
+        await window.AtlasStore.saveCustomSites(this.state.customSiteDb);
+      } catch (error) {
         console.warn("Failed to sync custom site DB", error);
-      });
+        if (!silent) this.showToast("تعذر حفظ بيانات المواقع على الخادم، وتم حفظها محلياً");
+        return false;
+      }
     }
+
+    return true;
   },
 
   mergeReferences(baseRefs = {}, customRefs = {}) {
@@ -122,21 +134,31 @@
     const map = new Map();
     const order = [];
 
-    const addPlot = (plot, source) => {
+    const getMergeKey = (plot, source, index) => {
+      const id = this.normalizeValue(plot?.id);
+      const reportKey =
+        this.normalizeValue(plot?.source_report_id) ||
+        this.normalizeValue(plot?.report_number_in_month) ||
+        this.normalizeValue(plot?.survey_date) ||
+        `${source}-${index}`;
+      return id ? `${id}::${reportKey}` : "";
+    };
+
+    const addPlot = (plot, source, index) => {
       if (!plot) return;
-      const id = this.normalizeValue(plot.id);
-      if (!id) return;
-      if (!map.has(id)) order.push(id);
-      map.set(id, {
+      const key = getMergeKey(plot, source, index);
+      if (!key) return;
+      if (!map.has(key)) order.push(key);
+      map.set(key, {
         ...this.deepClone(plot),
         _source: source,
       });
     };
 
-    basePlots.forEach((plot) => addPlot(plot, "base"));
-    customPlots.forEach((plot) => addPlot(plot, "custom"));
+    basePlots.forEach((plot, index) => addPlot(plot, "base", index));
+    customPlots.forEach((plot, index) => addPlot(plot, "custom", index));
 
-    return order.map((id) => map.get(id));
+    return order.map((key) => map.get(key));
   },
 
   mergeCompanies(baseCompanies = [], customCompanies = []) {
@@ -189,6 +211,25 @@
     return this.data.companies.find(
       (company) => String(company.id) === String(companyId),
     );
+  },
+
+  formatPlotLabel(plot) {
+    const reportId = this.normalizeValue(plot?.source_report_id);
+    const reportDate = this.normalizeValue(plot?.survey_date);
+    const suffix = [reportId && `#${reportId}`, reportDate].filter(Boolean).join(" - ");
+    return suffix ? `${plot.id} (${suffix})` : String(plot?.id || "");
+  },
+
+  findPlotBySelection(companyId, plotId, plotIndex = null) {
+    const company = this.findCompanyById(companyId);
+    if (!company) return null;
+
+    const numericIndex = Number.parseInt(plotIndex, 10);
+    if (Number.isInteger(numericIndex) && company.plots?.[numericIndex]) {
+      return company.plots[numericIndex];
+    }
+
+    return company.plots?.find((plot) => String(plot.id) === String(plotId)) || null;
   },
 
   findCustomCompanyEntry(companyId) {
@@ -528,21 +569,21 @@
       const item = document.createElement("div");
       item.className = "list-select-item";
       item.textContent = company.name;
-      item.onclick = () => this.selectCompany(company.id);
+      item.onclick = (e) => this.selectCompany(company.id, e);
       list.appendChild(item);
     });
   },
 
-  selectCompany(companyId) {
+  selectCompany(companyId, e = null) {
     this.state.currentSelection.companyId = companyId;
     this.state.currentSelection.area = null;
     this.state.currentSelection.plotId = null;
+    this.state.currentSelection.plotIndex = null;
 
     // UI update
     const items = document.querySelectorAll("#companyList .list-select-item");
     items.forEach((el) => el.classList.remove("selected"));
-    if (event && event.currentTarget)
-      event.currentTarget.classList.add("selected");
+    if (e && e.currentTarget) e.currentTarget.classList.add("selected");
 
     this.populateAreas(companyId);
     this.modalStep(2);
@@ -574,6 +615,8 @@
 
   selectArea(area, e) {
     this.state.currentSelection.area = area;
+    this.state.currentSelection.plotId = null;
+    this.state.currentSelection.plotIndex = null;
 
     // UI update
     const items = document.querySelectorAll("#areaList .list-select-item");
@@ -591,28 +634,35 @@
 
     list.innerHTML = "";
     // Filter plots by selected area
-    const filteredPlots = company.plots.filter(
-      (p) => {
-        const plotArea = (p.area || "").trim();
+    const filteredPlots = company.plots
+      .map((plot, index) => ({ plot, index }))
+      .filter(({ plot }) => {
+        const plotArea = (plot.area || "").trim();
         return plotArea === area;
-      },
-    );
+      });
 
-    filteredPlots.forEach((plot) => {
+    filteredPlots.forEach(({ plot, index }) => {
       const item = document.createElement("div");
       item.className = "list-select-item";
-      item.textContent = plot.id;
-      item.onclick = (e) => this.selectPlot(plot.id, e);
+      item.textContent = this.formatPlotLabel(plot);
+      item.onclick = (e) => this.selectPlot(plot.id, e, index);
       list.appendChild(item);
     });
   },
 
-  selectPlot(plotId, e) {
+  selectPlot(plotId, e, plotIndex = null) {
     this.state.currentSelection.plotId = plotId;
-    const company = this.data.companies.find(
-      (c) => c.id == this.state.currentSelection.companyId,
+    this.state.currentSelection.plotIndex = plotIndex;
+    const company = this.findCompanyById(this.state.currentSelection.companyId);
+    const plot = this.findPlotBySelection(
+      this.state.currentSelection.companyId,
+      plotId,
+      plotIndex,
     );
-    const plot = company.plots.find((p) => p.id == plotId);
+    if (!company || !plot) {
+      this.showToast("تعذر العثور على بيانات الموقع المحدد");
+      return;
+    }
 
     // UI update
     const items = document.querySelectorAll("#plotList .list-select-item");
@@ -686,11 +736,12 @@
 
     const results = [];
     this.data.companies.forEach((company) => {
-      company.plots.forEach((plot) => {
-        if (plot.id.toLowerCase().includes(query)) {
+      company.plots.forEach((plot, plotIndex) => {
+        if (String(plot.id ?? "").toLowerCase().includes(query)) {
           results.push({
             companyName: company.name,
             companyId: company.id,
+            plotIndex,
             plot: plot,
           });
         }
@@ -705,16 +756,27 @@
     results.slice(0, 20).forEach((res) => {
       const item = document.createElement("div");
       item.className = "list-select-item";
-      item.innerHTML = `<small style="display:block; font-size:0.7rem; color:var(--text-dim)">${res.companyName}</small> ${res.plot.id}`;
+      const companyLabel = document.createElement("small");
+      companyLabel.style.display = "block";
+      companyLabel.style.fontSize = "0.7rem";
+      companyLabel.style.color = "var(--text-dim)";
+      companyLabel.textContent = res.companyName;
+      item.appendChild(companyLabel);
+      item.appendChild(document.createTextNode(this.formatPlotLabel(res.plot)));
       item.onclick = (e) => {
         this.state.currentSelection.companyId = res.companyId;
-        this.selectPlot(res.plot.id, e);
+        this.selectPlot(res.plot.id, e, res.plotIndex);
       };
       list.appendChild(item);
     });
   },
 
   showAddSite() {
+    if (window.AtlasAuth && !window.AtlasAuth.canAccess("sites.write")) {
+      this.showToast("لا توجد صلاحية لإضافة أو تعديل بيانات المواقع");
+      return;
+    }
+
     this.populateNewSiteSelectors();
     this.resetNewSiteForm();
     this.modalStep("Add");
@@ -998,7 +1060,7 @@
       is_custom: true,
     });
 
-    this.saveCustomSiteDb();
+    await this.saveCustomSiteDb();
     this.refreshCompaniesData();
     this.populateCompanies();
     this.populateNewSiteSelectors(newCompanyId);
@@ -1041,7 +1103,7 @@
       referenceValue,
     ]);
 
-    this.saveCustomSiteDb();
+    await this.saveCustomSiteDb();
     this.refreshCompaniesData();
     this.populateCompanies();
     this.populateNewSiteSelectors(String(company.id));
@@ -1058,7 +1120,7 @@
     this.showToast(`تم حفظ ${label} الجديدة للشركة`);
   },
 
-  registerNewSite() {
+  async registerNewSite() {
     const companyId = document.getElementById("newSiteCompany").value;
     const area = document.getElementById("newSiteArea").value;
     const plot = document.getElementById("newSitePlot").value;
@@ -1154,7 +1216,7 @@
       surveyor: [normalizedSurveyor],
     });
 
-    this.saveCustomSiteDb();
+    await this.saveCustomSiteDb();
     this.refreshCompaniesData();
     this.populateCompanies();
 
@@ -1210,103 +1272,28 @@
 
     if (navigator.onLine) this.syncPendingSites();
     return;
-
-    const company = this.data.companies.find((c) => String(c.id) === String(companyId));
-
-    if (
-      !company ||
-      !area ||
-      !plot ||
-      !owner ||
-      !consultant ||
-      !project ||
-      !contractor ||
-      !reportYear ||
-      !reportMonth ||
-      !reportNumberInMonth ||
-      !sourceReportId ||
-      !surveyDate ||
-      !subject ||
-      !surveyor
-    ) {
-      this.showToast("يرجى تعبئة جميع الحقول قبل الحفظ");
-      return;
-    }
-
-    this.state.selectedSite = {
-      company: company.name,
-      area: area,
-      plot: plot,
-      owner: owner,
-      consultant: consultant,
-      project: project,
-      contractor: contractor,
-      report_year: reportYear,
-      report_month: reportMonth,
-      report_number_in_month: reportNumberInMonth,
-      source_report_id: sourceReportId,
-      survey_date: surveyDate,
-      subject: subject,
-      surveyor: surveyor,
-      levels: [],
-    };
-
-    // Add to pending sync
-    const newSite = {
-      ...this.state.selectedSite,
-      timestamp: new Date().toISOString(),
-      id: Date.now(),
-    };
-
-    this.state.pendingSites.push(newSite);
-    localStorage.setItem(
-      "pendingSites",
-      JSON.stringify(this.state.pendingSites),
-    );
-    this.updateSyncBadge();
-
-    document.getElementById("siteName").textContent = plot;
-    document.getElementById("siteCompany").textContent = company;
-    this.closeSiteModal();
-    this.showToast("تمت إضافة الموقع محلياً وسيتم مزامنته عند توفر الإنترنت");
-
-    if (this.state.pendingAction) {
-      const action = this.state.pendingAction;
-      this.state.pendingAction = null;
-      this.action(action);
-    }
-
-    // Try to sync immediately if online
-    if (navigator.onLine) this.syncPendingSites();
   },
 
   async syncPendingSites() {
     if (this.state.pendingSites.length === 0) return;
     if (!navigator.onLine) return;
 
-    console.log("Attempting to sync sites to GitHub...");
-
-    // Note: This requires a backend worker or GitHub API token
-    // We'll simulate a successful sync if no endpoint is defined
-    // to demonstrate the UI flow.
-
     try {
-      // In a real scenario, you'd call an API like:
-      // const res = await fetch('https://YOUR_WORKER.workers.dev/api/sync', {
-      //     method: 'POST',
-      //     body: JSON.stringify(this.state.pendingSites),
-      //     headers: { 'Content-Type': 'application/json' }
-      // });
+      if (!window.AtlasStore?.isApiMode?.()) return;
 
-      // Reaching out to GitHub directly (Mock for now)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      if (window.AtlasAuth && !window.AtlasAuth.canAccess("sites.write")) {
+        this.showToast("لا توجد صلاحية لمزامنة بيانات المواقع");
+        return;
+      }
 
-      this.showToast("تمت مزامنة البيانات مع جيت هب ✅");
+      await window.AtlasStore.saveCustomSites(this.state.customSiteDb);
+      this.showToast("تمت مزامنة بيانات المواقع بنجاح");
       this.state.pendingSites = [];
       localStorage.setItem(this.storageKeys.pendingSites, "[]");
       this.updateSyncBadge();
     } catch (e) {
       console.error("Sync failed:", e);
+      this.showToast("فشلت مزامنة بيانات المواقع، ستبقى في قائمة الانتظار");
     }
   },
 
@@ -1318,12 +1305,19 @@
   },
 
   saveSiteFinal() {
-    const company = this.data.companies.find(
-      (c) => c.id == this.state.currentSelection.companyId,
-    );
+    const company = this.findCompanyById(this.state.currentSelection.companyId);
     const plotId = this.state.currentSelection.plotId;
-    const plot = company?.plots?.find((p) => p.id == plotId) || {};
+    const plot = this.findPlotBySelection(
+      this.state.currentSelection.companyId,
+      plotId,
+      this.state.currentSelection.plotIndex,
+    ) || {};
     const meta = this.state.currentSelection.metadata;
+
+    if (!company || !plotId || !meta) {
+      this.showToast("اختر موقعاً صحيحاً قبل الحفظ");
+      return;
+    }
 
     this.state.selectedSite = {
       company: company.name,

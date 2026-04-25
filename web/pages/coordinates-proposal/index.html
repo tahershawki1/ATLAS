@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="../../shared/style.css" />
   <link rel="stylesheet" href="../../shared/mobile-fix.css" />
   <script src="../../shared/auth.js"></script>
+  <script src="../../shared/coordinates-export.js"></script>
+  <link rel="icon" type="image/png" href="../../icons/brand-logo.png" />
   <style>
     .custom-page {
       min-height: 100vh;
@@ -372,18 +374,29 @@
       background: #fff;
       padding: 8px;
       overflow: auto;
-      display: flex;
-      justify-content: center;
+      display: block;
       max-height: 58vh;
     }
 
-    #previewCanvas {
-      width: 100%;
-      max-width: 100%;
-      height: auto;
-      border-radius: 10px;
+    .preview-embed {
       display: block;
+      max-width: 100%;
+      border-radius: 10px;
       background: #f8fafc;
+      margin: 0 auto;
+    }
+
+    .preview-embed-pdf {
+      width: 100%;
+      min-height: 300px;
+      height: min(58vh, 760px);
+      border: 0;
+      background: #ffffff;
+    }
+
+    .preview-embed-image {
+      width: auto;
+      height: auto;
     }
 
     .result-badge {
@@ -503,6 +516,28 @@
       font-family: "Cairo", sans-serif;
       font-size: 0.8rem;
       padding: 14px 10px;
+    }
+
+    .row-del-btn {
+      min-width: 64px;
+      height: 34px;
+      border: none;
+      border-radius: 8px;
+      background: #fff1f2;
+      color: #be123c;
+      font-size: 0.74rem;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+
+    .row-del-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(0.96);
+    }
+
+    .row-del-btn:active {
+      transform: translateY(0);
     }
 
     .raw-shell {
@@ -666,7 +701,8 @@
           <span id="previewNote" class="preview-note">لا يوجد ملف</span>
         </div>
         <div class="preview-wrap">
-          <canvas id="previewCanvas"></canvas>
+          <iframe id="previewPdf" class="preview-embed preview-embed-pdf hidden" title="معاينة PDF"></iframe>
+          <img id="previewImage" class="preview-embed preview-embed-image hidden" alt="معاينة الملف" />
         </div>
       </section>
 
@@ -685,7 +721,7 @@
         </div>
 
         <div id="resultActions" class="result-actions hidden">
-          <button id="exportCsvBtn" class="action-btn" type="button">تصدير CSV</button>
+          <button id="exportCsvBtn" class="action-btn" type="button">تصدير الإحداثيات</button>
           <button id="copyJsonBtn" class="action-btn" type="button">نسخ JSON</button>
         </div>
 
@@ -701,10 +737,11 @@
                 <th>Code</th>
                 <th>Page</th>
                 <th>Source</th>
+                <th>حذف</th>
               </tr>
             </thead>
             <tbody id="rowsBody">
-              <tr class="empty-row"><td colspan="8">لا توجد نتائج بعد.</td></tr>
+              <tr class="empty-row"><td colspan="9">لا توجد نتائج بعد.</td></tr>
             </tbody>
           </table>
         </div>
@@ -743,7 +780,8 @@
     const metaPages = document.getElementById("metaPages");
 
     const previewCard = document.getElementById("previewCard");
-    const previewCanvas = document.getElementById("previewCanvas");
+    const previewPdf = document.getElementById("previewPdf");
+    const previewImage = document.getElementById("previewImage");
     const previewNote = document.getElementById("previewNote");
 
     const resultCard = document.getElementById("resultCard");
@@ -772,7 +810,28 @@
       pagesScanned: 0,
       ocrUsed: false,
       busy: false,
+      previewUrl: null,
+      projectedOrderPreference: "AUTO",
     };
+
+    function clearPreviewMedia() {
+      if (state.previewUrl) {
+        URL.revokeObjectURL(state.previewUrl);
+        state.previewUrl = null;
+      }
+      previewPdf.removeAttribute("src");
+      previewImage.removeAttribute("src");
+      previewPdf.classList.add("hidden");
+      previewImage.classList.add("hidden");
+    }
+
+    function assignPreviewUrlFromFile(file) {
+      if (state.previewUrl) {
+        URL.revokeObjectURL(state.previewUrl);
+      }
+      state.previewUrl = URL.createObjectURL(file);
+      return state.previewUrl;
+    }
 
     function normalizeText(value) {
       return String(value ?? "")
@@ -783,12 +842,168 @@
     }
 
     function normalizeNumberString(value) {
-      return String(value ?? "").replace(/,/g, ".");
+      return String(value ?? "")
+        .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+        .replace(/٬/g, "")
+        .replace(/[،]/g, ".")
+        .replace(/,/g, ".")
+        .trim();
+    }
+
+    function extractNumericString(value) {
+      const normalized = normalizeNumberString(value);
+      if (!normalized) return "";
+      const direct = Number(normalized);
+      if (Number.isFinite(direct)) return normalized;
+      const match = normalized.match(/[-+]?\d+(?:\.\d+)?/);
+      return match ? match[0] : "";
     }
 
     function parseNumeric(value) {
-      const num = Number(normalizeNumberString(value));
+      const candidate = extractNumericString(value);
+      if (!candidate) return null;
+      const num = Number(candidate);
       return Number.isFinite(num) ? num : null;
+    }
+
+    const NORTHING_INTEGER_DIGITS = 7;
+    const EASTING_INTEGER_DIGITS = 6;
+    const PROJECTED_ORDER_AUTO = "AUTO";
+    const PROJECTED_ORDER_NE = "NE";
+    const PROJECTED_ORDER_EN = "EN";
+
+    function integerDigitLength(value) {
+      const normalized = extractNumericString(value).replace(/^[-+]/, "");
+      const integerPart = normalized.split(".")[0] || "";
+      return integerPart.replace(/[^\d]/g, "").length;
+    }
+
+    function hasExpectedProjectedDigits(northingValue, eastingValue) {
+      return (
+        integerDigitLength(northingValue) === NORTHING_INTEGER_DIGITS &&
+        integerDigitLength(eastingValue) === EASTING_INTEGER_DIGITS
+      );
+    }
+
+    function hasToleratedProjectedDigits(northingValue, eastingValue) {
+      const nDigits = integerDigitLength(northingValue);
+      const eDigits = integerDigitLength(eastingValue);
+      return nDigits >= 6 && nDigits <= 8 && eDigits >= 5 && eDigits <= 7;
+    }
+
+    function isLikelyProjectedPairAnyOrder(firstValue, secondValue) {
+      const first = parseNumeric(firstValue);
+      const second = parseNumeric(secondValue);
+      if (!looksLikeProjected(first) || !looksLikeProjected(second)) return false;
+      const firstDigits = integerDigitLength(firstValue);
+      const secondDigits = integerDigitLength(secondValue);
+      const firstSecondExpected = firstDigits === NORTHING_INTEGER_DIGITS && secondDigits === EASTING_INTEGER_DIGITS;
+      const secondFirstExpected = secondDigits === NORTHING_INTEGER_DIGITS && firstDigits === EASTING_INTEGER_DIGITS;
+      if (firstSecondExpected || secondFirstExpected) return true;
+      return hasToleratedProjectedDigits(firstValue, secondValue) || hasToleratedProjectedDigits(secondValue, firstValue);
+    }
+
+    function resolveProjectedPair(firstToken, secondToken, forcedOrder = PROJECTED_ORDER_AUTO) {
+      if (!isLikelyProjectedPairAnyOrder(firstToken, secondToken)) {
+        return { valid: false };
+      }
+
+      const firstDigits = integerDigitLength(firstToken);
+      const secondDigits = integerDigitLength(secondToken);
+      const firstNumeric = parseNumeric(firstToken);
+      const secondNumeric = parseNumeric(secondToken);
+
+      let order = null;
+      let ambiguous = false;
+
+      if (forcedOrder === PROJECTED_ORDER_NE || forcedOrder === PROJECTED_ORDER_EN) {
+        order = forcedOrder;
+      } else if (firstDigits === NORTHING_INTEGER_DIGITS && secondDigits === EASTING_INTEGER_DIGITS) {
+        order = PROJECTED_ORDER_NE;
+      } else if (firstDigits === EASTING_INTEGER_DIGITS && secondDigits === NORTHING_INTEGER_DIGITS) {
+        order = PROJECTED_ORDER_EN;
+      } else {
+        ambiguous = true;
+        if (firstDigits > secondDigits) {
+          order = PROJECTED_ORDER_NE;
+        } else if (secondDigits > firstDigits) {
+          order = PROJECTED_ORDER_EN;
+        } else if (Math.abs(firstNumeric) > Math.abs(secondNumeric)) {
+          // Equal digits: often northing is numerically larger.
+          order = PROJECTED_ORDER_NE;
+        } else if (Math.abs(secondNumeric) > Math.abs(firstNumeric)) {
+          order = PROJECTED_ORDER_EN;
+        }
+
+        // In AUTO mode, keep non 7/6 pairs unresolved and ask user for the order.
+        return { valid: true, unresolved: true, ambiguous, suggestedOrder: order };
+      }
+
+      const northingRaw = order === PROJECTED_ORDER_NE ? firstToken : secondToken;
+      const eastingRaw = order === PROJECTED_ORDER_NE ? secondToken : firstToken;
+      const northing = extractNumericString(northingRaw);
+      const easting = extractNumericString(eastingRaw);
+      if (!northing || !easting) {
+        return { valid: true, unresolved: true, ambiguous: true, suggestedOrder: order };
+      }
+
+      if (
+        forcedOrder !== PROJECTED_ORDER_AUTO &&
+        !hasExpectedProjectedDigits(northingRaw, eastingRaw)
+      ) {
+        ambiguous = true;
+      }
+
+      return {
+        valid: true,
+        unresolved: false,
+        ambiguous,
+        order,
+        suggestedOrder: order,
+        northing,
+        easting,
+      };
+    }
+
+    function normalizeProjectedOrderChoice(value) {
+      const raw = String(value ?? "").trim().toUpperCase();
+      if (!raw) return PROJECTED_ORDER_AUTO;
+      if (["1", "N", "NE", "N,E", "N-E", "N/E", "NORTHING,EASTING", "NORTHING EASTING"].includes(raw)) {
+        return PROJECTED_ORDER_NE;
+      }
+      if (["2", "E", "EN", "E,N", "E-N", "E/N", "EASTING,NORTHING", "EASTING NORTHING"].includes(raw)) {
+        return PROJECTED_ORDER_EN;
+      }
+      if (raw === PROJECTED_ORDER_NE || raw === PROJECTED_ORDER_EN || raw === PROJECTED_ORDER_AUTO) {
+        return raw;
+      }
+      return PROJECTED_ORDER_AUTO;
+    }
+
+    function projectedOrderLabel(order) {
+      if (order === PROJECTED_ORDER_EN) return "شرقي ثم شمالي (E,N)";
+      return "شمالي ثم شرقي (N,E)";
+    }
+
+    function promptProjectedOrder(defaultOrder = PROJECTED_ORDER_NE) {
+      const defaultValue = defaultOrder === PROJECTED_ORDER_EN ? "2" : "1";
+      const answer = window.prompt(
+        "تعذر تحديد ترتيب الإحداثيات بدقة في بعض السطور.\nاختر الترتيب:\n1) شمالي ثم شرقي (N,E)\n2) شرقي ثم شمالي (E,N)",
+        defaultValue,
+      );
+      if (answer === null) return null;
+      const selected = normalizeProjectedOrderChoice(answer);
+      if (selected === PROJECTED_ORDER_AUTO) {
+        alert("إدخال غير واضح. استخدم 1 لـ N,E أو 2 لـ E,N.");
+        return null;
+      }
+      return selected;
+    }
+
+    function shouldPromptForProjectedOrder(stats, mode) {
+      if (mode === "latlon") return false;
+      if (!stats || stats.projectedCandidateCount === 0) return false;
+      return stats.projectedAmbiguousCount > 0 || stats.projectedUnresolvedCount > 0;
     }
 
     function clamp(value, min, max) {
@@ -980,16 +1195,10 @@
 
     async function renderPdfPreview() {
       const doc = await loadPdfDoc();
-      const page = await doc.getPage(1);
-      const previewContainerWidth = Math.max(300, previewCanvas.parentElement.clientWidth - 18);
-      const initialViewport = page.getViewport({ scale: 1 });
-      const scale = clamp(previewContainerWidth / Math.max(1, initialViewport.width), 0.5, 2.4);
-      const viewport = page.getViewport({ scale });
-
-      previewCanvas.width = Math.floor(viewport.width);
-      previewCanvas.height = Math.floor(viewport.height);
-      const ctx = previewCanvas.getContext("2d", { alpha: false });
-      await page.render({ canvasContext: ctx, viewport }).promise;
+      const url = assignPreviewUrlFromFile(state.file);
+      previewImage.classList.add("hidden");
+      previewPdf.classList.remove("hidden");
+      previewPdf.src = `${url}#view=FitH`;
       previewNote.textContent = `PDF • الصفحة 1 من ${doc.numPages}`;
     }
 
@@ -1010,17 +1219,10 @@
 
     async function renderImagePreview() {
       const image = await loadImageElement(state.file);
-      const maxWidth = Math.max(300, previewCanvas.parentElement.clientWidth - 18);
-      const maxHeight = Math.max(260, Math.round(window.innerHeight * 0.56));
-      const scale = Math.min(maxWidth / image.width, maxHeight / image.height, 1);
-      const width = Math.max(1, Math.floor(image.width * scale));
-      const height = Math.max(1, Math.floor(image.height * scale));
-
-      previewCanvas.width = width;
-      previewCanvas.height = height;
-      const ctx = previewCanvas.getContext("2d", { alpha: false });
-      ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(image, 0, 0, width, height);
+      const url = assignPreviewUrlFromFile(state.file);
+      previewPdf.classList.add("hidden");
+      previewImage.classList.remove("hidden");
+      previewImage.src = url;
       previewNote.textContent = `Image • ${image.width} x ${image.height}`;
     }
 
@@ -1111,11 +1313,26 @@
     }
 
     function isPointIdToken(token) {
-      const value = String(token || "").trim();
+      const value = normalizeText(token);
       if (!value) return false;
       if (value.length > 24) return false;
-      if (!/[a-zA-Z0-9]/.test(value)) return false;
-      if (/^-?\d+\.\d+$/.test(value)) return false;
+      if (!/[A-Za-z0-9٠-٩\u0600-\u06FF]/.test(value)) return false;
+      if (/^-?[\d٠-٩]+(?:[.,،][\d٠-٩]+)$/.test(value)) return false;
+      return true;
+    }
+
+    function isLikelyPointNameToken(token) {
+      const value = normalizeText(token);
+      if (!isPointIdToken(value)) return false;
+
+      const numeric = parseNumeric(value);
+      if (numeric === null) return true;
+
+      // Accept numeric point ids up to 5 integer digits; reject coordinate-like values.
+      const numericString = extractNumericString(value);
+      if (!numericString || numericString.includes(".")) return false;
+      if (integerDigitLength(value) >= EASTING_INTEGER_DIGITS) return false;
+      if (Math.abs(numeric) >= 100000) return false;
       return true;
     }
 
@@ -1134,58 +1351,107 @@
     function inferNameFromLine(line) {
       const token = normalizeText(line)
         .split(/\s+/)
-        .find((part) => isPointIdToken(part) && /[a-zA-Z]/.test(part));
+        .find((part) => isLikelyPointNameToken(part));
       return token || "";
     }
 
-    function extractProjectedRowsFromLine(line) {
+    function extractProjectedRowsFromLine(line, forcedOrder = PROJECTED_ORDER_AUTO) {
       const normalized = normalizeText(line);
       const tokens = normalized.split(/\s+/).filter(Boolean);
       const rows = [];
+      const seenPairs = new Set();
+      let projectedCandidateCount = 0;
+      let projectedAmbiguousCount = 0;
+      let projectedUnresolvedCount = 0;
+      let projectedOrderVotesNE = 0;
+      let projectedOrderVotesEN = 0;
 
-      for (let i = 0; i <= tokens.length - 3; i += 1) {
-        const nameToken = tokens[i];
-        const northingToken = tokens[i + 1];
-        const eastingToken = tokens[i + 2];
-        const northing = parseNumeric(northingToken);
-        const easting = parseNumeric(eastingToken);
+      for (let i = 0; i <= tokens.length - 2; i += 1) {
+        const firstToken = tokens[i];
+        const secondToken = tokens[i + 1];
+        if (!isLikelyProjectedPairAnyOrder(firstToken, secondToken)) continue;
+        projectedCandidateCount += 1;
 
-        if (!isPointIdToken(nameToken) || !looksLikeProjected(northing) || !looksLikeProjected(easting)) {
+        const pair = resolveProjectedPair(firstToken, secondToken, forcedOrder);
+        if (!pair.valid) continue;
+        if (pair.suggestedOrder === PROJECTED_ORDER_NE) projectedOrderVotesNE += 1;
+        if (pair.suggestedOrder === PROJECTED_ORDER_EN) projectedOrderVotesEN += 1;
+        if (pair.unresolved) {
+          projectedUnresolvedCount += 1;
           continue;
         }
+        if (pair.ambiguous) projectedAmbiguousCount += 1;
 
+        let nameToken = "";
         let elevation = "";
         let code = "";
-        let advance = 3;
+        let advance = 2;
 
-        const zToken = tokens[i + 3];
+        const prevToken = tokens[i - 1];
+        if (isLikelyPointNameToken(prevToken)) {
+          nameToken = prevToken;
+        }
+
+        const nextToken = tokens[i + 2];
+        if (!nameToken && nextToken && isLikelyPointNameToken(nextToken)) {
+          const nextNumeric = parseNumeric(nextToken);
+          const numericIdAfterCoords =
+            Number.isFinite(nextNumeric) &&
+            Math.abs(nextNumeric) > 10000 &&
+            integerDigitLength(nextToken) < EASTING_INTEGER_DIGITS;
+          const textualIdAfterCoords = nextNumeric === null;
+          if (textualIdAfterCoords || numericIdAfterCoords) {
+            nameToken = nextToken;
+            advance = 3;
+          }
+        }
+
+        const zToken = tokens[i + advance];
         const zValue = parseNumeric(zToken);
         if (looksLikeElevation(zValue)) {
-          elevation = normalizeNumberString(zToken);
+          elevation = extractNumericString(zToken);
           advance += 1;
         }
 
         const codeToken = tokens[i + advance];
-        const nextN = parseNumeric(tokens[i + advance + 1]);
-        const nextE = parseNumeric(tokens[i + advance + 2]);
-        const startsNextPoint = isPointIdToken(codeToken) && looksLikeProjected(nextN) && looksLikeProjected(nextE);
-        if (codeToken && !startsNextPoint && !isNumericToken(codeToken) && codeToken.length <= 24) {
+        const startsNextPair = isLikelyProjectedPairAnyOrder(tokens[i + advance], tokens[i + advance + 1]);
+        if (codeToken && !startsNextPair && !isNumericToken(codeToken) && codeToken.length <= 24) {
           code = codeToken;
           advance += 1;
         }
 
+        const northing = pair.northing;
+        const easting = pair.easting;
+        if (!northing || !easting) continue;
+
+        const autoName = inferNameFromLine(normalized) || `P${rows.length + 1}`;
+        const name = normalizeText(nameToken) || autoName;
+
+        const signature = `${northing}|${easting}|${elevation}|${code}`.toLowerCase();
+        if (seenPairs.has(signature)) continue;
+        seenPairs.add(signature);
+
         rows.push({
-          name: nameToken,
-          northing: normalizeNumberString(northingToken),
-          easting: normalizeNumberString(eastingToken),
+          name,
+          northing,
+          easting,
           elevation,
           code,
           kind: "PROJECTED",
         });
-        i += advance - 1;
+        i += Math.max(1, advance - 1);
       }
 
-      return rows;
+      return {
+        rows,
+        stats: {
+          projectedCandidateCount,
+          projectedAmbiguousCount,
+          projectedUnresolvedCount,
+          projectedOrderVotesNE,
+          projectedOrderVotesEN,
+        },
+      };
     }
 
     function pushLatLonRow(rows, latRaw, lonRaw, fallbackName, rawLine) {
@@ -1240,10 +1506,21 @@
       return rows;
     }
 
-    function parseLineEntriesToRows(entries, mode) {
+    function parseLineEntriesToRows(entries, mode, options = {}) {
       const rows = [];
       const signatures = new Set();
       let fallbackCounter = 1;
+      const forcedProjectedOrder = normalizeProjectedOrderChoice(
+        options.projectedOrder ?? PROJECTED_ORDER_AUTO,
+      );
+      const stats = {
+        forcedProjectedOrder,
+        projectedCandidateCount: 0,
+        projectedAmbiguousCount: 0,
+        projectedUnresolvedCount: 0,
+        projectedOrderVotesNE: 0,
+        projectedOrderVotesEN: 0,
+      };
 
       entries.forEach((entry) => {
         const line = normalizeText(entry?.text);
@@ -1251,7 +1528,13 @@
 
         const lineRows = [];
         if (mode !== "latlon") {
-          lineRows.push(...extractProjectedRowsFromLine(line));
+          const projected = extractProjectedRowsFromLine(line, forcedProjectedOrder);
+          lineRows.push(...projected.rows);
+          stats.projectedCandidateCount += projected.stats.projectedCandidateCount;
+          stats.projectedAmbiguousCount += projected.stats.projectedAmbiguousCount;
+          stats.projectedUnresolvedCount += projected.stats.projectedUnresolvedCount;
+          stats.projectedOrderVotesNE += projected.stats.projectedOrderVotesNE;
+          stats.projectedOrderVotesEN += projected.stats.projectedOrderVotesEN;
         }
         if (mode !== "projected") {
           lineRows.push(...extractLatLonRowsFromLine(line));
@@ -1278,7 +1561,7 @@
         });
       });
 
-      return rows;
+      return { rows, stats };
     }
 
     function calculateConfidence(rows, lines) {
@@ -1291,7 +1574,7 @@
 
     function renderRows(rows) {
       if (!rows.length) {
-        rowsBody.innerHTML = '<tr class="empty-row"><td colspan="8">لم يتم العثور على إحداثيات صالحة في الملف.</td></tr>';
+        rowsBody.innerHTML = '<tr class="empty-row"><td colspan="9">لم يتم العثور على إحداثيات صالحة في الملف.</td></tr>';
         return;
       }
 
@@ -1306,6 +1589,7 @@
             <td>${escapeHtml(row.code || "-")}</td>
             <td>${escapeHtml(String(row.page))}</td>
             <td>${escapeHtml(row.source)}</td>
+            <td><button class="row-del-btn" type="button" data-row-id="${row.id}" aria-label="حذف السطر">حذف</button></td>
           </tr>
         `)
         .join("");
@@ -1344,14 +1628,36 @@
       state.rows = [];
       state.pagesScanned = 0;
       state.ocrUsed = false;
+      window.AtlasCoordinatesExport?.updateButtonState?.();
 
       resultCard.classList.add("hidden");
       setResultBadge("بانتظار الفحص", "neutral");
       resultMessage.textContent = "بعد تشغيل الفحص ستظهر النتيجة هنا.";
       updateMetrics({ lines: 0, rows: 0, pages: 0, confidence: 0 });
-      rowsBody.innerHTML = '<tr class="empty-row"><td colspan="8">لا توجد نتائج بعد.</td></tr>';
+      rowsBody.innerHTML = '<tr class="empty-row"><td colspan="9">لا توجد نتائج بعد.</td></tr>';
       renderRawText([]);
       resultActions.classList.add("hidden");
+    }
+
+    function removeRowById(rowId) {
+      const before = state.rows.length;
+      state.rows = state.rows.filter((row) => row.id !== rowId);
+      if (state.rows.length === before) return;
+      window.AtlasCoordinatesExport?.updateButtonState?.();
+
+      const confidence = calculateConfidence(state.rows, state.lines);
+      updateMetrics({
+        lines: state.lines.length,
+        rows: state.rows.length,
+        pages: state.pagesScanned,
+        confidence,
+      });
+
+      renderRows(state.rows);
+      if (!state.rows.length) {
+        resultActions.classList.add("hidden");
+        setHint("تم حذف كل السطور من الجدول.", "neutral", false);
+      }
     }
 
     async function handleSelectedFile(file) {
@@ -1365,6 +1671,7 @@
 
       setBusy(true);
       clearResults();
+      clearPreviewMedia();
       setHint("جاري تجهيز الملف...", "neutral", true);
 
       try {
@@ -1396,6 +1703,7 @@
         state.fileBuffer = null;
         state.fileKind = null;
         state.pdfDoc = null;
+        clearPreviewMedia();
         fileMeta.classList.add("hidden");
         previewCard.classList.add("hidden");
       } finally {
@@ -1409,6 +1717,7 @@
       state.fileKind = null;
       state.pdfDoc = null;
       fileInput.value = "";
+      clearPreviewMedia();
       fileMeta.classList.add("hidden");
       previewCard.classList.add("hidden");
       clearResults();
@@ -1440,7 +1749,32 @@
         state.lines = extraction.entries;
         state.pagesScanned = extraction.pagesScanned;
         state.ocrUsed = extraction.usedOcr;
-        state.rows = parseLineEntriesToRows(extraction.entries, mode);
+
+        const initialOrder = normalizeProjectedOrderChoice(state.projectedOrderPreference);
+        let parsed = parseLineEntriesToRows(extraction.entries, mode, {
+          projectedOrder: initialOrder,
+        });
+
+        const shouldAskOrder =
+          shouldPromptForProjectedOrder(parsed.stats, mode) &&
+          (initialOrder === PROJECTED_ORDER_AUTO || parsed.rows.length === 0);
+
+        if (shouldAskOrder) {
+          const defaultOrder =
+            parsed.stats.projectedOrderVotesEN > parsed.stats.projectedOrderVotesNE
+              ? PROJECTED_ORDER_EN
+              : PROJECTED_ORDER_NE;
+          const selectedOrder = promptProjectedOrder(defaultOrder);
+          if (selectedOrder) {
+            state.projectedOrderPreference = selectedOrder;
+            parsed = parseLineEntriesToRows(extraction.entries, mode, {
+              projectedOrder: selectedOrder,
+            });
+          }
+        }
+
+        state.rows = parsed.rows;
+        window.AtlasCoordinatesExport?.updateButtonState?.();
 
         const confidence = calculateConfidence(state.rows, state.lines);
         updateMetrics({
@@ -1454,18 +1788,33 @@
         renderRawText(state.lines);
 
         if (state.rows.length > 0) {
-          setResultBadge("تم اكتشاف إحداثيات", "success");
+          setResultBadge("تم العثور على الإحداثيات", "success");
+          const orderNote =
+            mode !== "latlon" &&
+            parsed.stats.projectedCandidateCount > 0 &&
+            (
+              parsed.stats.forcedProjectedOrder === PROJECTED_ORDER_NE ||
+              parsed.stats.forcedProjectedOrder === PROJECTED_ORDER_EN
+            )
+              ? ` تم اعتماد ترتيب ${projectedOrderLabel(parsed.stats.forcedProjectedOrder)}.`
+              : "";
           resultMessage.textContent = state.ocrUsed
-            ? "تم العثور على إحداثيات. تم استخدام OCR في بعض الأجزاء لتحسين النتيجة."
-            : "تم العثور على إحداثيات من النص المباشر داخل الملف.";
-          setHint(`اكتمل الفحص: تم استخراج ${state.rows.length} سطر إحداثيات.`, "success", false);
+            ? "تم استخراج الإحداثيات بنجاح. تم استخدام OCR مع النص لزيادة دقة الاستخراج."
+            : "تم استخراج الإحداثيات من الملف بنجاح.";
+          resultMessage.textContent += orderNote;
+          setHint(`نتيجة الفحص: تم استخراج ${state.rows.length} نقطة إحداثية.`, "success", false);
           resultActions.classList.remove("hidden");
         } else {
-          setResultBadge("لا توجد إحداثيات واضحة", "warn");
+          setResultBadge("لم يتم العثور على نتائج", "warn");
+          const orderHelp =
+            mode !== "latlon" && parsed.stats.projectedCandidateCount > 0
+              ? " راجع ترتيب الإحداثيات (N,E أو E,N) ثم أعد الفحص."
+              : "";
           resultMessage.textContent = withOcr
-            ? "لم أتمكن من استخراج صفوف إحداثيات صالحة. جرّب ملفًا أوضح أو نطاق صفحات أقل."
-            : "لم يتم العثور على إحداثيات. فعّل OCR ثم أعد المحاولة.";
-          setHint("اكتمل الفحص ولكن بدون إحداثيات قابلة للاستخراج.", "error", false);
+            ? "اكتمل الفحص ولكن بدون إحداثيات قابلة للاستخراج. جرّب ملفًا أوضح أو صورة أدق."
+            : "لم يتم العثور على إحداثيات في التحليل الحالي. جرّب تفعيل OCR ثم أعد الفحص.";
+          resultMessage.textContent += orderHelp;
+          setHint("انتهى الفحص بدون نتائج إحداثيات قابلة للاستخراج.", "error", false);
           resultActions.classList.add("hidden");
         }
       } catch (error) {
@@ -1483,8 +1832,7 @@
     }
 
     function buildCsv(rows) {
-      const header = ["point", "northing_or_lat", "easting_or_lon", "elevation", "code", "page", "source"];
-      const lines = [header.join(",")];
+      const lines = [];
       rows.forEach((row) => {
         const cells = [
           row.name ?? "",
@@ -1500,6 +1848,33 @@
       return lines.join("\n");
     }
 
+    function sanitizeExportBaseName(baseName, fallback = "extracted-coordinates") {
+      const cleaned = String(baseName || "")
+        .replace(/[<>:"/\\|?*\u0000-\u001F]/g, " ")
+        .replace(/\s+/g, " ")
+        .replace(/[. ]+$/g, "")
+        .trim();
+      return cleaned || fallback;
+    }
+
+    function deriveSuggestedFileBaseName(fileName, fallback = "extracted-coordinates") {
+      const rawName = String(fileName || "").split(/[\\/]/).pop() || "";
+      const withoutExt = rawName.replace(/\.[^.]+$/, "");
+      return sanitizeExportBaseName(withoutExt, fallback);
+    }
+
+    function promptExportFileName(extension, suggestedBaseName) {
+      const safeExt = String(extension || "").replace(/^\./, "").toLowerCase();
+      const safeBase = sanitizeExportBaseName(suggestedBaseName, "extracted-coordinates");
+      const answer = window.prompt(`اكتب اسم الملف للتصدير (${safeExt.toUpperCase()})`, safeBase);
+      if (answer === null) return null;
+      const typedBase = sanitizeExportBaseName(answer, safeBase);
+      if (typedBase.toLowerCase().endsWith(`.${safeExt}`)) {
+        return typedBase;
+      }
+      return `${typedBase}.${safeExt}`;
+    }
+
     function downloadText(text, fileName, mimeType) {
       const blob = new Blob([text], { type: mimeType });
       const url = URL.createObjectURL(blob);
@@ -1510,6 +1885,25 @@
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
+    }
+
+    function openCoordinatesExportForm() {
+      if (!window.AtlasCoordinatesExport) {
+        alert("تعذر فتح فورم التصدير الآن.");
+        return;
+      }
+
+      const suggested = window.AtlasCoordinatesExport.deriveSuggestedFileBaseName(
+        state.file?.name,
+        "extracted-coordinates",
+      );
+
+      window.AtlasCoordinatesExport.open(state.rows, {
+        sourceTitle: "فحص المخطط",
+        sourcePage: "coordinates-proposal",
+        sourceCrs: "DLTM",
+        suggestedBaseName: suggested,
+      });
     }
 
     async function copyJsonRows() {
@@ -1562,7 +1956,7 @@
 
       exportCsvBtn.addEventListener("click", () => {
         if (!state.rows.length) return;
-        downloadText(buildCsv(state.rows), "extracted-coordinates.csv", "text/csv;charset=utf-8");
+        openCoordinatesExportForm();
       });
 
       copyJsonBtn.addEventListener("click", async () => {
@@ -1574,18 +1968,42 @@
           setHint("تعذر النسخ للحافظة.", "error", false);
         }
       });
+
+      rowsBody.addEventListener("click", (event) => {
+        const button = event.target.closest(".row-del-btn");
+        if (!button) return;
+        removeRowById(Number(button.dataset.rowId));
+      });
     }
 
     async function initializePage() {
       if (window.AtlasAuth) {
         await window.AtlasAuth.initialize();
-        const allowed = await window.AtlasAuth.requirePageAccess("pages.coordinates-extractor");
+        const allowed = await window.AtlasAuth.requirePageAccess("pages.coordinates-proposal");
         if (!allowed) return false;
         window.AtlasAuth.decorateShell();
         window.AtlasAuth.applyPagePermissions();
       }
       bindDragAndDrop();
       bindEvents();
+      if (window.AtlasCoordinatesExport?.registerProvider) {
+        window.AtlasCoordinatesExport.registerProvider(
+          () => ({
+            rows: state.rows,
+            meta: {
+              sourceTitle: "فحص المخطط",
+              sourcePage: "coordinates-proposal",
+              sourceCrs: "DLTM",
+              suggestedBaseName: window.AtlasCoordinatesExport.deriveSuggestedFileBaseName(
+                state.file?.name,
+                "extracted-coordinates",
+              ),
+            },
+          }),
+          { id: "coordinates-proposal" },
+        );
+      }
+      window.AtlasCoordinatesExport?.updateButtonState?.();
       setHint("اختر ملفًا لبدء الفحص.", "neutral", false);
       return true;
     }
@@ -1595,6 +2013,7 @@
     });
 
     window.addEventListener("beforeunload", async () => {
+      clearPreviewMedia();
       if (state.ocrWorker && typeof state.ocrWorker.terminate === "function") {
         try {
           await state.ocrWorker.terminate();
@@ -1606,3 +2025,6 @@
   </script>
 </body>
 </html>
+
+
+

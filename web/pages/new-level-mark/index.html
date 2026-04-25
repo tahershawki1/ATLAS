@@ -12,6 +12,7 @@
     <!-- Load library locally for offline support -->
     <script src="../../LIP/html2pdf.bundle.min.js"></script>
     <script src="../../shared/auth.js"></script>
+    <script src="../../shared/coordinates-export.js"></script>
     <style>
         .custom-page {
             min-height: 100vh;
@@ -1199,6 +1200,15 @@
         const askConfirm = (message) =>
             window.AtlasDialog ? window.AtlasDialog.confirm(message) : window.confirm(message);
 
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
         function getSiteReferenceLevelsMap() {
             try {
                 const raw = localStorage.getItem(SITE_REFERENCE_LEVELS_KEY);
@@ -1472,7 +1482,7 @@
 
             if (file) {
                 card.classList.add('has-image');
-                icon.innerHTML = 'âœ…';
+                icon.textContent = 'OK';
                 text.textContent = "تم التقاط صورة العلام بنجاح";
                 hint.textContent = "اضغط للتغيير";
                 
@@ -1513,12 +1523,12 @@
                 points[editingIndex] = {
                     name,
                     rl,
-                    image: hasNewImage ? 'ðŸ“·' : oldImage
+                    image: hasNewImage ? 'photo' : oldImage
                 };
                 showToast('✅ تم تعديل النقطة بنجاح');
             } else {
                 // Add mode
-                points.push({ name, rl, image: hasNewImage ? 'ðŸ“·' : 'â€”' });
+                points.push({ name, rl, image: hasNewImage ? 'photo' : '-' });
                 showToast('✅ تمت إضافة النقطة');
             }
 
@@ -1537,11 +1547,12 @@
 
             tbody.innerHTML = '';
             points.forEach((p, index) => {
+                const rlValue = Number.parseFloat(p.rl);
                 const row = `
                     <tr>
-                        <td>${p.name}</td>
-                        <td>${parseFloat(p.rl).toFixed(3)}</td>
-                        <td>${p.image}</td>
+                        <td>${escapeHtml(p.name)}</td>
+                        <td>${Number.isFinite(rlValue) ? rlValue.toFixed(3) : ""}</td>
+                        <td>${escapeHtml(p.image)}</td>
                         <td style="white-space:nowrap">
                             <button onclick="editPoint(${index})" style="background:none; border:none; color:var(--primary); cursor:pointer; font-size:1rem;" title="تعديل">✏️</button>
                             <button onclick="deletePoint(${index})" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:1rem;" title="حذف">🗑️</button>
@@ -1827,7 +1838,9 @@
             const pList = document.getElementById('rep_points_list');
             pList.innerHTML = '';
             points.forEach(p => {
-                pList.innerHTML += `<tr><td>${p.name}</td><td style="direction:ltr">${parseFloat(p.rl).toFixed(3)}</td><td>${p.image !== 'لا توجد صورة' ? '📷' : '-'}</td></tr>`;
+                const rlValue = Number.parseFloat(p.rl);
+                const hasImage = p.image && p.image !== '-' && p.image !== 'لا توجد صورة';
+                pList.innerHTML += `<tr><td>${escapeHtml(p.name)}</td><td style="direction:ltr">${Number.isFinite(rlValue) ? rlValue.toFixed(3) : ""}</td><td>${hasImage ? 'photo' : '-'}</td></tr>`;
             });
 
             // 2. Step 2 Calculations
@@ -2024,4 +2037,6 @@
     </script>
 </body>
 </html>
+
+
 

@@ -5,7 +5,15 @@ export async function onRequestPost(context) {
   const username = String(body?.username ?? "").trim().toLowerCase();
   const password = String(body?.password ?? "");
 
-  const users = await ensureUsers(context.env);
+  let users = [];
+  try {
+    users = await ensureUsers(context.env);
+  } catch (error) {
+    return json(
+      { error: error?.message || "Atlas setup is incomplete" },
+      { status: 503 },
+    );
+  }
   const passwordHash = await sha256(password);
   const user = users.find(
     (entry) => String(entry.username ?? "").trim().toLowerCase() === username && entry.password_hash === passwordHash,

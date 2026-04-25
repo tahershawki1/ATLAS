@@ -88,6 +88,12 @@
     const deletedCompanies = new Set(custom.filter((entry) => entry?.is_deleted).map((entry) => String(entry.id)));
     const merged = clone(base).filter((company) => !deletedCompanies.has(String(company.id)));
 
+    const plotMergeKey = (plot, source, index) => {
+      const id = norm(plot?.id);
+      const reportKey = norm(plot?.source_report_id) || norm(plot?.report_number_in_month) || norm(plot?.survey_date) || `${source}-${index}`;
+      return id ? `${id}::${reportKey}` : "";
+    };
+
     custom.forEach((customCompany) => {
       if (customCompany?.is_deleted) return;
 
@@ -96,7 +102,10 @@
         merged.find((company) => norm(company.name).toLowerCase() === norm(customCompany.name).toLowerCase());
 
       const deletedPlots = new Set((customCompany.deleted_plots || []).map((plotId) => String(plotId)));
-      const customPlots = (customCompany.plots || []).filter((plot) => !deletedPlots.has(String(plot.id)));
+      const customPlots = (customCompany.plots || []).filter((plot, index) => {
+        const key = plotMergeKey(plot, "custom", index);
+        return !deletedPlots.has(String(plot.id)) && !deletedPlots.has(key);
+      });
 
       if (!target) {
         merged.push({
@@ -111,8 +120,18 @@
 
       target.name = customCompany.name || target.name;
       const basePlots = (target.plots || []).filter((plot) => !deletedPlots.has(String(plot.id)));
-      const byId = new Map(basePlots.map((plot) => [String(plot.id), { ...plot, _source: plot._source || "base" }]));
-      customPlots.forEach((plot) => byId.set(String(plot.id), { ...plot, _source: "custom" }));
+      const byId = new Map(
+        basePlots.map((plot, index) => [
+          plotMergeKey(plot, "base", index),
+          { ...plot, _source: plot._source || "base" },
+        ]),
+      );
+      customPlots.forEach((plot, index) => byId.set(plotMergeKey(plot, "custom", index), { ...plot, _source: "custom" }));
+      deletedPlots.forEach((id) => {
+        Array.from(byId.keys()).forEach((key) => {
+          if (key === id || key.startsWith(`${id}::`)) byId.delete(key);
+        });
+      });
       target.plots = Array.from(byId.values());
     });
 
@@ -128,10 +147,23 @@
     return state.companies.find((company) => String(company.id) === String(companyId));
   }
 
+  function plotSelectionKey(plot, index = 0) {
+    const id = norm(plot?.id);
+    const reportKey = norm(plot?.source_report_id) || norm(plot?.report_number_in_month) || norm(plot?.survey_date) || `row-${index}`;
+    return id ? `${id}::${reportKey}` : "";
+  }
+
+  function plotDisplayLabel(plot) {
+    const suffix = [norm(plot?.source_report_id) && `#${norm(plot.source_report_id)}`, norm(plot?.survey_date)].filter(Boolean).join(" - ");
+    return suffix ? `${plot.id} (${suffix})` : String(plot?.id || "");
+  }
+
   function getSelectedPlot() {
     const company = getCompany(state.selectedCompanyId);
     if (!company) return null;
-    return (company.plots || []).find((plot) => String(plot.id) === String(state.selectedPlotId)) || null;
+    return (company.plots || []).find((plot, index) => plotSelectionKey(plot, index) === String(state.selectedPlotId))
+      || (company.plots || []).find((plot) => String(plot.id) === String(state.selectedPlotId))
+      || null;
   }
 
   function countStats(uploadedPagesCount = null) {
@@ -264,7 +296,9 @@
   function renderSiteDetail() {
     const company = getCompany(state.selectedCompanyId);
     const areaPlots = company
-      ? (company.plots || []).filter((entry) => !state.selectedArea || norm(entry.area) === state.selectedArea)
+      ? (company.plots || [])
+          .map((entry, index) => ({ entry, index }))
+          .filter(({ entry }) => !state.selectedArea || norm(entry.area) === state.selectedArea)
       : [];
     const plot = getSelectedPlot();
 
@@ -279,8 +313,8 @@
         <div style="margin-bottom:10px;">
           <div class="inline-head"><strong>مواقع المنطقة</strong><span>${areaPlots.length} موقع</span></div>
           <div class="inline-files">
-            ${areaPlots.map((entry) => `
-              <button class="mini-btn" type="button" data-action="select-plot" data-plot="${esc(entry.id)}">${esc(entry.id)}</button>
+            ${areaPlots.map(({ entry, index }) => `
+              <button class="mini-btn" type="button" data-action="select-plot" data-plot="${esc(plotSelectionKey(entry, index))}">${esc(plotDisplayLabel(entry))}</button>
             `).join("")}
           </div>
         </div>
@@ -625,7 +659,7 @@
       custom.deleted_plots = (custom.deleted_plots || []).filter((plotId) => String(plotId) !== String(payload.id));
       state.selectedCompanyId = String(company.id);
       state.selectedArea = payload.area;
-      state.selectedPlotId = payload.id;
+      state.selectedPlotId = plotSelectionKey(payload, custom.plots.findIndex((entry) => entry === payload));
       await persistSites("تم حفظ الموقع");
     } catch (error) {
       setStatus(error.message || "تعذر حفظ الموقع");
@@ -641,8 +675,9 @@
     }
     if (!(await confirmMessage(`حذف الموقع ${plot.id}؟`))) return;
     const custom = upsertCustomCompany(company.id, company.name);
-    custom.plots = (custom.plots || []).filter((entry) => String(entry.id) !== String(plot.id));
-    if (!custom.deleted_plots.includes(String(plot.id))) custom.deleted_plots.push(String(plot.id));
+    const selectedKey = String(state.selectedPlotId);
+    custom.plots = (custom.plots || []).filter((entry, index) => plotSelectionKey(entry, index) !== selectedKey);
+    if (!custom.deleted_plots.includes(selectedKey)) custom.deleted_plots.push(selectedKey);
     state.selectedPlotId = "";
     await persistSites("تم حذف الموقع");
     resetSiteForm();
@@ -749,7 +784,18 @@
   function getPermissionsPreset(preset, isAdmin) {
     if (isAdmin || preset === "admin") return ["*"];
     if (preset === "field") {
-      return ["pages.new-level-mark", "pages.level-budget", "pages.coordinates-extractor"];
+      return [
+        "pages.new",
+        "pages.check",
+        "pages.survey",
+        "pages.point-staking",
+        "pages.new-level-mark",
+        "pages.level-budget",
+        "pages.coordinates-extractor",
+        "pages.coordinates-proposal",
+        "pages.coordinates-export",
+        "sites.write",
+      ];
     }
     return [];
   }

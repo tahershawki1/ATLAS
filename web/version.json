@@ -1,10 +1,13 @@
 {
-  "web_version": "2.0.0",
+  "web_version": "2.0.1",
   "mobile_version": "2.0.0",
-  "build_number": 5,
+  "build_number": 6,
   "apk_url": "https://atlas-e73.pages.dev/downloads/atlas_app_final.apk",
-  "last_updated": "2026-04-21",
+  "last_updated": "2026-04-24",
   "changelog": [
+    "تحسين الأمان والصلاحيات والمزامنة",
+    "إصلاح اختيار المواقع المكررة",
+    "إضافة فحوصات تلقائية للملفات والروابط",
     "تحديث تقرير الجيت لفل",
     "تصدير التقرير بخيارات PDF و Word",
     "إصلاحات في التنسيق والمظهر للتقرير",

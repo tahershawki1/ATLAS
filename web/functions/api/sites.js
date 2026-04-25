@@ -9,7 +9,7 @@ export async function onRequestGet(context) {
 }
 
 export async function onRequestPut(context) {
-  const auth = await requireUser(context, "admin.panel");
+  const auth = await requireUser(context, "sites.write");
   if (auth.error) return auth.error;
 
   const payload = await context.request.json();

@@ -1,0 +1,10 @@
+{
+  "name": "atlas-site",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "check": "npm run check:js && npm run check:links",
+    "check:js": "node tools/check-js.js",
+    "check:links": "node tools/check-links.js"
+  }
+}

@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="../../shared/mobile-fix.css">
     <link rel="stylesheet" href="../../LIP/vendor/leaflet/leaflet.css">
     <script src="../../shared/auth.js"></script>
+    <script src="../../shared/coordinates-export.js"></script>
         <style>
         body.page-scroll-enabled .custom-page {
             min-height: 100vh;
@@ -1443,7 +1444,7 @@
                     <div class="step-actions">
                         <button id="backToViewerBtn" class="step-btn secondary" type="button">العودة للماب</button>
                         <button id="showOnMapBtn" class="step-btn primary" type="button">عرض الإحداثيات على الماب</button>
-                        <button id="exportBtn" class="step-btn primary" type="button">تصدير</button>
+                        <button id="exportBtn" class="step-btn primary" type="button">تصدير الإحداثيات</button>
                     </div>
                 </section>
 
@@ -1560,6 +1561,7 @@
     let pointsSatelliteLayer = null;
     let isSatelliteMode = false;
     let activeStep = 'upload';
+    let exportSuggestedBaseName = 'extracted-coordinates';
     const PDF_JS_MODULE_PATH = '../../LIP/vendor/pdfjs/pdf.min.mjs';
     const PDF_JS_WORKER_PATH = '../../LIP/vendor/pdfjs/pdf.worker.min.mjs';
     const TESSERACT_MODULE_PATH = '../../LIP/vendor/tesseract/tesseract.esm.min.js';
@@ -1591,6 +1593,34 @@
             proj4: '+proj=utm +zone=39 +datum=WGS84 +units=m +no_defs +type=crs'
         }
     };
+
+    function openCoordinatesExportForm() {
+        if (!window.AtlasCoordinatesExport) {
+            alert('تعذر فتح فورم التصدير الآن.');
+            return;
+        }
+        window.AtlasCoordinatesExport.open(extractedRows, {
+            sourceTitle: 'استخراج الإحداثيات من PDF',
+            sourcePage: 'coordinates-extractor',
+            sourceCrs: sourceCrsSelect?.value || 'DLTM',
+            suggestedBaseName: exportSuggestedBaseName
+        });
+    }
+
+    if (window.AtlasCoordinatesExport?.registerProvider) {
+        window.AtlasCoordinatesExport.registerProvider(
+            () => ({
+                rows: extractedRows,
+                meta: {
+                    sourceTitle: 'استخراج الإحداثيات من PDF',
+                    sourcePage: 'coordinates-extractor',
+                    sourceCrs: sourceCrsSelect?.value || 'DLTM',
+                    suggestedBaseName: exportSuggestedBaseName
+                }
+            }),
+            { id: 'coordinates-extractor' }
+        );
+    }
 
     const STEP_DETAILS = {
         upload: {
@@ -1688,6 +1718,7 @@
         resultsShell.classList.toggle('hidden', extractedRows.length === 0);
         exportBtn.disabled = extractedRows.length === 0;
         showOnMapBtn.disabled = extractedRows.length === 0;
+        window.AtlasCoordinatesExport?.updateButtonState?.();
     }
 
     function getDefaultZoomPercent() {
@@ -2003,6 +2034,33 @@
         URL.revokeObjectURL(url);
     }
 
+    function sanitizeExportBaseName(baseName, fallback = 'extracted-coordinates') {
+        const cleaned = String(baseName || '')
+            .replace(/[<>:"/\\|?*\u0000-\u001F]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .replace(/[. ]+$/g, '')
+            .trim();
+        return cleaned || fallback;
+    }
+
+    function deriveSuggestedFileBaseName(fileName, fallback = 'extracted-coordinates') {
+        const rawName = String(fileName || '').split(/[\\/]/).pop() || '';
+        const withoutExt = rawName.replace(/\.[^.]+$/, '');
+        return sanitizeExportBaseName(withoutExt, fallback);
+    }
+
+    function promptExportFileName(extension, suggestedBaseName) {
+        const safeExt = String(extension || '').replace(/^\./, '').toLowerCase();
+        const safeBase = sanitizeExportBaseName(suggestedBaseName, 'extracted-coordinates');
+        const answer = window.prompt(`اكتب اسم الملف للتصدير (${safeExt.toUpperCase()})`, safeBase);
+        if (answer === null) return null;
+        const typedBase = sanitizeExportBaseName(answer, safeBase);
+        if (typedBase.toLowerCase().endsWith(`.${safeExt}`)) {
+            return typedBase;
+        }
+        return `${typedBase}.${safeExt}`;
+    }
+
     function escapeCsvCell(value) {
         const text = String(value ?? '');
         if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
@@ -2051,6 +2109,58 @@
     function parseNumeric(value) {
         const num = Number(normalizeNumberString(value));
         return Number.isFinite(num) ? num : null;
+    }
+
+    const NORTHING_INTEGER_DIGITS = 7;
+    const EASTING_INTEGER_DIGITS = 6;
+
+    function integerDigitLength(value) {
+        const normalized = normalizeNumberString(value).replace(/^[-+]/, '');
+        const integerPart = normalized.split('.')[0] || '';
+        return integerPart.replace(/[^\d]/g, '').length;
+    }
+
+    function hasExpectedCoordinateDigits(northingValue, eastingValue) {
+        return (
+            integerDigitLength(northingValue) === NORTHING_INTEGER_DIGITS &&
+            integerDigitLength(eastingValue) === EASTING_INTEGER_DIGITS
+        );
+    }
+
+    function coordinatePairScore(northingValue, eastingValue) {
+        const northingNum = parseNumeric(northingValue);
+        const eastingNum = parseNumeric(eastingValue);
+        if (!looksLikeCoord(northingNum) || !looksLikeCoord(eastingNum)) return Number.NEGATIVE_INFINITY;
+
+        const northingDigits = integerDigitLength(northingValue);
+        const eastingDigits = integerDigitLength(eastingValue);
+        let score = 0;
+
+        if (northingDigits === NORTHING_INTEGER_DIGITS) score += 16;
+        else if (northingDigits >= NORTHING_INTEGER_DIGITS) score += 7;
+        else if (northingDigits >= NORTHING_INTEGER_DIGITS - 1) score += 3;
+
+        if (eastingDigits === EASTING_INTEGER_DIGITS) score += 16;
+        else if (eastingDigits >= EASTING_INTEGER_DIGITS) score += 7;
+        else if (eastingDigits >= EASTING_INTEGER_DIGITS - 1) score += 3;
+
+        if (northingDigits === EASTING_INTEGER_DIGITS && eastingDigits === NORTHING_INTEGER_DIGITS) {
+            score -= 12;
+        }
+
+        const magnitudeGap = Math.abs(Math.abs(northingNum) - Math.abs(eastingNum));
+        if (magnitudeGap >= 100000) score += 3;
+        else if (magnitudeGap >= 10000) score += 1;
+
+        return score;
+    }
+
+    function isLikelyCoordinatePair(northingValue, eastingValue, requireExpectedDigits = false) {
+        if (requireExpectedDigits && !hasExpectedCoordinateDigits(northingValue, eastingValue)) {
+            return false;
+        }
+        const score = coordinatePairScore(northingValue, eastingValue);
+        return Number.isFinite(score) && score >= 8;
     }
 
     function isLikelyHeaderLine(lineText) {
@@ -2108,10 +2218,7 @@
                 const idToken = tokens[i];
                 const nToken = tokens[i + 1];
                 const eToken = tokens[i + 2];
-                const n = parseNumeric(nToken);
-                const e = parseNumeric(eToken);
-
-                if (!isPointIdToken(idToken) || !looksLikeCoord(n) || !looksLikeCoord(e)) {
+                if (!isPointIdToken(idToken) || !isLikelyCoordinatePair(nToken, eToken, true)) {
                     i += 1;
                     continue;
                 }
@@ -2128,9 +2235,10 @@
                 }
 
                 const codeToken = tokens[i + advance];
-                const maybeNextN = parseNumeric(tokens[i + advance + 1]);
-                const maybeNextE = parseNumeric(tokens[i + advance + 2]);
-                const startsNextPoint = isPointIdToken(codeToken) && looksLikeCoord(maybeNextN) && looksLikeCoord(maybeNextE);
+                const startsNextPoint = (
+                    isPointIdToken(codeToken) &&
+                    isLikelyCoordinatePair(tokens[i + advance + 1], tokens[i + advance + 2], true)
+                );
                 if (codeToken && !startsNextPoint && !Number.isFinite(parseNumeric(codeToken)) && isPointIdToken(codeToken)) {
                     code = codeToken;
                     advance += 1;
@@ -2163,10 +2271,6 @@
         return rows;
     }
 
-    function numericDigitLength(value) {
-        return String(value || '').replace(/[^\d]/g, '').length;
-    }
-
     function mapColumnsToCoordinateFields(lineText, cols) {
         const normalized = normalizeExtractedText(lineText);
         const fallbackCols = Array.isArray(cols) ? cols : [];
@@ -2191,23 +2295,13 @@
                 const cNum = parseNumeric(c.value);
                 if (aNum === null || bNum === null || cNum === null) continue;
 
-                const aDigits = numericDigitLength(a.value);
-                const bDigits = numericDigitLength(b.value);
-                let score = 0;
+                const aDigits = integerDigitLength(a.value);
+                const bDigits = integerDigitLength(b.value);
+                let score = coordinatePairScore(a.value, b.value);
+                if (!Number.isFinite(score)) continue;
 
-                if (aDigits >= 6) score += 4;
-                else if (aDigits >= 5) score += 2;
-                else if (aDigits >= 4) score += 1;
-
-                if (bDigits >= 6) score += 4;
-                else if (bDigits >= 5) score += 2;
-                else if (bDigits >= 4) score += 1;
-
-                if (Math.abs(aNum) >= 100000) score += 3;
-                else if (Math.abs(aNum) >= 10000) score += 1;
-
-                if (Math.abs(bNum) >= 100000) score += 3;
-                else if (Math.abs(bNum) >= 10000) score += 1;
+                if (hasExpectedCoordinateDigits(a.value, b.value)) score += 30;
+                if (hasExpectedCoordinateDigits(b.value, a.value)) score -= 10;
 
                 // Elevation is usually much smaller than N/E magnitudes.
                 if (Math.abs(cNum) <= 10000) score += 2;
@@ -2215,6 +2309,10 @@
 
                 // Favor windows after an initial point/serial number.
                 if (i > 0) score += 1;
+
+                // Keep a soft fallback for near-matches when OCR drops one digit.
+                if (Math.abs(aDigits - NORTHING_INTEGER_DIGITS) <= 1) score += 1;
+                if (Math.abs(bDigits - EASTING_INTEGER_DIGITS) <= 1) score += 1;
 
                 if (score > bestScore) {
                     bestScore = score;
@@ -2257,7 +2355,7 @@
         const z = parseNumeric(mapped?.elevation);
         if (n === null || e === null || z === null) return false;
 
-        if (Math.abs(n) < 10000 || Math.abs(e) < 10000) return false;
+        if (!isLikelyCoordinatePair(mapped?.northing, mapped?.easting, true)) return false;
         if (Math.abs(z) > 10000) return false;
 
         return true;
@@ -2300,11 +2398,9 @@
             const nameToken = tokens[i];
             const nToken = tokens[i + 1];
             const eToken = tokens[i + 2];
-            const n = parseNumeric(nToken);
-            const e = parseNumeric(eToken);
 
             // Packed pattern: [point-id/name] [northing] [easting]
-            if (n !== null && e !== null && Math.abs(n) >= 10000 && Math.abs(e) >= 10000) {
+            if (isLikelyCoordinatePair(nToken, eToken, true)) {
                 let elevation = '';
                 let advance = 3;
 
@@ -2312,14 +2408,7 @@
                 if (i + 3 < tokens.length) {
                     const zToken = tokens[i + 3];
                     const z = parseNumeric(zToken);
-                    const nextN = parseNumeric(tokens[i + 4] ?? '');
-                    const nextE = parseNumeric(tokens[i + 5] ?? '');
-                    const nextLooksLikePacked = (
-                        nextN !== null &&
-                        nextE !== null &&
-                        Math.abs(nextN) >= 10000 &&
-                        Math.abs(nextE) >= 10000
-                    );
+                    const nextLooksLikePacked = isLikelyCoordinatePair(tokens[i + 4], tokens[i + 5], true);
                     if (z !== null && Math.abs(z) < 10000 && !nextLooksLikePacked) {
                         elevation = normalizeNumberString(zToken);
                         advance = 4;
@@ -2406,9 +2495,7 @@
     }
 
     function buildCsv(rows) {
-        const header = ['name', 'northing', 'easting', 'elevation', 'code'];
-
-        const lines = [header.join(',')];
+        const lines = [];
         rows.forEach((row) => {
             const cells = [
                 row.name ?? '',
@@ -3357,7 +3444,7 @@
             alert('لا توجد إحداثيات للتصدير.');
             return;
         }
-        exportModal.classList.remove('hidden');
+        openCoordinatesExportForm();
     });
 
     closeExportModalBtn.addEventListener('click', () => {
@@ -3383,18 +3470,29 @@
                 return;
             }
             const format = btn.dataset.exportFormat;
+            if (format) {
+                openCoordinatesExportForm();
+                exportModal.classList.add('hidden');
+                return;
+            }
             if (format === 'csv') {
-                downloadText(buildCsv(extractedRows), 'extracted-coordinates.csv', 'text/csv;charset=utf-8');
+                const fileName = promptExportFileName('csv', exportSuggestedBaseName);
+                if (!fileName) return;
+                downloadText(buildCsv(extractedRows), fileName, 'text/csv;charset=utf-8');
                 exportModal.classList.add('hidden');
                 return;
             }
             if (format === 'sdr') {
-                downloadText(buildSdr(extractedRows), 'extracted-coordinates.sdr', 'text/plain;charset=utf-8');
+                const fileName = promptExportFileName('sdr', exportSuggestedBaseName);
+                if (!fileName) return;
+                downloadText(buildSdr(extractedRows), fileName, 'text/plain;charset=utf-8');
                 exportModal.classList.add('hidden');
                 return;
             }
             if (format === 'dxf') {
-                downloadText(buildDxf(extractedRows), 'extracted-coordinates.dxf', 'application/dxf;charset=utf-8');
+                const fileName = promptExportFileName('dxf', exportSuggestedBaseName);
+                if (!fileName) return;
+                downloadText(buildDxf(extractedRows), fileName, 'application/dxf;charset=utf-8');
                 exportModal.classList.add('hidden');
                 return;
             }
@@ -3410,7 +3508,9 @@
                     return;
                 }
                 const kmlContent = buildKml(extractedRows, key);
-                downloadText(kmlContent, 'extracted-coordinates.kml', 'application/vnd.google-earth.kml+xml;charset=utf-8');
+                const fileName = promptExportFileName('kml', exportSuggestedBaseName);
+                if (!fileName) return;
+                downloadText(kmlContent, fileName, 'application/vnd.google-earth.kml+xml;charset=utf-8');
                 exportModal.classList.add('hidden');
             }
         });
@@ -3420,6 +3520,7 @@
         const file = pdfInput.files?.[0];
         if (!file) return;
 
+        exportSuggestedBaseName = deriveSuggestedFileBaseName(file.name, 'extracted-coordinates');
         fileHint.textContent = `تم اختيار: ${file.name}`;
         viewerFileName.textContent = file.name;
         showStep('viewer');
@@ -3477,6 +3578,8 @@
 </script>
 </body>
 </html>
+
+
 
 
 
