@@ -438,6 +438,7 @@
       options.id || `coords-provider-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
     );
     PROVIDERS.set(id, { provider, options });
+    injectButton();
     updateButtonState();
     return id;
   }
@@ -450,10 +451,18 @@
   function shouldShowLaunchButton() {
     if (!document?.body) return false;
     if (document.body.dataset.disableCoordinatesExportButton === "true") return false;
+    if (!PROVIDERS.size) return false;
     const path = String(window.location.pathname || "").toLowerCase();
     if (path.includes("/pages/login")) return false;
     if (path.includes("/pages/coordinates-export")) return false;
     return true;
+  }
+
+  function removeLaunchButton() {
+    if (launchBtn && document.body.contains(launchBtn)) {
+      launchBtn.remove();
+    }
+    launchBtn = null;
   }
 
   function ensureButtonStyles() {
@@ -485,18 +494,42 @@
     document.head.appendChild(style);
   }
 
-  function updateButtonState() {
-    if (!launchBtn) return;
-    const rows = collectFromProviders().rows;
+  function updateButtonState(precomputedRows = null) {
+    if (!shouldShowLaunchButton()) {
+      removeLaunchButton();
+      return;
+    }
+
+    const rows = precomputedRows || collectFromProviders().rows;
     const hasRows = rows.length > 0;
-    launchBtn.classList.toggle("is-empty", !hasRows);
-    launchBtn.title = hasRows ? "فتح فورم تصدير الإحداثيات" : UI.noRowsMessage;
+    if (!hasRows) {
+      removeLaunchButton();
+      return;
+    }
+
+    if (!launchBtn || !document.body.contains(launchBtn)) {
+      injectButton(rows);
+      return;
+    }
+
+    launchBtn.classList.remove("is-empty");
+    launchBtn.title = "فتح فورم تصدير الإحداثيات";
   }
 
-  function injectButton() {
-    if (!shouldShowLaunchButton()) return;
+  function injectButton(precomputedRows = null) {
+    if (!shouldShowLaunchButton()) {
+      removeLaunchButton();
+      return;
+    }
+
+    const rows = precomputedRows || collectFromProviders().rows;
+    if (!rows.length) {
+      removeLaunchButton();
+      return;
+    }
+
     if (launchBtn && document.body.contains(launchBtn)) {
-      updateButtonState();
+      updateButtonState(rows);
       return;
     }
     ensureButtonStyles();
@@ -509,7 +542,7 @@
       if (!opened) updateButtonState();
     });
     document.body.appendChild(launchBtn);
-    updateButtonState();
+    updateButtonState(rows);
   }
 
   function initialize() {

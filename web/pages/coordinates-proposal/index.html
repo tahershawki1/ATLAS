@@ -762,6 +762,8 @@
     const TESSERACT_CORE_PATH = "../../LIP/vendor/tesseract/tesseract-core.wasm.js";
     const TESSERACT_LANG_PATH = "../../LIP/vendor/tesseract/lang";
     const NUMBER_PATTERN = /[-+]?\d+(?:[.,]\d+)?/g;
+    const OCR_IMAGE_MAX_SIDE = 4200;
+    const OCR_IMAGE_MIN_SIDE = 2400;
 
     const dropZone = document.getElementById("dropZone");
     const fileInput = document.getElementById("fileInput");
@@ -844,10 +846,34 @@
     function normalizeNumberString(value) {
       return String(value ?? "")
         .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+        .replace(/[−–—]/g, "-")
+        .replace(/(?<=\d)[oO](?=\d)/g, "0")
+        .replace(/(?<=\d)[lI|](?=\d)/g, "1")
+        .replace(/(?<=\d)[sS](?=\d)/g, "5")
+        .replace(/(?<=\d)[bB](?=\d)/g, "8")
         .replace(/٬/g, "")
         .replace(/[،]/g, ".")
         .replace(/,/g, ".")
         .trim();
+    }
+
+    function normalizeLineForParsing(value) {
+      let text = normalizeText(value)
+        .replace(/[−–—]/g, "-")
+        .replace(/[|()[\]{}]/g, " ")
+        .replace(/(?<=\d)\s*[oO]\s*(?=\d)/g, "0")
+        .replace(/(?<=\d)\s*[lI|]\s*(?=\d)/g, "1")
+        .replace(/(?<=\d)\s*[sS]\s*(?=\d)/g, "5")
+        .replace(/(?<=\d)\s*[bB]\s*(?=\d)/g, "8")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      // OCR often splits thousands groups, for example 2 765 882.123.
+      for (let i = 0; i < 3; i += 1) {
+        text = text.replace(/\b(\d{1,4})\s+(\d{3})(?=(?:[.,]\d+)?\b)/g, "$1$2");
+      }
+
+      return text;
     }
 
     function extractNumericString(value) {
@@ -1162,35 +1188,158 @@
       return canvas;
     }
 
+    function createScaledCanvas(sourceCanvas, scaleFactor = 1) {
+      const sourceWidth = Math.max(1, sourceCanvas.width);
+      const sourceHeight = Math.max(1, sourceCanvas.height);
+      const targetWidth = Math.max(1, Math.floor(sourceWidth * scaleFactor));
+      const targetHeight = Math.max(1, Math.floor(sourceHeight * scaleFactor));
+      const canvas = document.createElement("canvas");
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext("2d", { alpha: false });
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
+      return canvas;
+    }
+
+    function buildGrayscaleCanvas(sourceCanvas, scaleFactor = 1) {
+      const canvas = createScaledCanvas(sourceCanvas, scaleFactor);
+      const ctx = canvas.getContext("2d", { alpha: false });
+      const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = img.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = Math.round((data[i] * 0.299) + (data[i + 1] * 0.587) + (data[i + 2] * 0.114));
+        data[i] = gray;
+        data[i + 1] = gray;
+        data[i + 2] = gray;
+      }
+      ctx.putImageData(img, 0, 0);
+      return canvas;
+    }
+
+    function buildSharpenedCanvas(sourceCanvas, scaleFactor = 1) {
+      const canvas = buildGrayscaleCanvas(sourceCanvas, scaleFactor);
+      const ctx = canvas.getContext("2d", { alpha: false });
+      const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = img.data;
+      let minGray = 255;
+      let maxGray = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        minGray = Math.min(minGray, data[i]);
+        maxGray = Math.max(maxGray, data[i]);
+      }
+      const contrast = Math.max(1, maxGray - minGray);
+      for (let i = 0; i < data.length; i += 4) {
+        const normalized = (data[i] - minGray) / contrast;
+        const boosted = clamp(Math.round((normalized ** 0.82) * 255), 0, 255);
+        data[i] = boosted;
+        data[i + 1] = boosted;
+        data[i + 2] = boosted;
+      }
+      ctx.putImageData(img, 0, 0);
+      return canvas;
+    }
+
+    function buildOcrVariants(sourceCanvas) {
+      const longestSide = Math.max(sourceCanvas.width, sourceCanvas.height);
+      const shortestSide = Math.min(sourceCanvas.width, sourceCanvas.height);
+      const maxScale = longestSide > OCR_IMAGE_MAX_SIDE ? OCR_IMAGE_MAX_SIDE / longestSide : 1;
+      const minScale = shortestSide < OCR_IMAGE_MIN_SIDE ? OCR_IMAGE_MIN_SIDE / Math.max(1, shortestSide) : 1;
+      const scaleFactor = clamp(Math.min(Math.max(maxScale, minScale), OCR_IMAGE_MAX_SIDE / longestSide), 0.45, 3);
+
+      const scaled = scaleFactor === 1 ? createScaledCanvas(sourceCanvas, 1) : createScaledCanvas(sourceCanvas, scaleFactor);
+      const variants = [
+        { name: "grayscale", canvas: buildGrayscaleCanvas(scaled), psm: "6" },
+        { name: "threshold", canvas: createCropCanvas(scaled), psm: "6" },
+        { name: "sharpened", canvas: buildSharpenedCanvas(scaled), psm: "11" },
+      ];
+      variants.dispose = [scaled];
+      return variants;
+    }
+
+    function coordinateLikeScore(lines) {
+      return (Array.isArray(lines) ? lines : []).reduce((score, line) => {
+        const normalized = normalizeLineForParsing(line);
+        const nums = normalized.match(NUMBER_PATTERN) || [];
+        return score + (nums.length >= 2 ? 1 : 0) + (nums.length >= 3 ? 2 : 0);
+      }, 0);
+    }
+
+    function uniqueOcrLines(lines) {
+      const seen = new Set();
+      const out = [];
+      (Array.isArray(lines) ? lines : []).forEach((line) => {
+        const normalized = normalizeText(line);
+        if (!normalized) return;
+        const key = normalizeLineForParsing(normalized).toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push(normalized);
+      });
+      return out;
+    }
+
     async function recognizeLinesFromCanvas(sourceCanvas) {
       const worker = await getOcrWorker();
       if (!state.tesseractModule) {
         const loaded = await import(TESSERACT_MODULE_PATH);
         state.tesseractModule = loaded?.default ?? loaded;
       }
-      const ocrCanvas = createCropCanvas(sourceCanvas);
+      const variants = buildOcrVariants(sourceCanvas);
       let result = null;
+      let bestLines = [];
+      let bestScore = -1;
+      const numericLines = [];
       try {
-        if (worker && typeof worker.recognize === "function") {
-          result = await worker.recognize(ocrCanvas);
-        } else if (state.tesseractModule && typeof state.tesseractModule.recognize === "function") {
-          result = await state.tesseractModule.recognize(ocrCanvas, "eng", {
-            workerPath: TESSERACT_WORKER_PATH,
-            corePath: TESSERACT_CORE_PATH,
-            langPath: `${TESSERACT_LANG_PATH}/`,
+        for (const variant of variants) {
+          if (worker && typeof worker.setParameters === "function") {
+            await worker.setParameters({
+              preserve_interword_spaces: "1",
+              tessedit_pageseg_mode: variant.psm,
+              user_defined_dpi: "300",
+              tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-.,:/_()[] ",
+            });
+          }
+
+          if (worker && typeof worker.recognize === "function") {
+            result = await worker.recognize(variant.canvas);
+          } else if (state.tesseractModule && typeof state.tesseractModule.recognize === "function") {
+            result = await state.tesseractModule.recognize(variant.canvas, "eng", {
+              workerPath: TESSERACT_WORKER_PATH,
+              corePath: TESSERACT_CORE_PATH,
+              langPath: `${TESSERACT_LANG_PATH}/`,
+            });
+          } else {
+            throw new Error("OCR غير متاح في المكتبات المحلية.");
+          }
+
+          const lines = String(result?.data?.text || "")
+            .split(/\r?\n/)
+            .map((line) => normalizeText(line))
+            .filter(Boolean);
+          const score = coordinateLikeScore(lines);
+          lines.forEach((line) => {
+            const count = (normalizeLineForParsing(line).match(NUMBER_PATTERN) || []).length;
+            if (count >= 2) numericLines.push(line);
           });
-        } else {
-          throw new Error("OCR غير متاح في المكتبات المحلية.");
+          if (score > bestScore || (score === bestScore && lines.join("").length > bestLines.join("").length)) {
+            bestScore = score;
+            bestLines = lines;
+          }
         }
       } finally {
-        ocrCanvas.width = 0;
-        ocrCanvas.height = 0;
+        variants.forEach((variant) => {
+          variant.canvas.width = 0;
+          variant.canvas.height = 0;
+        });
+        (variants.dispose || []).forEach((canvas) => {
+          canvas.width = 0;
+          canvas.height = 0;
+        });
       }
 
-      return String(result?.data?.text || "")
-        .split(/\r?\n/)
-        .map((line) => normalizeText(line))
-        .filter(Boolean);
+      return uniqueOcrLines([...bestLines, ...numericLines]);
     }
 
     async function renderPdfPreview() {
@@ -1228,9 +1377,48 @@
 
     function countNumericRichLines(lines) {
       return lines.reduce((count, line) => {
-        const numeric = String(line).match(NUMBER_PATTERN) || [];
+        const numeric = normalizeLineForParsing(line).match(NUMBER_PATTERN) || [];
         return count + (numeric.length >= 3 ? 1 : 0);
       }, 0);
+    }
+
+    function buildParsingEntries(entries) {
+      const sourceEntries = (Array.isArray(entries) ? entries : [])
+        .map((entry) => ({
+          ...entry,
+          text: normalizeLineForParsing(entry?.text),
+        }))
+        .filter((entry) => entry.text);
+
+      const out = [];
+      const seen = new Set();
+      const pushEntry = (entry) => {
+        const key = `${entry.page}|${entry.source}|${entry.text}`.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push(entry);
+      };
+
+      sourceEntries.forEach((entry, index) => {
+        pushEntry(entry);
+
+        let combined = entry.text;
+        for (let offset = 1; offset <= 3; offset += 1) {
+          const next = sourceEntries[index + offset];
+          if (!next || next.page !== entry.page) break;
+          combined = `${combined} ${next.text}`.replace(/\s+/g, " ").trim();
+          const numericCount = (combined.match(NUMBER_PATTERN) || []).length;
+          if (numericCount >= 2) {
+            pushEntry({
+              text: combined,
+              page: entry.page,
+              source: `${entry.source || "text"}-window`,
+            });
+          }
+        }
+      });
+
+      return out;
     }
 
     async function extractLineEntriesFromPdf({ withOcr, maxPages }) {
@@ -1276,8 +1464,7 @@
 
       setHint("جاري OCR للصورة...", "neutral", true);
       const image = await loadImageElement(state.file);
-      const maxSide = 2200;
-      const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+      const scale = Math.min(1, OCR_IMAGE_MAX_SIDE / Math.max(image.width, image.height));
       const canvas = document.createElement("canvas");
       canvas.width = Math.max(1, Math.floor(image.width * scale));
       canvas.height = Math.max(1, Math.floor(image.height * scale));
@@ -1424,8 +1611,7 @@
         const easting = pair.easting;
         if (!northing || !easting) continue;
 
-        const autoName = inferNameFromLine(normalized) || `P${rows.length + 1}`;
-        const name = normalizeText(nameToken) || autoName;
+        const name = normalizeText(nameToken) || `P${rows.length + 1}`;
 
         const signature = `${northing}|${easting}|${elevation}|${code}`.toLowerCase();
         if (seenPairs.has(signature)) continue;
@@ -1440,6 +1626,79 @@
           kind: "PROJECTED",
         });
         i += Math.max(1, advance - 1);
+      }
+
+      const matches = [...normalized.matchAll(NUMBER_PATTERN)].map((match) => ({
+        raw: match[0],
+        value: extractNumericString(match[0]),
+        index: match.index ?? 0,
+        end: (match.index ?? 0) + match[0].length,
+      })).filter((match) => match.value);
+
+      for (let i = 0; i <= matches.length - 2; i += 1) {
+        const first = matches[i];
+        const second = matches[i + 1];
+        if (!isLikelyProjectedPairAnyOrder(first.value, second.value)) continue;
+        projectedCandidateCount += 1;
+
+        const pair = resolveProjectedPair(first.value, second.value, forcedOrder);
+        if (!pair.valid) continue;
+        if (pair.suggestedOrder === PROJECTED_ORDER_NE) projectedOrderVotesNE += 1;
+        if (pair.suggestedOrder === PROJECTED_ORDER_EN) projectedOrderVotesEN += 1;
+        if (pair.unresolved) {
+          projectedUnresolvedCount += 1;
+          continue;
+        }
+        if (pair.ambiguous) projectedAmbiguousCount += 1;
+
+        const beforeText = normalizeText(normalized.slice(0, first.index));
+        const beforeTokens = beforeText.split(/\s+/).filter(Boolean);
+        const afterSecondText = normalized.slice(second.end);
+        const afterTokens = normalizeText(afterSecondText).split(/\s+/).filter(Boolean);
+        const prevToken = beforeTokens[beforeTokens.length - 1] || "";
+        let name = isLikelyPointNameToken(prevToken) ? prevToken : "";
+
+        let elevation = "";
+        let code = "";
+        const nextMatch = matches[i + 2];
+        if (nextMatch) {
+          const gap = normalizeText(normalized.slice(second.end, nextMatch.index));
+          const zValue = parseNumeric(nextMatch.value);
+          const nextPairStartsAfterElevation = isLikelyProjectedPairAnyOrder(
+            matches[i + 3]?.value,
+            matches[i + 4]?.value,
+          );
+          if (
+            gap.length <= 18 &&
+            looksLikeElevation(zValue) &&
+            !nextPairStartsAfterElevation
+          ) {
+            elevation = extractNumericString(nextMatch.value);
+          }
+        }
+
+        const firstTextTokenAfterPair = afterTokens.find((token) => !isNumericToken(token));
+        if (firstTextTokenAfterPair && firstTextTokenAfterPair.length <= 24) {
+          code = firstTextTokenAfterPair;
+        }
+
+        const northing = pair.northing;
+        const easting = pair.easting;
+        if (!northing || !easting) continue;
+
+        if (!name) name = `P${rows.length + 1}`;
+        const signature = `${northing}|${easting}|${elevation}|${code}`.toLowerCase();
+        if (seenPairs.has(signature)) continue;
+        seenPairs.add(signature);
+
+        rows.push({
+          name,
+          northing,
+          easting,
+          elevation,
+          code,
+          kind: "PROJECTED",
+        });
       }
 
       return {
@@ -1522,8 +1781,8 @@
         projectedOrderVotesEN: 0,
       };
 
-      entries.forEach((entry) => {
-        const line = normalizeText(entry?.text);
+      buildParsingEntries(entries).forEach((entry) => {
+        const line = normalizeLineForParsing(entry?.text);
         if (!line || isLikelyHeaderLine(line)) return;
 
         const lineRows = [];
