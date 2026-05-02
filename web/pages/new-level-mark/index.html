@@ -1164,13 +1164,7 @@
             <div class="levels-import-table-wrap">
                 <table class="levels-import-table">
                     <thead>
-                        <tr>
-                            <th>الصف</th>
-                            <th>Design Level</th>
-                            <th>As Built</th>
-                            <th>Difference</th>
-                            <th>Remarks</th>
-                        </tr>
+                        <tr id="levelsImportHeader"></tr>
                     </thead>
                     <tbody id="levelsImportBody"></tbody>
                 </table>
@@ -1654,6 +1648,63 @@
             return Number.isFinite(numeric) ? numeric.toFixed(3) : '-';
         }
 
+        const LEVEL_IMPORT_FIELDS = [
+            { key: 'row_no', label: 'الصف' },
+            { key: 'design_level', label: 'Design Level' },
+            { key: 'asbuilt_level', label: 'As Built' },
+            { key: 'difference_value', label: 'Difference', optional: true },
+            { key: 'remarks', label: 'Remarks', optional: true }
+        ];
+
+        function hasDisplayValue(value) {
+            return String(value ?? '').replace(/\s+/g, ' ').trim() !== '';
+        }
+
+        function getVisibleLevelImportFields(levels) {
+            return LEVEL_IMPORT_FIELDS.filter((field) => {
+                if (field.optional) return levels.some((level) => hasDisplayValue(level[field.key]));
+                return true;
+            });
+        }
+
+        function renderLevelsImportHeader(fields) {
+            const header = document.getElementById('levelsImportHeader');
+            if (!header) return;
+            header.innerHTML = fields
+                .map((field) => `<th>${field.label}</th>`)
+                .join('');
+        }
+
+        function renderLevelImportCell(level, index, field) {
+            if (field.key === 'row_no') {
+                return `<td style="padding:12px 10px; font-weight:800; color:var(--text-main); white-space:nowrap;">${formatLevelCell(level.row_no)}</td>`;
+            }
+            if (field.key === 'design_level') {
+                return `
+                    <td style="padding:12px 10px; direction:ltr; vertical-align:middle;">
+                        <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start;">
+                            <span style="font-weight:800; color:var(--text-main);">${formatLevelCell(level.design_level)}</span>
+                            <button type="button" class="import-level-btn design-btn" onclick="importLevelToDesign(${index}, 'design')">اختيار Design</button>
+                        </div>
+                    </td>
+                `;
+            }
+            if (field.key === 'asbuilt_level') {
+                return `
+                    <td style="padding:12px 10px; direction:ltr; vertical-align:middle;">
+                        <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start;">
+                            <span style="font-weight:800; color:var(--text-main);">${formatLevelCell(level.asbuilt_level)}</span>
+                            <button type="button" class="import-level-btn asbuilt-btn" onclick="importLevelToDesign(${index}, 'asbuilt')">اختيار As Built</button>
+                        </div>
+                    </td>
+                `;
+            }
+            if (field.key === 'difference_value') {
+                return `<td style="padding:12px 10px; direction:ltr; color:var(--text-main); font-weight:700; white-space:nowrap;">${formatLevelCell(level.difference_value)}</td>`;
+            }
+            return `<td style="padding:12px 10px; color:var(--text-main); font-weight:700;">${formatLevelCell(level.remarks)}</td>`;
+        }
+
         function openLevelsImportModal() {
             const levels = getSelectedLevels();
             selectedSiteLevels = levels;
@@ -1672,31 +1723,19 @@
 
             subtitle.textContent = siteInfo ? `الموقع المختار: ${siteInfo}` : 'لا يوجد موقع مختار حتى الآن';
             body.innerHTML = '';
+            const visibleFields = getVisibleLevelImportFields(levels);
+            renderLevelsImportHeader(visibleFields);
 
             if (!levels.length) {
-                body.innerHTML = '<tr><td colspan="5" style="padding:22px; text-align:center; color:var(--text-dim); font-weight:700;">لا توجد مستويات مرتبطة بهذا الموقع</td></tr>';
+                body.innerHTML = `<tr><td colspan="${visibleFields.length}" style="padding:22px; text-align:center; color:var(--text-dim); font-weight:700;">لا توجد مستويات مرتبطة بهذا الموقع</td></tr>`;
             } else {
                 levels.forEach((level, index) => {
                     const tr = document.createElement('tr');
                     tr.style.borderBottom = '1px solid #e5e7eb';
                     tr.style.background = index % 2 === 0 ? '#ffffff' : '#f8fafc';
-                    tr.innerHTML = `
-                        <td style="padding:12px 10px; font-weight:800; color:var(--text-main); white-space:nowrap;">${formatLevelCell(level.row_no)}</td>
-                        <td style="padding:12px 10px; direction:ltr; vertical-align:middle;">
-                            <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start;">
-                                <span style="font-weight:800; color:var(--text-main);">${formatLevelCell(level.design_level)}</span>
-                                <button type="button" class="import-level-btn design-btn" onclick="importLevelToDesign(${index}, 'design')">اختيار Design</button>
-                            </div>
-                        </td>
-                        <td style="padding:12px 10px; direction:ltr; vertical-align:middle;">
-                            <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start;">
-                                <span style="font-weight:800; color:var(--text-main);">${formatLevelCell(level.asbuilt_level)}</span>
-                                <button type="button" class="import-level-btn asbuilt-btn" onclick="importLevelToDesign(${index}, 'asbuilt')">اختيار As Built</button>
-                            </div>
-                        </td>
-                        <td style="padding:12px 10px; direction:ltr; color:var(--text-main); font-weight:700; white-space:nowrap;">${formatLevelCell(level.difference_value)}</td>
-                        <td style="padding:12px 10px; color:var(--text-main); font-weight:700;">${formatLevelCell(level.remarks)}</td>
-                    `;
+                    tr.innerHTML = visibleFields
+                        .map((field) => renderLevelImportCell(level, index, field))
+                        .join('');
                     body.appendChild(tr);
                 });
             }

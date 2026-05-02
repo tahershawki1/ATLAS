@@ -353,6 +353,56 @@
       background: #fff1f2;
     }
 
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding-left: 2px;
+    }
+
+    .history-item {
+      border: 1px solid rgba(30, 64, 175, 0.1);
+      border-radius: 12px;
+      background: #fff;
+      padding: 9px;
+      display: grid;
+      gap: 7px;
+    }
+
+    .history-item strong {
+      color: var(--text-main);
+      font-size: 0.76rem;
+      line-height: 1.5;
+    }
+
+    .history-item small {
+      color: var(--text-dim);
+      font-family: "Outfit", sans-serif;
+      direction: ltr;
+      text-align: right;
+      font-weight: 700;
+      font-size: 0.66rem;
+    }
+
+    .history-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .history-actions button {
+      flex: 1;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(30, 64, 175, 0.14);
+      background: #f8fafc;
+      color: var(--primary);
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 0.7rem;
+    }
+
     .transfer-modal {
       position: fixed;
       inset: 0;
@@ -509,6 +559,15 @@
             <button class="btn-secondary" type="button" onclick="resetForm()">تفريغ</button>
           </div>
         </section>
+
+        <section class="card">
+          <h2>سجل الحركات</h2>
+          <p class="muted">يسجل تعديلات الشركات والمناطق والمواقع. الاستعادة ترجع البيانات كما كانت قبل الحركة المختارة.</p>
+          <div class="toolbar">
+            <button class="btn-secondary" type="button" onclick="clearHistory()">مسح السجل</button>
+          </div>
+          <div id="historyList" class="history-list"></div>
+        </section>
       </div>
     </div>
   </div>
@@ -538,7 +597,10 @@
   <script src="../../shared/dialogs.js"></script>
   <script>
     const STORAGE_KEY = "atlasCustomSitesDb";
+    const HISTORY_KEY = "atlasSiteManagementHistory";
+    const HISTORY_LIMIT = 80;
     let customDb = [];
+    let changeHistory = [];
     let companies = [];
     let browseState = { companyId: null, area: null, plotId: null };
     let managerViewKey = "menu";
@@ -582,9 +644,90 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(customDb));
     }
 
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveHistory() {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(changeHistory));
+    }
+
+    function formatHistoryTime(iso) {
+      try {
+        return new Date(iso).toLocaleString("ar-EG", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      } catch {
+        return iso || "";
+      }
+    }
+
+    function recordHistory(title, beforeDb, meta = {}) {
+      changeHistory.unshift({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        title,
+        meta,
+        created_at: new Date().toISOString(),
+        beforeDb: clone(beforeDb || []),
+      });
+      changeHistory = changeHistory.slice(0, HISTORY_LIMIT);
+      saveHistory();
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const list = document.getElementById("historyList");
+      if (!list) return;
+      if (!changeHistory.length) {
+        list.innerHTML = `<div class="muted">لا توجد حركات مسجلة بعد.</div>`;
+        return;
+      }
+      list.innerHTML = changeHistory.map((item) => `
+        <div class="history-item">
+          <strong>${esc(item.title)}</strong>
+          <small>${esc(formatHistoryTime(item.created_at))}</small>
+          <div class="history-actions">
+            <button type="button" onclick="restoreHistory(${jsArg(item.id)})">استعادة هذه الحركة</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function restoreHistory(historyId) {
+      const item = changeHistory.find((entry) => String(entry.id) === String(historyId));
+      if (!item) return;
+      if (!(await askConfirm(`استعادة البيانات لما قبل: ${item.title}؟`))) return;
+      const currentDb = clone(customDb);
+      customDb = clone(item.beforeDb || []);
+      saveCustomDb();
+      recordHistory(`استعادة: ${item.title}`, currentDb, { restored_history_id: item.id });
+      browseState = { companyId: null, area: null, plotId: null };
+      refreshData();
+      openManagerView(managerViewKey === "editor" ? "sites" : managerViewKey);
+    }
+
+    async function clearHistory() {
+      if (!changeHistory.length) return;
+      if (!(await askConfirm("مسح سجل الحركات؟ لن يؤثر ذلك على البيانات الحالية."))) return;
+      changeHistory = [];
+      saveHistory();
+      renderHistory();
+    }
+
     function openFormView() {
       document.getElementById("browseView").classList.remove("active");
       document.getElementById("formView").classList.add("active");
+      renderHistory();
       document.querySelector(".manage-page").scrollTop = 0;
     }
 
@@ -681,6 +824,7 @@
       renderManagerSelectors();
       renderBrowser();
       renderActiveManagerView();
+      renderHistory();
     }
 
     function getCompanyById(companyId) {
@@ -900,9 +1044,11 @@
       if (!company) return;
       const nextName = norm(await askPrompt("اكتب اسم الشركة الجديد", company.name));
       if (!nextName) return;
+      const beforeDb = clone(customDb);
       const entry = upsertCustomCompany(company.id, nextName);
       entry.is_deleted = false;
       saveCustomDb();
+      recordHistory(`تعديل اسم الشركة: ${company.name} إلى ${nextName}`, beforeDb, { type: "company.rename", companyId: company.id });
       refreshData();
       openManagerView("companies");
     }
@@ -911,10 +1057,12 @@
       const company = getCompanyById(companyId);
       if (!company) return;
       if (!(await askConfirm(`حذف الشركة ${company.name}؟`))) return;
+      const beforeDb = clone(customDb);
       const entry = upsertCustomCompany(company.id, company.name);
       entry.is_deleted = true;
       entry.plots = [];
       saveCustomDb();
+      recordHistory(`حذف الشركة: ${company.name}`, beforeDb, { type: "company.delete", companyId: company.id });
       if (browseState.companyId === String(company.id)) {
         browseState = { companyId: null, area: null, plotId: null };
       }
@@ -927,6 +1075,7 @@
       if (!company) return;
       const nextArea = norm(await askPrompt("اكتب اسم المنطقة الجديد", oldArea));
       if (!nextArea || nextArea === oldArea) return;
+      const beforeDb = clone(customDb);
       const entry = upsertCustomCompany(company.id, company.name);
       (company.plots || []).forEach((plot) => {
         if (norm(plot.area) !== norm(oldArea)) return;
@@ -937,6 +1086,7 @@
         if (idx === -1) entry.plots.push(sourcePlot); else entry.plots[idx] = sourcePlot;
       });
       saveCustomDb();
+      recordHistory(`تعديل المنطقة: ${oldArea} إلى ${nextArea} - ${company.name}`, beforeDb, { type: "area.rename", companyId: company.id });
       refreshData();
       const areasSelect = document.getElementById("areasManagerCompany");
       if (areasSelect) areasSelect.value = String(company.id);
@@ -980,6 +1130,7 @@
         return;
       }
 
+      const beforeDb = clone(customDb);
       const entry = upsertCustomCompany(company.id, company.name);
       (company.plots || []).forEach((plot) => {
         if (norm(plot.area) !== oldArea) return;
@@ -996,6 +1147,7 @@
       });
 
       saveCustomDb();
+      recordHistory(`نقل مواقع المنطقة: ${oldArea} إلى ${targetArea} - ${company.name}`, beforeDb, { type: "area.transfer", companyId: company.id });
       if (browseState.companyId === String(company.id) && browseState.area === oldArea) {
         browseState.area = targetArea;
         browseState.plotId = null;
@@ -1028,8 +1180,11 @@
         const n = parseInt(c.id, 10);
         return Number.isFinite(n) ? Math.max(m, n) : m;
       }, 0);
-      customDb.push({ id: String(maxId + 1 || 1), name, plots: [], is_custom: true });
+      const beforeDb = clone(customDb);
+      const newId = String(maxId + 1 || 1);
+      customDb.push({ id: newId, name, plots: [], is_custom: true });
       saveCustomDb();
+      recordHistory(`إضافة شركة: ${name}`, beforeDb, { type: "company.add", companyId: newId });
       refreshData();
       openManagerView("companies");
     }
@@ -1079,9 +1234,14 @@
       const company = selected?.company;
       const plot = selected?.plot;
       if (!company || !plot) return;
+      const alreadyCloned = getCustomCompany(company.id)?.plots?.some((p) => String(p.id) === String(plot.id));
+      const beforeDb = clone(customDb);
       const entry = upsertCustomCompany(company.id, company.name);
       if (!entry.plots.some((p) => String(p.id) === String(plot.id))) entry.plots.push(clone(plot));
       saveCustomDb();
+      if (!alreadyCloned) {
+        recordHistory(`نسخ الموقع للتعديل: ${plot.id} - ${company.name}`, beforeDb, { type: "site.clone", companyId: company.id, plotId: plot.id });
+      }
       refreshData();
       browseState = { companyId: String(company.id), area: norm(plot.area), plotId: String(plot.id) };
       renderBrowser();
@@ -1095,12 +1255,14 @@
       if (!company || !plot) return;
       if (!(await askConfirm(`حذف الموقع ${plot.id}؟`))) return;
 
+      const beforeDb = clone(customDb);
       const entry = upsertCustomCompany(company.id, company.name);
       const idx = entry.plots.findIndex((p) => String(p.id) === String(plot.id));
       if (idx !== -1) entry.plots.splice(idx, 1);
       if (!entry.deleted_plots.includes(String(plot.id))) entry.deleted_plots.push(String(plot.id));
 
       saveCustomDb();
+      recordHistory(`حذف الموقع: ${plot.id} - ${company.name}`, beforeDb, { type: "site.delete", companyId: company.id, plotId: plot.id });
       refreshData();
       if (browseState.plotId === String(plot.id) && browseState.area === norm(plot.area)) {
         browseState.plotId = null;
@@ -1132,12 +1294,15 @@
 
       if (!data.surveyor.toUpperCase().startsWith("MR.")) data.surveyor = `MR. ${data.surveyor}`;
 
+      const beforeDb = clone(customDb);
+      const existedBefore = (company.plots || []).some((plot) => String(plot.id) === String(data.id));
       const entry = upsertCustomCompany(company.id, company.name);
       const idx = entry.plots.findIndex((p) => String(p.id) === String(data.id));
       const record = { ...data, levels: [] };
       if (idx === -1) entry.plots.push(record); else entry.plots[idx] = record;
 
       saveCustomDb();
+      recordHistory(`${existedBefore ? "تعديل الموقع" : "إضافة موقع"}: ${data.id} - ${company.name}`, beforeDb, { type: existedBefore ? "site.update" : "site.add", companyId: company.id, plotId: data.id });
       refreshData();
       browseState = { companyId: String(company.id), area: data.area, plotId: data.id };
       renderBrowser();
@@ -1147,6 +1312,7 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
+      changeHistory = loadHistory();
       refreshData();
       document.getElementById("editSurveyor").value = "MR. ";
       closeFormView();

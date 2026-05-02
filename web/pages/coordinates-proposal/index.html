@@ -468,7 +468,7 @@
 
     .results-table {
       width: 100%;
-      min-width: 880px;
+      min-width: 660px;
       border-collapse: collapse;
       text-align: center;
     }
@@ -495,6 +495,25 @@
       color: #0f172a;
       font-weight: 700;
       font-family: "Outfit", "Cairo", sans-serif;
+    }
+
+    .clear-cell-btn {
+      width: 24px;
+      height: 24px;
+      margin-inline-start: 6px;
+      border: 1px solid rgba(220, 38, 38, 0.18);
+      border-radius: 8px;
+      background: #fee2e2;
+      color: #b91c1c;
+      font-size: 0.78rem;
+      font-weight: 900;
+      line-height: 1;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+
+    .clear-cell-btn:hover {
+      background: #fecaca;
     }
 
     .results-table tr.empty-row td {
@@ -693,18 +712,15 @@
           <table class="results-table">
             <thead>
               <tr>
-                <th>#</th>
                 <th>Point</th>
                 <th>Northing / Lat</th>
                 <th>Easting / Lon</th>
                 <th>Elevation</th>
                 <th>Code</th>
-                <th>Page</th>
-                <th>Source</th>
               </tr>
             </thead>
             <tbody id="rowsBody">
-              <tr class="empty-row"><td colspan="8">لا توجد نتائج بعد.</td></tr>
+              <tr class="empty-row"><td colspan="5">لا توجد نتائج بعد.</td></tr>
             </tbody>
           </table>
         </div>
@@ -1131,6 +1147,13 @@
       return Number.isFinite(value) && Math.abs(value) <= 10000;
     }
 
+    function startsProjectedTriplet(tokens, index) {
+      const nameToken = tokens[index];
+      const firstCoord = parseNumeric(tokens[index + 1]);
+      const secondCoord = parseNumeric(tokens[index + 2]);
+      return isPointIdToken(nameToken) && looksLikeProjected(firstCoord) && looksLikeProjected(secondCoord);
+    }
+
     function inferNameFromLine(line) {
       const token = normalizeText(line)
         .split(/\s+/)
@@ -1160,7 +1183,8 @@
 
         const zToken = tokens[i + 3];
         const zValue = parseNumeric(zToken);
-        if (looksLikeElevation(zValue)) {
+        const zStartsNextPoint = startsProjectedTriplet(tokens, i + 3);
+        if (!zStartsNextPoint && looksLikeElevation(zValue)) {
           elevation = normalizeNumberString(zToken);
           advance += 1;
         }
@@ -1181,6 +1205,7 @@
           elevation,
           code,
           kind: "PROJECTED",
+          lineGroupIndex: rows.length,
         });
         i += advance - 1;
       }
@@ -1201,6 +1226,7 @@
         elevation: "",
         code: "LATLON",
         kind: "LATLON",
+        lineGroupIndex: rows.length,
       });
     }
 
@@ -1240,6 +1266,93 @@
       return rows;
     }
 
+    function getPointNameSortKey(name) {
+      const text = normalizeText(name);
+      if (!text) return null;
+
+      const match = text.match(/^([A-Za-z\u0600-\u06FF_-]*?)0*(\d+)([A-Za-z\u0600-\u06FF_-]*)$/);
+      if (!match) return null;
+
+      return {
+        prefix: (match[1] || "").toLowerCase(),
+        number: Number(match[2]),
+        suffix: (match[3] || "").toLowerCase(),
+        text: text.toLowerCase(),
+      };
+    }
+
+    function sortRowsInsideDetectedTable(rows) {
+      const decorated = rows.map((row, index) => ({
+        row,
+        index,
+        key: getPointNameSortKey(row.name),
+      }));
+      const sortableCount = decorated.filter((item) => item.key && Number.isFinite(item.key.number)).length;
+
+      if (sortableCount < 2) return rows;
+
+      decorated.sort((a, b) => {
+        if (a.key && b.key) {
+          return a.key.prefix.localeCompare(b.key.prefix, "en", { sensitivity: "base" })
+            || (a.key.number - b.key.number)
+            || a.key.suffix.localeCompare(b.key.suffix, "en", { sensitivity: "base" })
+            || a.key.text.localeCompare(b.key.text, "en", { numeric: true, sensitivity: "base" })
+            || (a.index - b.index);
+        }
+        if (a.key) return -1;
+        if (b.key) return 1;
+        return a.index - b.index;
+      });
+
+      return decorated.map((item, index) => ({
+        ...item.row,
+        id: index + 1,
+      }));
+    }
+
+    function sortRowsByDetectedTables(rows) {
+      const groups = [];
+      const activeGroups = new Map();
+
+      rows.forEach((row, index) => {
+        const key = getPointNameSortKey(row.name);
+        const tableKey = [
+          row.page ?? 1,
+          row.kind || "PROJECTED",
+          row.lineGroupIndex ?? 0,
+        ].join("|");
+        const active = activeGroups.get(tableKey);
+        const startsNewSequence = active?.lastSortKey
+          && key
+          && active.lastSortKey.prefix === key.prefix
+          && active.lastSortKey.suffix === key.suffix
+          && key.number <= active.lastSortKey.number;
+
+        let group = active;
+        if (!group || startsNewSequence) {
+          group = {
+            tableKey,
+            firstIndex: index,
+            lastSortKey: null,
+            rows: [],
+          };
+          groups.push(group);
+          activeGroups.set(tableKey, group);
+        }
+
+        group.rows.push({ ...row, originalIndex: index });
+        if (key) group.lastSortKey = key;
+      });
+
+      return groups
+        .sort((a, b) => a.firstIndex - b.firstIndex)
+        .flatMap((group) => sortRowsInsideDetectedTable(group.rows))
+        .map((row, index) => ({
+          ...row,
+          id: index + 1,
+        }));
+    }
+
     function parseLineEntriesToRows(entries, mode) {
       const rows = [];
       const signatures = new Set();
@@ -1269,6 +1382,7 @@
             page: entry.page ?? 1,
             source: entry.source || "text-layer",
             kind: draft.kind || "PROJECTED",
+            lineGroupIndex: draft.lineGroupIndex ?? 0,
             rawText: line,
           };
           const signature = `${row.name}|${row.northing}|${row.easting}|${row.elevation}|${row.code}|${row.page}`;
@@ -1278,7 +1392,7 @@
         });
       });
 
-      return rows;
+      return sortRowsByDetectedTables(rows);
     }
 
     function calculateConfidence(rows, lines) {
@@ -1291,24 +1405,28 @@
 
     function renderRows(rows) {
       if (!rows.length) {
-        rowsBody.innerHTML = '<tr class="empty-row"><td colspan="8">لم يتم العثور على إحداثيات صالحة في الملف.</td></tr>';
+        rowsBody.innerHTML = '<tr class="empty-row"><td colspan="5">لم يتم العثور على إحداثيات صالحة في الملف.</td></tr>';
         return;
       }
 
       rowsBody.innerHTML = rows
-        .map((row, idx) => `
+        .map((row) => `
           <tr>
-            <td>${idx + 1}</td>
             <td>${escapeHtml(row.name)}</td>
             <td>${escapeHtml(row.northing)}</td>
             <td>${escapeHtml(row.easting)}</td>
-            <td>${escapeHtml(row.elevation || "-")}</td>
-            <td>${escapeHtml(row.code || "-")}</td>
-            <td>${escapeHtml(String(row.page))}</td>
-            <td>${escapeHtml(row.source)}</td>
+            <td>${renderOptionalCell(row, "elevation")}</td>
+            <td>${renderOptionalCell(row, "code")}</td>
           </tr>
         `)
         .join("");
+    }
+
+    function renderOptionalCell(row, field) {
+      const value = row?.[field];
+      if (!value) return "";
+      return `${escapeHtml(value)}
+        <button class="clear-cell-btn" type="button" data-clear-field="${field}" data-row-id="${row.id}" aria-label="Clear ${field}">&times;</button>`;
     }
 
     function escapeHtml(value) {
@@ -1349,7 +1467,7 @@
       setResultBadge("بانتظار الفحص", "neutral");
       resultMessage.textContent = "بعد تشغيل الفحص ستظهر النتيجة هنا.";
       updateMetrics({ lines: 0, rows: 0, pages: 0, confidence: 0 });
-      rowsBody.innerHTML = '<tr class="empty-row"><td colspan="8">لا توجد نتائج بعد.</td></tr>';
+      rowsBody.innerHTML = '<tr class="empty-row"><td colspan="5">لا توجد نتائج بعد.</td></tr>';
       renderRawText([]);
       resultActions.classList.add("hidden");
     }
@@ -1522,6 +1640,21 @@
       window.prompt("انسخ البيانات:", payload);
     }
 
+    function clearRowOptionalField(rowId, field) {
+      if (!["elevation", "code"].includes(field)) return;
+      const row = state.rows.find((item) => item.id === rowId);
+      if (!row) return;
+      row[field] = "";
+      renderRows(state.rows);
+      const confidence = calculateConfidence(state.rows, state.lines);
+      updateMetrics({
+        lines: state.lines.length,
+        rows: state.rows.length,
+        pages: state.pagesScanned,
+        confidence,
+      });
+    }
+
     function bindDragAndDrop() {
       dropZone.addEventListener("click", () => fileInput.click());
       dropZone.addEventListener("keydown", (event) => {
@@ -1573,6 +1706,12 @@
           console.error(error);
           setHint("تعذر النسخ للحافظة.", "error", false);
         }
+      });
+
+      rowsBody.addEventListener("click", (event) => {
+        const button = event.target.closest(".clear-cell-btn");
+        if (!button) return;
+        clearRowOptionalField(Number(button.dataset.rowId), button.dataset.clearField);
       });
     }
 
