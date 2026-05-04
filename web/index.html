@@ -27,7 +27,7 @@
     <!-- Update Banner -->
     <div id="updateBanner" class="update-banner">
         <span>تحديث جديد متاح!</span>
-        <button onclick="location.reload()">تحديث الآن</button>
+        <button onclick="forceRefreshAtlasApp(this)">تحديث الآن</button>
     </div>
 
     <div id="app" class="app-container">
@@ -188,6 +188,25 @@
               </div>
               <span class="card-label">فحص المخطط واستخراج الإحداثيات</span>
             </button>
+
+            <button class="menu-card refresh-cache-card" type="button" onclick="forceRefreshAtlasApp(this)">
+              <div class="icon-wrapper refresh-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M21 12a9 9 0 0 1-15.5 6.2" />
+                  <path d="M3 12A9 9 0 0 1 18.5 5.8" />
+                  <path d="M18 2v4h-4" />
+                  <path d="M6 22v-4h4" />
+                </svg>
+              </div>
+              <span class="card-label">تحديث الموقع ومسح الكاش</span>
+            </button>
           </div>
         </div>
         <!-- Action Form Page (Dynamic) -->
@@ -227,7 +246,7 @@
         <div class="status-indicator">
           <span class="status-dot"></span>
           <span class="status-text">Atlas Engineering System</span>
-          <span class="version-tag">v2.0.0</span>
+          <span class="version-tag">v2.0.6</span>
         </div>
       </footer>
 
@@ -439,6 +458,46 @@
     <script src="shared/coordinates-export.js"></script>
     <script src="shared/app.js"></script>
     <script>
+      async function forceRefreshAtlasApp(button) {
+        const confirmed = window.confirm(
+          'سيتم مسح كاش ATLAS وإعادة تحميل أحدث نسخة من الموقع. هل تريد المتابعة؟'
+        );
+        if (!confirmed) return;
+
+        const originalText = button?.textContent;
+        if (button) {
+          button.disabled = true;
+          button.textContent = 'جاري التحديث...';
+        }
+
+        try {
+          if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            await Promise.all(
+              cacheNames
+                .filter((name) => name.startsWith('atlas-'))
+                .map((name) => caches.delete(name))
+            );
+          }
+
+          if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map((registration) => registration.unregister()));
+          }
+
+          const freshUrl = new URL('index.html', window.location.origin);
+          freshUrl.searchParams.set('refresh', Date.now().toString());
+          window.location.replace(freshUrl.toString());
+        } catch (error) {
+          console.error('[PWA] Force refresh failed:', error);
+          alert('تعذر مسح الكاش تلقائيًا. جرّب إغلاق التطبيق وفتحه مرة أخرى.');
+          if (button) {
+            button.disabled = false;
+            button.textContent = originalText || 'تحديث الموقع ومسح الكاش';
+          }
+        }
+      }
+
       // Register Service Worker
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').then(reg => {
@@ -460,8 +519,6 @@
     </script>
   </body>
 </html>
-
-
 
 
 

@@ -3516,12 +3516,31 @@
         });
     });
 
-    pdfInput.addEventListener('change', async () => {
-        const file = pdfInput.files?.[0];
+    async function loadSharedCoordinateFile() {
+        if (!('caches' in window)) throw new Error('Cache API is not available.');
+        const cache = await caches.open('atlas-shared-files-v1');
+        const [fileResponse, metaResponse] = await Promise.all([
+            cache.match('/__atlas_shared_file__'),
+            cache.match('/__atlas_shared_file_meta__')
+        ]);
+        if (!fileResponse) throw new Error('Shared file was not found.');
+        const blob = await fileResponse.blob();
+        let meta = {};
+        if (metaResponse) {
+            try {
+                meta = await metaResponse.json();
+            } catch (_) {
+                meta = {};
+            }
+        }
+        return new File([blob], meta.name || 'shared-file', { type: meta.type || blob.type || 'application/octet-stream' });
+    }
+
+    async function handleIncomingCoordinateFile(file, source = 'manual') {
         if (!file) return;
 
         exportSuggestedBaseName = deriveSuggestedFileBaseName(file.name, 'extracted-coordinates');
-        fileHint.textContent = `تم اختيار: ${file.name}`;
+        fileHint.textContent = source === 'share' ? `تم استقبال ملف المشاركة: ${file.name}` : `تم اختيار: ${file.name}`;
         viewerFileName.textContent = file.name;
         showStep('viewer');
 
@@ -3549,6 +3568,25 @@
             showStep('upload');
             fileHint.textContent = 'حدث خطأ أثناء قراءة الملف. تأكد أن الملف PDF صالح.';
         }
+    }
+
+    async function initializeSharedFileIfRequested() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('shared') !== '1') return;
+
+        try {
+            const file = await loadSharedCoordinateFile();
+            await handleIncomingCoordinateFile(file, 'share');
+        } catch (error) {
+            console.error(error);
+            showStep('upload');
+            fileHint.textContent = 'لم يتم العثور على ملف مشارك. جرّب المشاركة مرة أخرى من WhatsApp.';
+        }
+    }
+
+    pdfInput.addEventListener('change', async () => {
+        const file = pdfInput.files?.[0];
+        if (file) await handleIncomingCoordinateFile(file, 'manual');
     });
 
     setMode('hand');
@@ -3557,6 +3595,7 @@
     attachPointerEvents();
     updateExtractActionState();
     applyPointsMapStyle(isSatelliteMode);
+    initializeSharedFileIfRequested();
     window.addEventListener('resize', () => {
         leafletMap?.invalidateSize();
         pointsLeafletMap?.invalidateSize();
@@ -3578,7 +3617,6 @@
 </script>
 </body>
 </html>
-
 
 
 

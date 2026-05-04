@@ -1,7 +1,10 @@
 // Atlas Site - Service Worker
 // Handles offline caching and update notifications
 
-const CACHE_NAME = 'atlas-site-v8';
+const CACHE_NAME = 'atlas-site-v9';
+const SHARED_FILES_CACHE = 'atlas-shared-files-v1';
+const SHARED_FILE_KEY = '/__atlas_shared_file__';
+const SHARED_FILE_META_KEY = '/__atlas_shared_file_meta__';
 const ASSETS = [
   './index.html',
   './shared/auth.js',
@@ -27,6 +30,7 @@ const ASSETS = [
   './pages/coordinates-extractor/index.html',
   './pages/coordinates-proposal/index.html',
   './pages/coordinates-export/index.html',
+  './pages/shared-file/index.html',
   './pages/point-staking/index.html',
   './pages/site-management/index.html',
   './pages/admin/index.html',
@@ -79,7 +83,7 @@ self.addEventListener('activate', event => {
     caches.keys().then(keys =>
       Promise.all(
         keys
-          .filter(key => key !== CACHE_NAME)
+          .filter(key => key !== CACHE_NAME && key !== SHARED_FILES_CACHE)
           .map(key => caches.delete(key))
       )
     )
@@ -96,8 +100,17 @@ self.addEventListener('activate', event => {
 
 // Fetch: Cache-first strategy with network update
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
   const reqUrl = new URL(event.request.url);
+  if (
+    event.request.method === 'POST' &&
+    reqUrl.origin === self.location.origin &&
+    reqUrl.pathname === '/share-target'
+  ) {
+    event.respondWith(handleShareTarget(event.request));
+    return;
+  }
+
+  if (event.request.method !== 'GET') return;
   if (reqUrl.origin !== self.location.origin) return;
   if (reqUrl.pathname.startsWith('/api/')) return;
 
@@ -144,3 +157,43 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+
+async function handleShareTarget(request) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get('file');
+
+    if (!(file instanceof File) || file.size === 0) {
+      return Response.redirect('/pages/shared-file/index.html?error=no-file', 303);
+    }
+
+    const metadata = {
+      name: file.name || 'shared-file',
+      type: file.type || '',
+      size: file.size || 0,
+      receivedAt: new Date().toISOString()
+    };
+
+    const cache = await caches.open(SHARED_FILES_CACHE);
+    await cache.put(
+      new Request(SHARED_FILE_KEY),
+      new Response(file, {
+        headers: {
+          'Content-Type': metadata.type || 'application/octet-stream',
+          'X-Atlas-Shared-File-Name': encodeURIComponent(metadata.name)
+        }
+      })
+    );
+    await cache.put(
+      new Request(SHARED_FILE_META_KEY),
+      new Response(JSON.stringify(metadata), {
+        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+      })
+    );
+
+    return Response.redirect('/pages/shared-file/index.html', 303);
+  } catch (error) {
+    console.error('[SW] Share target failed:', error);
+    return Response.redirect('/pages/shared-file/index.html?error=no-file', 303);
+  }
+}

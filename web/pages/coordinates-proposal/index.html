@@ -388,8 +388,8 @@
 
     .preview-embed-pdf {
       width: 100%;
-      min-height: 300px;
-      height: min(58vh, 760px);
+      height: auto;
+      min-height: 260px;
       border: 0;
       background: #ffffff;
     }
@@ -701,7 +701,7 @@
           <span id="previewNote" class="preview-note">لا يوجد ملف</span>
         </div>
         <div class="preview-wrap">
-          <iframe id="previewPdf" class="preview-embed preview-embed-pdf hidden" title="معاينة PDF"></iframe>
+          <canvas id="previewPdf" class="preview-embed preview-embed-pdf hidden" aria-label="معاينة PDF"></canvas>
           <img id="previewImage" class="preview-embed preview-embed-image hidden" alt="معاينة الملف" />
         </div>
       </section>
@@ -821,7 +821,8 @@
         URL.revokeObjectURL(state.previewUrl);
         state.previewUrl = null;
       }
-      previewPdf.removeAttribute("src");
+      previewPdf.width = 0;
+      previewPdf.height = 0;
       previewImage.removeAttribute("src");
       previewPdf.classList.add("hidden");
       previewImage.classList.add("hidden");
@@ -892,6 +893,14 @@
       return Number.isFinite(num) ? num : null;
     }
 
+    function buildCoordinateSignature(northing, easting, kind = "PROJECTED") {
+      const n = parseNumeric(northing);
+      const e = parseNumeric(easting);
+      if (!Number.isFinite(n) || !Number.isFinite(e)) return "";
+      const precision = kind === "LATLON" ? 7 : 3;
+      return `${kind}|${n.toFixed(precision)}|${e.toFixed(precision)}`;
+    }
+
     const NORTHING_INTEGER_DIGITS = 7;
     const EASTING_INTEGER_DIGITS = 6;
     const PROJECTED_ORDER_AUTO = "AUTO";
@@ -917,16 +926,43 @@
       return nDigits >= 6 && nDigits <= 8 && eDigits >= 5 && eDigits <= 7;
     }
 
+    function hasDecimalPart(value) {
+      return /\d[.,]\d/.test(String(value ?? ""));
+    }
+
+    function hasExpectedProjectedDigitsAnyOrder(firstValue, secondValue) {
+      const firstDigits = integerDigitLength(firstValue);
+      const secondDigits = integerDigitLength(secondValue);
+      return (
+        (firstDigits === NORTHING_INTEGER_DIGITS && secondDigits === EASTING_INTEGER_DIGITS) ||
+        (firstDigits === EASTING_INTEGER_DIGITS && secondDigits === NORTHING_INTEGER_DIGITS)
+      );
+    }
+
+    function isLatLonSizedPair(firstValue, secondValue) {
+      const first = Math.abs(parseNumeric(firstValue));
+      const second = Math.abs(parseNumeric(secondValue));
+      return Number.isFinite(first) && Number.isFinite(second) && first <= 180 && second <= 180;
+    }
+
+    function isDecimalSurveyPair(firstValue, secondValue) {
+      const first = parseNumeric(firstValue);
+      const second = parseNumeric(secondValue);
+      if (!Number.isFinite(first) || !Number.isFinite(second)) return false;
+      if (!hasDecimalPart(firstValue) || !hasDecimalPart(secondValue)) return false;
+      if (isLatLonSizedPair(firstValue, secondValue)) return false;
+      return true;
+    }
+
     function isLikelyProjectedPairAnyOrder(firstValue, secondValue) {
       const first = parseNumeric(firstValue);
       const second = parseNumeric(secondValue);
       if (!looksLikeProjected(first) || !looksLikeProjected(second)) return false;
-      const firstDigits = integerDigitLength(firstValue);
-      const secondDigits = integerDigitLength(secondValue);
-      const firstSecondExpected = firstDigits === NORTHING_INTEGER_DIGITS && secondDigits === EASTING_INTEGER_DIGITS;
-      const secondFirstExpected = secondDigits === NORTHING_INTEGER_DIGITS && firstDigits === EASTING_INTEGER_DIGITS;
-      if (firstSecondExpected || secondFirstExpected) return true;
-      return hasToleratedProjectedDigits(firstValue, secondValue) || hasToleratedProjectedDigits(secondValue, firstValue);
+      if (hasExpectedProjectedDigitsAnyOrder(firstValue, secondValue)) return true;
+
+      // Local/projected coordinates cannot be tied to Dubai ranges. Require a decimal
+      // survey-looking pair so report numbers and levels do not become coordinates.
+      return isDecimalSurveyPair(firstValue, secondValue);
     }
 
     function resolveProjectedPair(firstToken, secondToken, forcedOrder = PROJECTED_ORDER_AUTO) {
@@ -1344,10 +1380,19 @@
 
     async function renderPdfPreview() {
       const doc = await loadPdfDoc();
-      const url = assignPreviewUrlFromFile(state.file);
       previewImage.classList.add("hidden");
       previewPdf.classList.remove("hidden");
-      previewPdf.src = `${url}#view=FitH`;
+      const page = await doc.getPage(1);
+      const baseViewport = page.getViewport({ scale: 1 });
+      const maxWidth = Math.min(980, Math.max(320, previewPdf.parentElement?.clientWidth || 760));
+      const scale = clamp(maxWidth / Math.max(1, baseViewport.width), 0.7, 2.4);
+      const viewport = page.getViewport({ scale });
+      const context = previewPdf.getContext("2d", { alpha: false });
+      previewPdf.width = Math.floor(viewport.width);
+      previewPdf.height = Math.floor(viewport.height);
+      previewPdf.style.width = "100%";
+      previewPdf.style.maxWidth = `${Math.floor(viewport.width)}px`;
+      await page.render({ canvasContext: context, viewport }).promise;
       previewNote.textContent = `PDF • الصفحة 1 من ${doc.numPages}`;
     }
 
@@ -1393,7 +1438,7 @@
       const out = [];
       const seen = new Set();
       const pushEntry = (entry) => {
-        const key = `${entry.page}|${entry.source}|${entry.text}`.toLowerCase();
+        const key = `${entry.page}|${entry.text}`.toLowerCase();
         if (seen.has(key)) return;
         seen.add(key);
         out.push(entry);
@@ -1406,6 +1451,7 @@
         for (let offset = 1; offset <= 3; offset += 1) {
           const next = sourceEntries[index + offset];
           if (!next || next.page !== entry.page) break;
+          if (isSingleNumericLine(entry.text) && isSingleNumericLine(next.text)) break;
           combined = `${combined} ${next.text}`.replace(/\s+/g, " ").trim();
           const numericCount = (combined.match(NUMBER_PATTERN) || []).length;
           if (numericCount >= 2) {
@@ -1528,7 +1574,7 @@
     }
 
     function looksLikeProjected(value) {
-      return Number.isFinite(value) && Math.abs(value) >= 10000;
+      return Number.isFinite(value);
     }
 
     function looksLikeElevation(value) {
@@ -1713,6 +1759,211 @@
       };
     }
 
+    function isSingleNumericLine(line) {
+      const normalized = normalizeLineForParsing(line);
+      if (!normalized) return false;
+      const matches = normalized.match(NUMBER_PATTERN) || [];
+      return matches.length === 1 && extractNumericString(normalized) === extractNumericString(matches[0]);
+    }
+
+    function isVerticalPointIdLine(line) {
+      const value = normalizeLineForParsing(line);
+      if (!isSingleNumericLine(value)) return false;
+      const numeric = parseNumeric(value);
+      return Number.isInteger(numeric) && numeric >= 0 && numeric < 100000 && integerDigitLength(value) <= 5;
+    }
+
+    function isVerticalCoordinateValue(line) {
+      if (!isSingleNumericLine(line)) return false;
+      if (!hasDecimalPart(line)) return false;
+      const numeric = parseNumeric(line);
+      return Number.isFinite(numeric) && !isLatLonSizedPair(line, line);
+    }
+
+    function resolveVerticalProjectedPair(firstValue, secondValue, forcedOrder) {
+      if (!isLikelyProjectedPairAnyOrder(firstValue, secondValue)) return { valid: false };
+      return resolveProjectedPair(firstValue, secondValue, forcedOrder);
+    }
+
+    function splitVerticalCoordinateBlock(values, forcedOrder) {
+      if (values.length < 2) return [];
+
+      if (values.length === 2) {
+        const pair = resolveVerticalProjectedPair(values[0], values[1], forcedOrder);
+        return pair.valid && !pair.unresolved ? [pair] : [];
+      }
+
+      if (values.length % 2 !== 0) return [];
+      const half = values.length / 2;
+      const firstGroup = values.slice(0, half);
+      const secondGroup = values.slice(half);
+      if (!firstGroup.every(isVerticalCoordinateValue) || !secondGroup.every(isVerticalCoordinateValue)) return [];
+
+      const firstAsNorthing = firstGroup.every((value) => integerDigitLength(value) === NORTHING_INTEGER_DIGITS);
+      const firstAsEasting = firstGroup.every((value) => integerDigitLength(value) === EASTING_INTEGER_DIGITS);
+      const secondAsNorthing = secondGroup.every((value) => integerDigitLength(value) === NORTHING_INTEGER_DIGITS);
+      const secondAsEasting = secondGroup.every((value) => integerDigitLength(value) === EASTING_INTEGER_DIGITS);
+
+      let order = forcedOrder;
+      if (order === PROJECTED_ORDER_AUTO) {
+        if (firstAsNorthing && secondAsEasting) order = PROJECTED_ORDER_NE;
+        if (firstAsEasting && secondAsNorthing) order = PROJECTED_ORDER_EN;
+      }
+      if (order === PROJECTED_ORDER_AUTO) return [];
+
+      return firstGroup.map((firstValue, index) => {
+        const secondValue = secondGroup[index];
+        return order === PROJECTED_ORDER_NE
+          ? {
+              valid: true,
+              unresolved: false,
+              order,
+              suggestedOrder: order,
+              northing: extractNumericString(firstValue),
+              easting: extractNumericString(secondValue),
+            }
+          : {
+              valid: true,
+              unresolved: false,
+              order,
+              suggestedOrder: order,
+              northing: extractNumericString(secondValue),
+              easting: extractNumericString(firstValue),
+            };
+      }).filter((pair) => pair.northing && pair.easting);
+    }
+
+    function splitColumnCoordinateBlock(ids, values, forcedOrder) {
+      if (!ids.length || values.length < ids.length * 2) return [];
+      const expectedValueCount = ids.length * 2;
+      const scopedValues = values.slice(0, expectedValueCount);
+      if (!scopedValues.every(isVerticalCoordinateValue)) return [];
+
+      if (ids.length === 1) {
+        const pairs = splitVerticalCoordinateBlock(scopedValues, forcedOrder);
+        return pairs.map((pair) => ({ ...pair, pointId: ids[0] }));
+      }
+
+      const half = scopedValues.length / 2;
+      const firstGroup = scopedValues.slice(0, half);
+      const secondGroup = scopedValues.slice(half);
+      const firstAsNorthing = firstGroup.every((value) => integerDigitLength(value) === NORTHING_INTEGER_DIGITS);
+      const firstAsEasting = firstGroup.every((value) => integerDigitLength(value) === EASTING_INTEGER_DIGITS);
+      const secondAsNorthing = secondGroup.every((value) => integerDigitLength(value) === NORTHING_INTEGER_DIGITS);
+      const secondAsEasting = secondGroup.every((value) => integerDigitLength(value) === EASTING_INTEGER_DIGITS);
+
+      let order = forcedOrder;
+      if (order === PROJECTED_ORDER_AUTO) {
+        if (firstAsNorthing && secondAsEasting) order = PROJECTED_ORDER_NE;
+        if (firstAsEasting && secondAsNorthing) order = PROJECTED_ORDER_EN;
+      }
+      if (order === PROJECTED_ORDER_AUTO) return [];
+
+      return ids.map((pointId, index) => {
+        const firstValue = firstGroup[index];
+        const secondValue = secondGroup[index];
+        return order === PROJECTED_ORDER_NE
+          ? {
+              valid: true,
+              unresolved: false,
+              order,
+              suggestedOrder: order,
+              pointId,
+              northing: extractNumericString(firstValue),
+              easting: extractNumericString(secondValue),
+            }
+          : {
+              valid: true,
+              unresolved: false,
+              order,
+              suggestedOrder: order,
+              pointId,
+              northing: extractNumericString(secondValue),
+              easting: extractNumericString(firstValue),
+            };
+      }).filter((pair) => pair.northing && pair.easting);
+    }
+
+    function extractVerticalProjectedRowsFromEntries(entries, forcedOrder = PROJECTED_ORDER_AUTO) {
+      const rows = [];
+      const seenPairs = new Set();
+      const pages = new Set();
+      const stats = {
+        projectedCandidateCount: 0,
+        projectedAmbiguousCount: 0,
+        projectedUnresolvedCount: 0,
+        projectedOrderVotesNE: 0,
+        projectedOrderVotesEN: 0,
+      };
+
+      const normalizedEntries = (Array.isArray(entries) ? entries : [])
+        .map((entry, index) => ({
+          ...entry,
+          index,
+          text: normalizeLineForParsing(entry?.text),
+        }))
+        .filter((entry) => entry.text && !isLikelyHeaderLine(entry.text));
+
+      for (let index = 0; index < normalizedEntries.length; index += 1) {
+        const entry = normalizedEntries[index];
+        if (!isVerticalPointIdLine(entry.text)) continue;
+
+        const ids = [];
+        let idCursor = index;
+        while (idCursor < normalizedEntries.length && normalizedEntries[idCursor].page === entry.page) {
+          const idText = normalizedEntries[idCursor].text;
+          if (!isVerticalPointIdLine(idText)) break;
+          ids.push(extractNumericString(idText));
+          idCursor += 1;
+        }
+        if (!ids.length) continue;
+
+        const values = [];
+        let cursor = idCursor;
+        while (cursor < normalizedEntries.length && normalizedEntries[cursor].page === entry.page) {
+          const nextText = normalizedEntries[cursor].text;
+          if (isVerticalPointIdLine(nextText)) break;
+          if (!isSingleNumericLine(nextText)) break;
+          if (isVerticalCoordinateValue(nextText)) values.push(nextText);
+          cursor += 1;
+        }
+
+        if (values.length < 2) continue;
+        const pairs = splitColumnCoordinateBlock(ids, values, forcedOrder);
+        if (!pairs.length) {
+          stats.projectedCandidateCount += Math.floor(values.length / 2);
+          if (forcedOrder === PROJECTED_ORDER_AUTO) stats.projectedUnresolvedCount += Math.floor(values.length / 2);
+          continue;
+        }
+
+        pairs.forEach((pair, pairIndex) => {
+          stats.projectedCandidateCount += 1;
+          if (pair.suggestedOrder === PROJECTED_ORDER_NE) stats.projectedOrderVotesNE += 1;
+          if (pair.suggestedOrder === PROJECTED_ORDER_EN) stats.projectedOrderVotesEN += 1;
+
+          const signature = buildCoordinateSignature(pair.northing, pair.easting, "PROJECTED");
+          if (!signature || seenPairs.has(signature)) return;
+          seenPairs.add(signature);
+          pages.add(entry.page ?? 1);
+          rows.push({
+            name: pair.pointId || (pairIndex === 0 ? extractNumericString(entry.text) : `${extractNumericString(entry.text)}-${pairIndex + 1}`),
+            northing: pair.northing,
+            easting: pair.easting,
+            elevation: "",
+            code: "COLUMN",
+            kind: "PROJECTED",
+            page: entry.page ?? 1,
+            source: "column-layout",
+            rawText: [entry.text, ...values].join(" "),
+          });
+        });
+
+        index = Math.max(index, cursor - 1);
+      }
+
+      return { rows, stats, pages };
+    }
+
     function pushLatLonRow(rows, latRaw, lonRaw, fallbackName, rawLine) {
       const lat = parseNumeric(latRaw);
       const lon = parseNumeric(lonRaw);
@@ -1729,12 +1980,13 @@
       });
     }
 
-    function extractLatLonRowsFromLine(line) {
+    function extractLatLonRowsFromLine(line, options = {}) {
       const normalized = normalizeText(line);
       const rows = [];
       if (!normalized) return rows;
 
       const fallbackName = inferNameFromLine(normalized);
+      const allowUnlabeledPairs = Boolean(options.allowUnlabeledPairs);
 
       const namedLatLon = normalized.match(/(?:lat(?:itude)?)\s*[:=]?\s*(-?\d{1,2}(?:[.,]\d+)?)[^0-9-+]{1,20}(?:lon|lng|longitude)\s*[:=]?\s*(-?\d{1,3}(?:[.,]\d+)?)/i);
       if (namedLatLon) {
@@ -1745,6 +1997,8 @@
       if (namedLonLat) {
         pushLatLonRow(rows, namedLonLat[2], namedLonLat[1], fallbackName, normalized);
       }
+
+      if (!allowUnlabeledPairs) return rows;
 
       const pairRegex = /(-?\d{1,3}(?:[.,]\d{4,}))\s*[,;/]\s*(-?\d{1,3}(?:[.,]\d{4,}))/g;
       let match;
@@ -1781,9 +2035,42 @@
         projectedOrderVotesEN: 0,
       };
 
+      const appendDraftRow = (draft, entry = {}) => {
+        const name = normalizeText(draft.name) || `AUTO-${fallbackCounter++}`;
+        const row = {
+          id: rows.length + 1,
+          name,
+          northing: normalizeNumberString(draft.northing || ""),
+          easting: normalizeNumberString(draft.easting || ""),
+          elevation: normalizeNumberString(draft.elevation || ""),
+          code: normalizeText(draft.code || ""),
+          page: draft.page ?? entry.page ?? 1,
+          source: draft.source || entry.source || "text-layer",
+          kind: draft.kind || "PROJECTED",
+          rawText: draft.rawText || entry.text || "",
+        };
+        const coordinateSignature = buildCoordinateSignature(row.northing, row.easting, row.kind);
+        const signature = coordinateSignature || `${row.northing}|${row.easting}|${row.kind}`;
+        if (signatures.has(signature)) return;
+        signatures.add(signature);
+        rows.push(row);
+      };
+
+      let vertical = { rows: [], stats: {}, pages: new Set() };
+      if (mode !== "latlon") {
+        vertical = extractVerticalProjectedRowsFromEntries(entries, forcedProjectedOrder);
+        vertical.rows.forEach((draft) => appendDraftRow(draft));
+        stats.projectedCandidateCount += vertical.stats.projectedCandidateCount || 0;
+        stats.projectedAmbiguousCount += vertical.stats.projectedAmbiguousCount || 0;
+        stats.projectedUnresolvedCount += vertical.stats.projectedUnresolvedCount || 0;
+        stats.projectedOrderVotesNE += vertical.stats.projectedOrderVotesNE || 0;
+        stats.projectedOrderVotesEN += vertical.stats.projectedOrderVotesEN || 0;
+      }
+
       buildParsingEntries(entries).forEach((entry) => {
         const line = normalizeLineForParsing(entry?.text);
         if (!line || isLikelyHeaderLine(line)) return;
+        if (vertical.rows.length >= 2 && vertical.pages.has(entry.page ?? 1)) return;
 
         const lineRows = [];
         if (mode !== "latlon") {
@@ -1796,27 +2083,13 @@
           stats.projectedOrderVotesEN += projected.stats.projectedOrderVotesEN;
         }
         if (mode !== "projected") {
-          lineRows.push(...extractLatLonRowsFromLine(line));
+          lineRows.push(...extractLatLonRowsFromLine(line, {
+            allowUnlabeledPairs: mode === "latlon",
+          }));
         }
 
         lineRows.forEach((draft) => {
-          const name = normalizeText(draft.name) || `AUTO-${fallbackCounter++}`;
-          const row = {
-            id: rows.length + 1,
-            name,
-            northing: normalizeNumberString(draft.northing || ""),
-            easting: normalizeNumberString(draft.easting || ""),
-            elevation: normalizeNumberString(draft.elevation || ""),
-            code: normalizeText(draft.code || ""),
-            page: entry.page ?? 1,
-            source: entry.source || "text-layer",
-            kind: draft.kind || "PROJECTED",
-            rawText: line,
-          };
-          const signature = `${row.name}|${row.northing}|${row.easting}|${row.elevation}|${row.code}|${row.page}`;
-          if (signatures.has(signature)) return;
-          signatures.add(signature);
-          rows.push(row);
+          appendDraftRow(draft, { ...entry, text: line });
         });
       });
 
@@ -1967,6 +2240,44 @@
         previewCard.classList.add("hidden");
       } finally {
         setBusy(false);
+      }
+    }
+
+    async function loadSharedCoordinateFile() {
+      if (!("caches" in window)) throw new Error("Cache API is not available.");
+      const cache = await caches.open("atlas-shared-files-v1");
+      const [fileResponse, metaResponse] = await Promise.all([
+        cache.match("/__atlas_shared_file__"),
+        cache.match("/__atlas_shared_file_meta__"),
+      ]);
+      if (!fileResponse) throw new Error("Shared file was not found.");
+      const blob = await fileResponse.blob();
+      let meta = {};
+      if (metaResponse) {
+        try {
+          meta = await metaResponse.json();
+        } catch (_) {
+          meta = {};
+        }
+      }
+      return new File([blob], meta.name || "shared-file", {
+        type: meta.type || blob.type || "application/octet-stream",
+      });
+    }
+
+    async function initializeSharedFileIfRequested() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("shared") !== "1") return false;
+
+      try {
+        const file = await loadSharedCoordinateFile();
+        await handleSelectedFile(file);
+        setHint("تم تجهيز ملف المشاركة. اضغط فحص واستخراج الإحداثيات للمتابعة.", "success", false);
+        return true;
+      } catch (error) {
+        console.error(error);
+        setHint("لم يتم العثور على ملف مشارك. جرّب المشاركة مرة أخرى من WhatsApp.", "error", false);
+        return false;
       }
     }
 
@@ -2263,7 +2574,8 @@
         );
       }
       window.AtlasCoordinatesExport?.updateButtonState?.();
-      setHint("اختر ملفًا لبدء الفحص.", "neutral", false);
+      const sharedLoaded = await initializeSharedFileIfRequested();
+      if (!sharedLoaded) setHint("اختر ملفًا لبدء الفحص.", "neutral", false);
       return true;
     }
 
@@ -2284,6 +2596,3 @@
   </script>
 </body>
 </html>
-
-
-
