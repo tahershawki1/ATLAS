@@ -11,263 +11,643 @@
     <link rel="stylesheet" href="../../shared/mobile-fix.css">
     <link rel="stylesheet" href="../../LIP/vendor/leaflet/leaflet.css">
     <script src="../../shared/auth.js"></script>
-    <style>
-        .custom-page {
+    <script src="../../shared/coordinates-export.js"></script>
+        <style>
+        body.page-scroll-enabled .custom-page {
             min-height: 100vh;
             min-height: 100dvh;
+            display: block;
+            padding: 20px;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             background:
-                radial-gradient(circle at top right, rgba(241, 135, 62, 0.16) 0%, transparent 38%),
-                radial-gradient(circle at bottom left, rgba(30, 64, 175, 0.15) 0%, transparent 40%),
-                linear-gradient(170deg, #f8fafc 0%, #eef2ff 52%, #f1f5f9 100%);
+                radial-gradient(circle at top right, rgba(241, 135, 62, 0.16) 0%, transparent 24%),
+                radial-gradient(circle at left top, rgba(10, 127, 138, 0.08) 0%, transparent 26%),
+                linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
         }
 
         .form-container {
-            width: 100%;
-            max-width: 780px;
+            width: min(100%, 1460px);
+            max-width: 1460px;
             margin: 0 auto;
-            padding: 12px;
-            padding-bottom: 98px;
+            padding: 0 0 28px;
+            display: grid;
+            gap: 20px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .hero-shell {
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(330px, 0.75fr);
+            gap: 18px;
+            padding: 28px;
+            border-radius: 8px;
+            border: 1px solid rgba(30, 64, 175, 0.12);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.92) 100%),
+                linear-gradient(135deg, rgba(10, 127, 138, 0.06) 0%, rgba(241, 135, 62, 0.08) 100%);
+            box-shadow: 0 28px 70px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+        }
+
+        .hero-shell::before {
+            content: '';
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+        }
+
+        .hero-main,
+        .hero-status-panel,
+        .workspace-card,
+        .sidebar-section {
+            min-width: 0;
+        }
+
+        .hero-main {
+            display: grid;
+            gap: 18px;
+            align-content: start;
+        }
+
+        .hero-kicker-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .page-kicker,
+        .hero-mini-badge,
+        .status-live-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 32px;
+            padding: 0 12px;
+            border-radius: 999px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        .page-kicker {
+            background: rgba(10, 127, 138, 0.1);
+            border: 1px solid rgba(10, 127, 138, 0.18);
+            color: var(--primary);
+        }
+
+        .hero-mini-badge {
+            background: rgba(241, 135, 62, 0.12);
+            border: 1px solid rgba(241, 135, 62, 0.22);
+            color: #c86c23;
+        }
+
+        .status-live-chip {
+            background: rgba(10, 127, 138, 0.1);
+            border: 1px solid rgba(10, 127, 138, 0.18);
+            color: var(--primary);
+        }
+
+        .page-heading {
+            margin: 0;
+            color: var(--primary);
+            font-size: clamp(1.5rem, 2vw, 2.5rem);
+            line-height: 1.2;
+            font-weight: 900;
+            max-width: 16ch;
+        }
+
+        .page-description {
+            margin: 0;
+            color: var(--text-dim);
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1.95;
+            max-width: 68ch;
+        }
+
+        .hero-highlights {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .hero-highlight,
+        .status-item,
+        .hint-item,
+        .viewer-tip,
+        .sidebar-section {
+            background: #ffffff;
+            border: 1px solid rgba(30, 64, 175, 0.1);
+            border-radius: 8px;
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.04);
+        }
+
+        .hero-highlight {
+            display: grid;
+            gap: 4px;
+            padding: 14px 16px;
+        }
+
+        .hero-highlight strong {
+            color: var(--text-main);
+            font-size: 0.88rem;
+            font-weight: 900;
+        }
+
+        .hero-highlight span {
+            color: var(--text-dim);
+            font-size: 0.78rem;
+            font-weight: 700;
+            line-height: 1.8;
+        }
+
+        .header-btns {
+            display: flex;
+            gap: 10px;
+            width: fit-content;
+            margin: 0;
+        }
+
+        .back-btn-header {
+            min-width: 196px;
+            height: 48px;
+            padding: 0 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(30, 64, 175, 0.12);
+            background: #ffffff;
+            color: var(--primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 800;
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+            transition: var(--transition);
+        }
+
+        .back-btn-header:hover {
+            transform: translateY(-1px);
+        }
+
+        .back-btn-header:active {
+            transform: scale(0.98);
+        }
+
+        .hero-status-panel {
+            display: grid;
+            gap: 16px;
+            align-content: start;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(30, 64, 175, 0.1);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        .status-panel-head {
+            display: flex;
+            align-items: start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .status-panel-copy {
+            display: grid;
+            gap: 4px;
+        }
+
+        .status-panel-kicker {
+            color: var(--text-dim);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .status-panel-copy strong {
+            color: var(--text-main);
+            font-size: 1rem;
+            font-weight: 900;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .status-item {
+            min-width: 0;
+            display: grid;
+            gap: 6px;
+            padding: 14px;
+        }
+
+        .status-item span {
+            color: var(--text-dim);
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        .status-item strong {
+            color: var(--primary);
+            font-family: 'Outfit', 'Cairo', sans-serif;
+            font-size: 1.02rem;
+            font-weight: 900;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .hero-status-note {
+            margin: 0;
+            color: var(--text-main);
+            font-size: 0.84rem;
+            font-weight: 700;
+            line-height: 1.85;
+        }
+
+        .page-layout {
+            display: grid;
+            grid-template-columns: minmax(290px, 330px) minmax(0, 1fr);
+            gap: 18px;
+            align-items: start;
+        }
+
+        .page-sidebar {
+            display: grid;
+            gap: 14px;
+            position: sticky;
+            top: 18px;
+        }
+
+        .sidebar-section {
+            display: grid;
+            gap: 14px;
+            padding: 18px;
+        }
+
+        .sidebar-section-head {
+            display: grid;
+            gap: 4px;
+        }
+
+        .sidebar-title {
+            margin: 0;
+            color: var(--primary);
+            font-size: 1rem;
+            font-weight: 900;
+            line-height: 1.4;
+        }
+
+        .sidebar-subtitle {
+            margin: 0;
+            color: var(--text-dim);
+            font-size: 0.78rem;
+            font-weight: 700;
+            line-height: 1.8;
+        }
+
+        .workflow-steps {
+            position: relative;
             display: grid;
             gap: 10px;
         }
 
-        .header-btns {
+        .workflow-steps::before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            bottom: 12px;
+            right: 20px;
+            width: 1px;
+            background: linear-gradient(180deg, rgba(10, 127, 138, 0.18) 0%, rgba(30, 64, 175, 0.08) 100%);
+        }
+
+        .workflow-step {
+            position: relative;
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            width: 100%;
-        }
-
-        .back-btn-header,
-        .action-btn {
-            min-height: 44px;
-            border-radius: 12px;
-            border: 1px solid rgba(30, 64, 175, 0.14);
-            background: #ffffff;
-            color: var(--primary);
-            font-size: 0.82rem;
-            font-weight: 800;
-            cursor: pointer;
-            transition: var(--transition);
-            padding: 0 12px;
-            text-align: center;
-            font-family: inherit;
-            display: inline-flex;
+            grid-template-columns: 40px minmax(0, 1fr);
+            gap: 12px;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .back-btn-header:hover,
-        .action-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 18px rgba(30, 64, 175, 0.1);
-        }
-
-        .back-btn-header:active {
-            transform: scale(0.96);
-        }
-
-        .action-btn.primary {
-            border: none;
-            background: linear-gradient(135deg, #0a7f8a 0%, #1e3a8a 100%);
-            color: #ffffff;
-            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.18);
-        }
-
-        .card {
-            background: rgba(255, 255, 255, 0.88);
-            border: 1px solid rgba(255, 255, 255, 0.9);
-            border-radius: 22px;
             padding: 12px;
-            box-shadow: 0 14px 28px rgba(30, 64, 175, 0.08);
-        }
-
-        .hero {
-            background: linear-gradient(145deg, rgba(255, 255, 255, 0.96) 0%, rgba(240, 249, 255, 0.88) 50%, rgba(255, 255, 255, 0.96) 100%);
-            border: 1px solid rgba(30, 64, 175, 0.12);
-        }
-
-        .hero-tag {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 999px;
-            border: 1px solid rgba(241, 135, 62, 0.4);
-            background: rgba(241, 135, 62, 0.14);
-            color: #9a3412;
-            padding: 0.15rem 0.6rem;
-            font-family: "Outfit", sans-serif;
-            font-size: 0.68rem;
-            font-weight: 900;
-            margin-bottom: 6px;
-        }
-
-        .hero-steps {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 6px;
-            margin-top: 10px;
-        }
-
-        .step-chip {
-            border-radius: 11px;
-            border: 1px solid rgba(30, 64, 175, 0.12);
+            border-radius: 8px;
             background: #ffffff;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px;
-            color: #0f172a;
-            font-size: 0.78rem;
-            font-weight: 800;
+            border: 1px solid rgba(30, 64, 175, 0.1);
+            transition: var(--transition);
         }
 
-        .step-chip .num {
-            width: 23px;
-            height: 23px;
+        .workflow-step.active {
+            transform: translateY(-1px);
+            border-color: rgba(241, 135, 62, 0.38);
+            box-shadow: 0 18px 32px rgba(15, 23, 42, 0.06);
+        }
+
+        .workflow-step.done {
+            border-color: rgba(10, 127, 138, 0.18);
+        }
+
+        .workflow-index {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background: rgba(30, 64, 175, 0.13);
+            background: rgba(10, 127, 138, 0.1);
             color: var(--primary);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-family: "Outfit", sans-serif;
-            font-size: 0.76rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.84rem;
             font-weight: 900;
-            flex: 0 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .workflow-step.active .workflow-index {
+            background: rgba(241, 135, 62, 0.14);
+            color: #c86c23;
+        }
+
+        .workflow-step.done .workflow-index {
+            background: var(--primary);
+            color: #ffffff;
+        }
+
+        .workflow-copy {
+            min-width: 0;
+            display: grid;
+            gap: 4px;
+        }
+
+        .workflow-copy strong {
+            color: var(--text-main);
+            font-size: 0.84rem;
+            font-weight: 900;
+        }
+
+        .workflow-copy span {
+            color: var(--text-dim);
+            font-size: 0.76rem;
+            font-weight: 700;
+            line-height: 1.7;
+        }
+
+        .guidance-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .guidance-item {
+            position: relative;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(30, 64, 175, 0.08);
+            background: #ffffff;
+            color: var(--text-main);
+            font-size: 0.8rem;
+            font-weight: 700;
+            line-height: 1.9;
+        }
+
+        .guidance-item::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            bottom: 10px;
+            right: 0;
+            width: 3px;
+            border-radius: 3px;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--accent) 100%);
+        }
+
+        .workspace-column {
+            display: grid;
+            gap: 18px;
+        }
+
+        .workspace-card {
+            min-width: 0;
+            padding: 22px;
+            margin: 0;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.92);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 255, 255, 0.92) 100%);
+            box-shadow: 0 24px 56px rgba(15, 23, 42, 0.06);
+        }
+
+        .section-head {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: start;
+            margin-bottom: 18px;
+        }
+
+        .section-copy {
+            min-width: 0;
         }
 
         .title {
+            margin: 0 0 6px;
             color: var(--primary);
+            font-size: 1.18rem;
             font-weight: 900;
-            margin-bottom: 8px;
-            font-size: 1.06rem;
             line-height: 1.35;
         }
 
         .sub-title {
+            margin: 0;
             color: var(--text-dim);
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             font-weight: 700;
-            margin-bottom: 14px;
+            line-height: 1.95;
+            max-width: 72ch;
+        }
+
+        .section-badge,
+        .summary-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 38px;
+            padding: 0 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(241, 135, 62, 0.22);
+            background: rgba(241, 135, 62, 0.1);
+            color: #c86c23;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 900;
+            width: fit-content;
+        }
+
+        .upload-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+            gap: 14px;
+            align-items: start;
         }
 
         .upload-shell {
-            border: 2px dashed rgba(10, 127, 138, 0.34);
-            border-radius: 16px;
-            background: linear-gradient(145deg, rgba(255, 255, 255, 1) 0%, rgba(239, 246, 255, 0.74) 100%);
-            padding: 12px;
+            min-height: 230px;
+            display: grid;
+            align-content: center;
+            gap: 14px;
+            padding: 24px;
+            border: 1.5px dashed rgba(10, 127, 138, 0.28);
+            border-radius: 8px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(248, 250, 252, 0.96) 100%);
             text-align: center;
-            transition: var(--transition);
-        }
-
-        .upload-shell:hover {
-            border-color: rgba(30, 64, 175, 0.55);
-            transform: translateY(-1px);
-            box-shadow: 0 12px 20px rgba(30, 64, 175, 0.12);
         }
 
         .file-btn {
             width: 100%;
-            height: 48px;
-            border-radius: 12px;
+            height: 54px;
             border: none;
-            background: linear-gradient(135deg, #0a7f8a 0%, #1e3a8a 100%);
+            border-radius: 8px;
+            background: var(--primary);
             color: #ffffff;
+            font-size: 0.95rem;
             font-weight: 900;
-            font-size: 0.9rem;
             cursor: pointer;
             transition: var(--transition);
-            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.18);
+            box-shadow: 0 14px 28px rgba(10, 127, 138, 0.2);
         }
 
         .file-btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 14px 26px rgba(10, 127, 138, 0.24);
+            box-shadow: 0 18px 30px rgba(10, 127, 138, 0.26);
         }
 
-        .viewer-toolbar {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 12px;
+        .hint-list {
+            display: grid;
+            gap: 10px;
+            align-content: start;
+        }
+
+        .hint-item {
+            padding: 14px 16px;
+            color: var(--text-main);
+            font-size: 0.8rem;
+            font-weight: 700;
+            line-height: 1.85;
         }
 
         .viewer-head {
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            justify-content: flex-start;
-            gap: 4px;
-            margin-bottom: 10px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+            gap: 14px;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .viewer-file-wrap {
+            min-width: 0;
+            display: grid;
+            gap: 6px;
+        }
+
+        .meta-label {
+            color: var(--text-dim);
+            font-size: 0.72rem;
+            font-weight: 800;
         }
 
         .viewer-file-name {
-            color: var(--text-dim);
-            font-size: 0.8rem;
-            font-weight: 700;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            padding: 0 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(30, 64, 175, 0.1);
+            background: #ffffff;
+            color: var(--text-main);
+            font-size: 0.84rem;
+            font-weight: 800;
             text-align: left;
             direction: ltr;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 100%;
         }
 
-        .tool-btn {
-            flex: 1 1 calc(50% - 4px);
-            min-width: 0;
-            height: 40px;
-            border-radius: 12px;
-            border: 1px solid rgba(30, 64, 175, 0.14);
-            background: #ffffff;
+        .viewer-tips {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .viewer-tip {
+            padding: 12px 14px;
             color: var(--text-main);
-            font-weight: 800;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: var(--transition);
+            font-size: 0.79rem;
+            font-weight: 700;
+            line-height: 1.8;
         }
 
-        .tool-btn.active {
-            opacity: 0.55;
-            border-color: rgba(30, 64, 175, 0.3);
+        .viewer-wrap {
+            position: relative;
+            height: clamp(430px, 72dvh, 820px);
+            border-radius: 8px;
+            border: 1px solid rgba(30, 64, 175, 0.12);
+            background: #eef2f7;
+            overflow: hidden;
+            padding: 0;
+            cursor: default;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            overscroll-behavior: contain;
         }
 
-        .zoom-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .viewer-wrap.hand-mode {
+            cursor: grab;
+        }
+
+        .viewer-wrap.hand-mode.dragging {
+            cursor: grabbing;
+        }
+
+        #pagesHost {
             width: 100%;
+            height: 100%;
         }
 
         .map-tools-floating {
             position: absolute;
-            top: 8px;
-            right: 8px;
+            top: 14px;
+            right: 14px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 10px;
             z-index: 500;
         }
 
         .map-icon-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            border: 1px solid rgba(30, 64, 175, 0.2);
-            background: rgba(255, 255, 255, 0.96);
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            border: 1px solid rgba(30, 64, 175, 0.12);
+            background: rgba(255, 255, 255, 0.98);
             color: var(--primary);
             font-size: 18px;
             font-weight: 900;
             line-height: 1;
             cursor: pointer;
-            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 12px 22px rgba(15, 23, 42, 0.08);
             transition: var(--transition);
         }
 
@@ -281,54 +661,44 @@
         }
 
         .map-zoom-badge {
-            min-width: 40px;
-            text-align: center;
-            padding: 5px 4px;
-            border-radius: 10px;
+            min-width: 44px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 6px;
+            border-radius: 8px;
             border: 1px solid rgba(30, 64, 175, 0.16);
-            background: rgba(255, 255, 255, 0.96);
+            background: rgba(255, 255, 255, 0.98);
             color: var(--primary);
             font-family: 'Outfit', sans-serif;
-            font-size: 0.68rem;
+            font-size: 0.72rem;
             font-weight: 800;
             box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
         }
 
-        .extract-btn {
-            width: 100%;
-            min-width: 0;
-            height: 42px;
-            padding: 0 12px;
-            border-radius: 12px;
-            border: none;
-            background: var(--primary);
-            color: #ffffff;
-            font-weight: 900;
-            font-size: 0.85rem;
-            cursor: pointer;
-            box-shadow: 0 10px 22px rgba(10, 127, 138, 0.25);
-            transition: var(--transition);
-            white-space: nowrap;
-            grid-column: 1 / -1;
-        }
-
-        .extract-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 14px 26px rgba(10, 127, 138, 0.32);
-        }
-
-        .extract-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            box-shadow: none;
-            transform: none;
+        .page-nav-floating {
+            position: absolute;
+            left: 14px;
+            right: 14px;
+            bottom: 14px;
+            display: grid;
+            grid-template-columns: 44px minmax(0, 1fr) 44px auto;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(30, 64, 175, 0.12);
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+            z-index: 500;
         }
 
         .zoom-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            border: 1px solid rgba(30, 64, 175, 0.14);
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            border: 1px solid rgba(30, 64, 175, 0.12);
             background: #ffffff;
             color: var(--primary);
             font-size: 1rem;
@@ -341,48 +711,40 @@
             text-align: center;
             color: var(--primary);
             font-family: 'Outfit', sans-serif;
+            font-size: 0.96rem;
             font-weight: 800;
-            font-size: 0.9rem;
         }
 
-        .viewer-wrap {
-            position: relative;
-            border-radius: 14px;
-            border: 1px solid rgba(30, 64, 175, 0.12);
-            background: #eef2f7;
-            height: clamp(320px, 58dvh, 520px);
-            overflow: hidden;
-            padding: 0;
-            cursor: default;
-            touch-action: none;
-            user-select: none;
-            -webkit-user-select: none;
-            overscroll-behavior: contain;
-        }
-        
-        #pagesHost {
-            width: 100%;
-            height: 100%;
-        }
-
-        .page-nav-floating {
-            position: absolute;
-            left: 8px;
-            right: 8px;
-            bottom: 8px;
-            transform: none;
-            display: grid;
-            grid-template-columns: 40px minmax(0, 1fr) 40px;
-            align-items: center;
-            gap: 8px;
-            padding: 8px;
-            border-radius: 14px;
-            border: 1px solid rgba(30, 64, 175, 0.14);
-            background: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
-            z-index: 500;
+        .extract-btn {
             width: auto;
-            max-width: none;
+            min-width: 190px;
+            height: 46px;
+            padding: 0 18px;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary);
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 0.88rem;
+            cursor: pointer;
+            box-shadow: 0 14px 28px rgba(10, 127, 138, 0.22);
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .extract-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 18px 32px rgba(10, 127, 138, 0.28);
+        }
+
+        .extract-btn:disabled,
+        .step-btn:disabled,
+        .export-btn:disabled,
+        .row-del-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
         }
 
         .selection-delete-map {
@@ -409,14 +771,6 @@
             background: #0a7f8a;
             box-shadow: 0 4px 10px rgba(10, 127, 138, 0.35);
             cursor: nwse-resize;
-        }
-
-        .viewer-wrap.hand-mode {
-            cursor: grab;
-        }
-
-        .viewer-wrap.hand-mode.dragging {
-            cursor: grabbing;
         }
 
         .pdf-page {
@@ -484,62 +838,105 @@
         }
 
         .results-shell {
-            margin-top: 10px;
-            border: 1px solid rgba(30, 64, 175, 0.12);
-            border-radius: 12px;
-            background: #fff;
-            overflow: hidden;
-        }
-
-        .raw-text-shell {
-            margin-top: 10px;
-            border: 1px solid rgba(30, 64, 175, 0.12);
-            border-radius: 12px;
-            background: #fff;
-            overflow: hidden;
-        }
-
-        .raw-text-box {
-            margin: 0;
-            padding: 12px;
-            max-height: 220px;
-            overflow: auto;
-            white-space: pre-wrap;
-            word-break: break-word;
-            direction: auto;
-            color: #0f172a;
-            font-family: 'Cairo', 'Courier New', monospace;
-            font-size: 0.8rem;
-            line-height: 1.7;
+            margin-top: 0;
+            border: 1px solid rgba(30, 64, 175, 0.08);
+            border-radius: 8px;
             background: #ffffff;
+            overflow: hidden;
         }
 
-        .raw-text-empty {
-            color: #64748b;
-            font-style: italic;
+        .results-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            background: rgba(248, 250, 252, 0.9);
+            border-bottom: 1px solid rgba(30, 64, 175, 0.08);
+        }
+
+        .results-title {
+            margin: 0;
+            color: var(--text-main);
+            font-size: 0.92rem;
+            font-weight: 900;
+        }
+
+        .results-inline-note,
+        .export-note {
+            color: var(--text-dim);
+            font-size: 0.76rem;
+            font-weight: 700;
+        }
+
+        .results-table-wrap {
+            max-height: min(54dvh, 520px);
+            overflow: auto;
+            padding: 0;
+        }
+
+        .results-table {
+            width: 100%;
+            min-width: 760px;
+            border-collapse: separate;
+            border-spacing: 0;
+            text-align: center;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid rgba(30, 64, 175, 0.08);
+            font-size: 0.8rem;
+        }
+
+        .results-table th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #f8fafc;
+            color: var(--primary);
+            font-weight: 900;
+        }
+
+        .row-del-btn {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            background: #fff1f2;
+            color: #be123c;
+            font-size: 0.78rem;
+            font-weight: 900;
+            cursor: pointer;
         }
 
         .step-actions {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 8px;
-            margin-top: 12px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        #pointsMapStep .step-actions {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
         .step-btn {
             width: 100%;
-            min-height: 44px;
+            min-height: 48px;
             border: none;
-            border-radius: 12px;
-            padding: 10px 14px;
-            font-size: 0.86rem;
-            font-weight: 800;
+            border-radius: 8px;
+            padding: 0 16px;
+            font-size: 0.88rem;
+            font-weight: 900;
             cursor: pointer;
         }
 
         .step-btn.primary {
             background: var(--primary);
             color: #fff;
+            box-shadow: 0 14px 28px rgba(10, 127, 138, 0.16);
         }
 
         .step-btn.secondary {
@@ -549,9 +946,9 @@
 
         .map-area {
             width: 100%;
-            height: clamp(300px, 52dvh, 500px);
-            border: 1px solid rgba(30, 64, 175, 0.16);
-            border-radius: 12px;
+            height: clamp(430px, 72dvh, 820px);
+            border: 1px solid rgba(30, 64, 175, 0.12);
+            border-radius: 8px;
             overflow: hidden;
             background: #f8fafc;
         }
@@ -575,45 +972,46 @@
         .modal-backdrop {
             position: fixed;
             inset: 0;
-            background: rgba(2, 6, 23, 0.55);
             display: flex;
-            align-items: flex-end;
+            align-items: center;
             justify-content: center;
+            padding: 20px;
+            background: rgba(2, 6, 23, 0.5);
             z-index: 3000;
-            padding: 0;
         }
 
         .modal-card {
-            width: 100%;
-            background: #fff;
-            border-radius: 20px 20px 0 0;
-            border: 1px solid rgba(30, 64, 175, 0.12);
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+            width: min(580px, 100%);
+            max-height: min(84dvh, 680px);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.92);
+            background: #ffffff;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
             overflow: hidden;
-            max-height: min(82dvh, 620px);
         }
 
         .modal-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 14px;
-            border-bottom: 1px solid rgba(30, 64, 175, 0.08);
+            gap: 10px;
+            padding: 16px 18px;
             background: #f8fafc;
+            border-bottom: 1px solid rgba(30, 64, 175, 0.08);
         }
 
         .modal-title {
             margin: 0;
-            font-size: 1rem;
             color: var(--primary);
+            font-size: 1rem;
             font-weight: 900;
         }
 
         .modal-close {
+            width: 36px;
+            height: 36px;
             border: none;
-            width: 34px;
-            height: 34px;
-            border-radius: 10px;
+            border-radius: 8px;
             background: #e2e8f0;
             color: #1e293b;
             cursor: pointer;
@@ -622,9 +1020,9 @@
         }
 
         .modal-body {
-            padding: 14px;
+            padding: 18px;
             display: grid;
-            gap: 10px;
+            gap: 12px;
             overflow: auto;
         }
 
@@ -636,10 +1034,10 @@
 
         .modal-select {
             width: 100%;
-            height: 40px;
+            height: 46px;
             border: 1px solid rgba(30, 64, 175, 0.2);
-            border-radius: 10px;
-            padding: 0 10px;
+            border-radius: 8px;
+            padding: 0 12px;
             background: #fff;
             color: #0f172a;
             font-size: 0.85rem;
@@ -648,13 +1046,13 @@
 
         .export-grid {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 8px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
         }
 
         .export-btn {
-            height: 40px;
-            border-radius: 10px;
+            height: 46px;
+            border-radius: 8px;
             border: 1px solid rgba(30, 64, 175, 0.18);
             background: #fff;
             color: var(--primary);
@@ -663,89 +1061,111 @@
             cursor: pointer;
         }
 
-        .export-note {
-            margin: 0;
-            font-size: 0.76rem;
-            color: #64748b;
-            font-weight: 700;
+        @media (max-width: 1180px) {
+            .hero-shell,
+            .page-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .page-sidebar {
+                position: static;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
 
-        .results-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 10px 12px;
-            background: #f8fafc;
-            border-bottom: 1px solid rgba(30, 64, 175, 0.08);
-        }
+        @media (max-width: 860px) {
+            body.page-scroll-enabled .custom-page {
+                padding: 12px;
+            }
 
-        .results-title {
-            margin: 0;
-            color: var(--primary);
-            font-weight: 900;
-            font-size: 0.92rem;
-        }
+            .hero-highlights,
+            .page-sidebar,
+            .upload-layout,
+            .viewer-tips,
+            .status-grid,
+            .step-actions,
+            #pointsMapStep .step-actions,
+            .export-grid {
+                grid-template-columns: 1fr;
+            }
 
-        .results-count {
-            color: var(--text-dim);
-            font-size: 0.78rem;
-            font-weight: 700;
-        }
+            .section-head,
+            .viewer-head {
+                grid-template-columns: 1fr;
+            }
 
-        .results-table-wrap {
-            max-height: none;
-            overflow: visible;
-            padding: 10px;
-        }
+            .page-heading {
+                max-width: none;
+                font-size: 1.5rem;
+            }
 
-        .results-table {
-            width: 100%;
-            min-width: 0;
-            border-collapse: collapse;
-            text-align: right;
-        }
+            .page-description {
+                font-size: 0.88rem;
+            }
 
-        .results-table th,
-        .results-table td {
-            padding: 8px 6px;
-            border-bottom: 1px solid rgba(30, 64, 175, 0.08);
-            font-size: 0.76rem;
-        }
+            .header-btns {
+                width: 100%;
+            }
 
-        .results-table th {
-            position: sticky;
-            top: 0;
-            z-index: 1;
-            background: #f8fafc;
-            color: var(--primary);
-            font-weight: 800;
-        }
+            .back-btn-header {
+                width: 100%;
+                min-width: 0;
+            }
 
-        .row-del-btn {
-            height: 36px;
-            width: 100%;
-            border: none;
-            border-radius: 8px;
-            background: #fee2e2;
-            color: #b91c1c;
-            font-size: 0.76rem;
-            font-weight: 900;
-            cursor: pointer;
-        }
+            .hero-shell,
+            .sidebar-section,
+            .workspace-card {
+                padding: 16px;
+            }
 
-        .step-btn:disabled,
-        .export-btn:disabled,
-        .row-del-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+            .viewer-wrap,
+            .map-area {
+                height: clamp(320px, 62dvh, 560px);
+            }
 
-        .hidden {
-            display: none !important;
+            .page-nav-floating {
+                grid-template-columns: 40px minmax(0, 1fr) 40px;
+            }
+
+            .extract-btn {
+                grid-column: 1 / -1;
+                width: 100%;
+                min-width: 0;
+            }
+
+            .results-table-wrap {
+                max-height: none;
+                overflow: visible;
+            }
         }
 
         @media (max-width: 640px) {
+            body.page-scroll-enabled .custom-page {
+                padding: 10px;
+            }
+
+            .hero-shell,
+            .sidebar-section,
+            .workspace-card {
+                padding: 14px;
+            }
+
+            .hero-kicker-row {
+                gap: 6px;
+            }
+
+            .page-kicker,
+            .hero-mini-badge,
+            .status-live-chip {
+                min-height: 30px;
+                padding-inline: 10px;
+                font-size: 0.68rem;
+            }
+
+            .page-heading {
+                font-size: 1.32rem;
+            }
+
             .results-table thead {
                 display: none;
             }
@@ -761,14 +1181,15 @@
             .results-table tbody {
                 display: grid;
                 gap: 10px;
+                padding: 10px;
             }
 
             .results-table tr {
                 display: grid;
                 gap: 8px;
-                padding: 10px;
+                padding: 12px;
                 border: 1px solid rgba(30, 64, 175, 0.1);
-                border-radius: 12px;
+                border-radius: 8px;
                 background: #f8fafc;
             }
 
@@ -785,123 +1206,13 @@
 
             .results-table td::before {
                 content: attr(data-label);
-                color: #64748b;
+                color: var(--text-dim);
                 font-weight: 800;
                 flex: 0 0 auto;
             }
 
-            .results-table td:last-child {
-                margin-top: 4px;
-            }
-
             .results-table td:last-child::before {
                 content: none;
-            }
-        }
-
-        @media (min-width: 768px) {
-            .form-container {
-                padding: 16px;
-                max-width: 780px;
-                padding-bottom: 96px;
-                gap: 12px;
-            }
-
-            .card {
-                padding: 14px;
-            }
-
-            .title {
-                font-size: 1.18rem;
-            }
-
-            .sub-title {
-                font-size: 0.84rem;
-            }
-
-            .file-btn {
-                height: 52px;
-                font-size: 0.96rem;
-            }
-
-            .viewer-head {
-                flex-direction: row;
-                align-items: center;
-                justify-content: space-between;
-                gap: 10px;
-                margin-bottom: 8px;
-            }
-
-            .viewer-file-name {
-                max-width: 65%;
-                font-size: 0.86rem;
-            }
-
-            .tool-btn {
-                min-width: 140px;
-                height: 44px;
-                flex: 1 1 auto;
-            }
-
-            .zoom-group {
-                width: auto;
-            }
-
-            .viewer-wrap {
-                height: clamp(360px, 64dvh, 640px);
-            }
-
-            .page-nav-floating {
-                left: 50%;
-                right: auto;
-                bottom: 12px;
-                transform: translateX(-50%);
-                display: flex;
-                flex-wrap: nowrap;
-                width: auto;
-                max-width: calc(100% - 16px);
-                padding: 6px 10px;
-                overflow-x: auto;
-            }
-
-            .extract-btn {
-                grid-column: auto;
-                width: auto;
-                min-width: 120px;
-                height: 38px;
-            }
-
-            .step-actions {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            #coordinatesStep .step-actions {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-
-            .modal-backdrop {
-                align-items: center;
-                padding: 16px;
-            }
-
-            .modal-card {
-                width: min(520px, 100%);
-                border-radius: 16px;
-            }
-
-            .export-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .results-table-wrap {
-                max-height: 320px;
-                overflow: auto;
-                padding: 0;
-            }
-
-            .results-table {
-                min-width: 760px;
-                text-align: center;
             }
         }
     </style>
@@ -909,103 +1220,251 @@
 <body class="page-scroll-enabled">
 <div class="custom-page">
     <div class="form-container">
-        <div class="header-btns">
-            <button class="back-btn-header" onclick="window.location.href='../../index.html'">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" style="transform: rotate(180deg);"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                <span>العودة للرئيسية</span>
-            </button>
-            <button class="action-btn" onclick="window.location.href='../coordinates-proposal/'" type="button">فتح صفحة الفحص التلقائي</button>
+        <header class="hero-shell">
+            <div class="hero-main">
+                <div class="hero-kicker-row">
+                    <span class="page-kicker">ATLAS SURVEYING</span>
+                    <span class="hero-mini-badge">COORDINATE WORKFLOW</span>
+                </div>
+
+                <h1 class="page-heading">استخراج الإحداثيات من PDF</h1>
+                <p class="page-description">واجهة عمل متكاملة لرفع ملفات PDF، تحديد الجداول بدقة، مراجعة الإحداثيات، ثم عرضها على الماب أو تصديرها في خطوات سريعة وواضحة.</p>
+
+                <div class="hero-highlights">
+                    <div class="hero-highlight">
+                        <strong>رفع ذكي</strong>
+                        <span>بدء العمل من الملف مباشرة</span>
+                    </div>
+
+                    <div class="hero-highlight">
+                        <strong>تحديد دقيق</strong>
+                        <span>اختيار الجدول قبل الاستخراج</span>
+                    </div>
+
+                    <div class="hero-highlight">
+                        <strong>مراجعة وتصدير</strong>
+                        <span>تحقق بصري قبل الإخراج النهائي</span>
+                    </div>
+                </div>
+
+                <div class="header-btns">
+                    <button class="back-btn-header" onclick="window.location.href='../../index.html'">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" style="transform: rotate(180deg);"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                        <span>العودة للرئيسية</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="hero-status-panel">
+                <div class="status-panel-head">
+                    <div class="status-panel-copy">
+                        <span class="status-panel-kicker">Execution</span>
+                        <strong>لوحة التنفيذ</strong>
+                    </div>
+                    <span class="status-live-chip">Live</span>
+                </div>
+
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span>الحالة</span>
+                        <strong id="currentStepValue" aria-live="polite">رفع الملف</strong>
+                    </div>
+
+                    <div class="status-item">
+                        <span>الملف</span>
+                        <strong id="fileStatusValue" aria-live="polite">غير مرفوع</strong>
+                    </div>
+
+                    <div class="status-item">
+                        <span>التحديدات</span>
+                        <strong id="selectionCountValue" aria-live="polite">0</strong>
+                    </div>
+
+                    <div class="status-item">
+                        <span>النتائج</span>
+                        <strong id="rowsCountValue" aria-live="polite">0</strong>
+                    </div>
+                </div>
+
+                <p id="stageMessage" class="hero-status-note">ابدأ برفع ملف PDF الذي يحتوي على جدول الإحداثيات.</p>
+            </div>
+        </header>
+
+        <div class="page-layout">
+            <aside class="page-sidebar">
+                <section class="sidebar-section">
+                    <div class="sidebar-section-head">
+                        <h2 class="sidebar-title">مسار العمل</h2>
+                        <p class="sidebar-subtitle">تسلسل واضح من الملف حتى الماب.</p>
+                    </div>
+
+                    <div class="workflow-steps">
+                        <div class="workflow-step active" data-step-marker="upload">
+                            <span class="workflow-index">1</span>
+                            <div class="workflow-copy">
+                                <strong>رفع الملف</strong>
+                                <span>تحميل ملف PDF</span>
+                            </div>
+                        </div>
+
+                        <div class="workflow-step" data-step-marker="viewer">
+                            <span class="workflow-index">2</span>
+                            <div class="workflow-copy">
+                                <strong>تحديد الجدول</strong>
+                                <span>اختيار المنطقة المطلوبة</span>
+                            </div>
+                        </div>
+
+                        <div class="workflow-step" data-step-marker="coordinates">
+                            <span class="workflow-index">3</span>
+                            <div class="workflow-copy">
+                                <strong>مراجعة النتائج</strong>
+                                <span>تنقيح الصفوف المستخرجة</span>
+                            </div>
+                        </div>
+
+                        <div class="workflow-step" data-step-marker="points-map">
+                            <span class="workflow-index">4</span>
+                            <div class="workflow-copy">
+                                <strong>عرض النقاط</strong>
+                                <span>التحقق على الماب</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="sidebar-section sidebar-guidance">
+                    <div class="sidebar-section-head">
+                        <h2 class="sidebar-title">دليل سريع</h2>
+                        <p class="sidebar-subtitle">ملاحظات عملية قبل البدء.</p>
+                    </div>
+
+                    <div class="guidance-list">
+                        <div class="guidance-item">استخدم نسخة PDF واضحة حتى تكون القراءة أدق.</div>
+                        <div class="guidance-item">حدّد الجدول فقط بدون عناصر جانبية غير لازمة.</div>
+                        <div class="guidance-item">راجع السطور المستخرجة قبل العرض أو التصدير.</div>
+                    </div>
+                </section>
+            </aside>
+
+            <main class="workspace-column">
+                <section id="uploadStep" class="card workspace-card">
+                    <div class="section-head">
+                        <div class="section-copy">
+                            <h2 class="title">رفع الملف</h2>
+                            <p class="sub-title">ارفع ملف PDF الذي يحتوي على جدول الإحداثيات.</p>
+                        </div>
+                        <span class="section-badge">01</span>
+                    </div>
+
+                    <div class="upload-layout">
+                        <div class="upload-shell">
+                            <input type="file" id="pdfInput" accept=".pdf,application/pdf" class="hidden">
+                            <button id="uploadBtn" class="file-btn">رفع ملف PDF</button>
+                            <p id="fileHint" class="sub-title" style="margin-top:10px;margin-bottom:0;">لم يتم اختيار ملف بعد</p>
+                        </div>
+
+                        <div class="hint-list" aria-label="ملاحظات سريعة">
+                            <div class="hint-item">ارفع نسخة PDF واضحة حتى تكون القراءة أدق.</div>
+                            <div class="hint-item">حدّد الجدول فقط بدون هوامش كبيرة.</div>
+                            <div class="hint-item">راجع الصفوف المستخرجة قبل العرض أو التصدير.</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="viewerStep" class="card workspace-card hidden">
+                    <div class="section-head viewer-head">
+                        <div class="section-copy">
+                            <h2 class="title">مراجعة الملف وتحديد الجدول</h2>
+                            <p class="sub-title">حرّك الملف باليد ثم استخدم أداة التحديد حول الجدول المطلوب بدقة.</p>
+                        </div>
+
+                        <div class="viewer-file-wrap">
+                            <span class="meta-label">اسم الملف</span>
+                            <div class="viewer-file-name" id="viewerFileName">-</div>
+                        </div>
+                    </div>
+
+                    <div class="viewer-tips">
+                        <div class="viewer-tip">✋ للتحريك داخل الصفحة</div>
+                        <div class="viewer-tip">▭ لتحديد الجدول المطلوب</div>
+                        <div class="viewer-tip">يمكنك تعديل التحديد أو حذفه قبل العرض</div>
+                    </div>
+
+                    <div id="viewerWrap" class="viewer-wrap hand-mode">
+                        <div id="pagesHost"></div>
+                        <div class="map-tools-floating">
+                            <button id="handToolBtn" class="map-icon-btn active" type="button" title="أداة التحريك" aria-label="أداة التحريك">✋</button>
+                            <button id="selectToolBtn" class="map-icon-btn" type="button" title="أداة تحديد الجدول" aria-label="أداة تحديد الجدول">▭</button>
+                            <button id="zoomInBtn" class="map-icon-btn" type="button" title="تكبير" aria-label="تكبير">+</button>
+                            <button id="zoomOutBtn" class="map-icon-btn" type="button" title="تصغير" aria-label="تصغير">−</button>
+                            <div id="zoomLabel" class="map-zoom-badge">40%</div>
+                        </div>
+                        <div class="page-nav-floating">
+                            <button id="prevPageBtn" class="zoom-btn" type="button">&lt;</button>
+                            <div id="pageLabel" class="zoom-label">1 / 1</div>
+                            <button id="nextPageBtn" class="zoom-btn" type="button">&gt;</button>
+                            <button id="extractBtn" class="extract-btn" type="button" disabled>عرض الإحداثيات</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="coordinatesStep" class="card workspace-card hidden">
+                    <div class="section-head">
+                        <div class="section-copy">
+                            <h2 class="title">الإحداثيات المستخرجة</h2>
+                            <p class="sub-title">راجع النتائج ثم اعرضها على الماب أو صدّرها بعد التأكد من السطور.</p>
+                        </div>
+                        <span id="resultsCount" class="summary-pill" aria-live="polite">0 سطر</span>
+                    </div>
+
+                    <div id="resultsShell" class="results-shell hidden">
+                        <div class="results-head">
+                            <h3 class="results-title">النتائج الحالية</h3>
+                            <span class="results-inline-note">يمكنك حذف أي سطر غير صحيح قبل التصدير</span>
+                        </div>
+
+                        <div class="results-table-wrap">
+                            <table class="results-table">
+                                <thead>
+                                <tr>
+                                    <th>name</th>
+                                    <th>northing</th>
+                                    <th>easting</th>
+                                    <th>elevation</th>
+                                    <th>code</th>
+                                    <th>حذف</th>
+                                </tr>
+                                </thead>
+                                <tbody id="resultsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="step-actions">
+                        <button id="backToViewerBtn" class="step-btn secondary" type="button">العودة للماب</button>
+                        <button id="showOnMapBtn" class="step-btn primary" type="button">عرض الإحداثيات على الماب</button>
+                        <button id="exportBtn" class="step-btn primary" type="button">تصدير الإحداثيات</button>
+                    </div>
+                </section>
+
+                <section id="pointsMapStep" class="card workspace-card hidden">
+                    <div class="section-head">
+                        <div class="section-copy">
+                            <h2 class="title">عرض النقاط على الماب</h2>
+                            <p class="sub-title">تحقق من توزيع النقاط قبل العودة للنتائج أو تصدير الملف النهائي.</p>
+                        </div>
+                        <span class="section-badge">04</span>
+                    </div>
+
+                    <div id="pointsMapHost" class="map-area"></div>
+                    <div class="step-actions">
+                        <button id="toggleSatelliteBtn" class="step-btn primary" type="button">عرض القمر الصناعي</button>
+                        <button id="backToCoordsBtn" class="step-btn secondary" type="button">العودة للإحداثيات</button>
+                    </div>
+                </section>
+            </main>
         </div>
-
-        <section class="card hero">
-            <span class="hero-tag">ADVANCED WORKFLOW</span>
-            <h1 class="title">استخراج الإحداثيات من PDF</h1>
-            <p class="sub-title">
-                ارفع ملف PDF، حدد منطقة جدول الإحداثيات يدويًا، ثم اعرض النتائج على الخريطة أو صدّرها بالصيغ المطلوبة.
-            </p>
-            <div class="hero-steps">
-                <div class="step-chip"><span class="num">1</span><span>رفع ملف PDF ومعاينة الصفحات</span></div>
-                <div class="step-chip"><span class="num">2</span><span>تحديد جدول الإحداثيات من العارض</span></div>
-                <div class="step-chip"><span class="num">3</span><span>مراجعة النتائج وعرضها على الماب أو التصدير</span></div>
-            </div>
-        </section>
-
-        <section id="uploadStep" class="card">
-            <h1 class="title">استخراج الإحداثيات من PDF</h1>
-            <p class="sub-title">ارفع ملف PDF الذي يحتوي على جدول الإحداثيات</p>
-            <div class="upload-shell">
-                <input type="file" id="pdfInput" accept=".pdf,application/pdf" class="hidden">
-                <button id="uploadBtn" class="file-btn">رفع ملف PDF</button>
-                <p id="fileHint" class="sub-title" style="margin-top:10px;margin-bottom:0;">لم يتم اختيار ملف بعد</p>
-            </div>
-        </section>
-
-        <section id="viewerStep" class="card hidden">
-            <div class="viewer-head">
-                <h2 class="title" style="margin-bottom:0;">عارض الملفات</h2>
-                <div class="viewer-file-name" id="viewerFileName">-</div>
-            </div>
-
-            <div id="viewerWrap" class="viewer-wrap hand-mode">
-                <div id="pagesHost"></div>
-                <div class="map-tools-floating">
-                    <button id="handToolBtn" class="map-icon-btn active" type="button" title="أداة التحريك" aria-label="أداة التحريك">✋</button>
-                    <button id="selectToolBtn" class="map-icon-btn" type="button" title="أداة تحديد الجدول" aria-label="أداة تحديد الجدول">▭</button>
-                    <button id="zoomInBtn" class="map-icon-btn" type="button" title="تكبير" aria-label="تكبير">+</button>
-                    <button id="zoomOutBtn" class="map-icon-btn" type="button" title="تصغير" aria-label="تصغير">−</button>
-                    <div id="zoomLabel" class="map-zoom-badge">40%</div>
-                </div>
-                <div class="page-nav-floating">
-                    <button id="prevPageBtn" class="zoom-btn" type="button">&lt;</button>
-                    <div id="pageLabel" class="zoom-label">1 / 1</div>
-                    <button id="nextPageBtn" class="zoom-btn" type="button">&gt;</button>
-                    <button id="extractBtn" class="extract-btn" type="button" disabled>عرض الإحداثيات</button>
-                </div>
-            </div>
-        </section>
-
-        <section id="coordinatesStep" class="card hidden">
-            <div class="viewer-head">
-                <h2 class="title" style="margin-bottom:0;">الإحداثيات المستخرجة</h2>
-                <span id="resultsCount" class="results-count">0 سطر</span>
-            </div>
-
-            <div id="rawTextShell" class="raw-text-shell hidden">
-                <div class="results-head">
-                    <h3 class="results-title">النص الخام المستخرج</h3>
-                    <span class="results-count">قبل التحليل</span>
-                </div>
-                <pre id="extractedTextPreview" class="raw-text-box raw-text-empty" dir="auto">لا يوجد نص مستخرج بعد.</pre>
-            </div>
-
-            <div id="resultsShell" class="results-shell hidden">
-                <div class="results-table-wrap">
-                    <table class="results-table">
-                        <thead>
-                        <tr id="resultsHeaderRow"></tr>
-                        </thead>
-                        <tbody id="resultsBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="step-actions">
-                <button id="backToViewerBtn" class="step-btn secondary" type="button">العودة للماب</button>
-                <button id="showOnMapBtn" class="step-btn primary" type="button">عرض الإحداثيات على الماب</button>
-                <button id="exportBtn" class="step-btn primary" type="button">تصدير</button>
-            </div>
-        </section>
-
-        <section id="pointsMapStep" class="card hidden">
-            <div class="viewer-head">
-                <h2 class="title" style="margin-bottom:0;">عرض النقاط على الماب</h2>
-            </div>
-            <div id="pointsMapHost" class="map-area"></div>
-            <div class="step-actions">
-                <button id="toggleSatelliteBtn" class="step-btn primary" type="button">عرض القمر الصناعي</button>
-                <button id="backToCoordsBtn" class="step-btn secondary" type="button">العودة للإحداثيات</button>
-            </div>
-        </section>
     </div>
 </div>
 
@@ -1060,17 +1519,20 @@
     const exportBtn = document.getElementById('exportBtn');
     const backToCoordsBtn = document.getElementById('backToCoordsBtn');
     const toggleSatelliteBtn = document.getElementById('toggleSatelliteBtn');
-    const rawTextShell = document.getElementById('rawTextShell');
-    const extractedTextPreview = document.getElementById('extractedTextPreview');
     const resultsShell = document.getElementById('resultsShell');
     const resultsCount = document.getElementById('resultsCount');
-    const resultsHeaderRow = document.getElementById('resultsHeaderRow');
     const resultsBody = document.getElementById('resultsBody');
     const exportModal = document.getElementById('exportModal');
     const closeExportModalBtn = document.getElementById('closeExportModalBtn');
     const showOnMapBtn = document.getElementById('showOnMapBtn');
     const sourceCrsSelect = document.getElementById('sourceCrsSelect');
     const exportFormatBtns = Array.from(document.querySelectorAll('[data-export-format]'));
+    const currentStepValue = document.getElementById('currentStepValue');
+    const fileStatusValue = document.getElementById('fileStatusValue');
+    const selectionCountValue = document.getElementById('selectionCountValue');
+    const rowsCountValue = document.getElementById('rowsCountValue');
+    const stageMessage = document.getElementById('stageMessage');
+    const workflowSteps = Array.from(document.querySelectorAll('[data-step-marker]'));
 
     let pdfDoc = null;
     let pdfApiModule = null;
@@ -1098,6 +1560,8 @@
     let pointsBaseLayer = null;
     let pointsSatelliteLayer = null;
     let isSatelliteMode = false;
+    let activeStep = 'upload';
+    let exportSuggestedBaseName = 'extracted-coordinates';
     const PDF_JS_MODULE_PATH = '../../LIP/vendor/pdfjs/pdf.min.mjs';
     const PDF_JS_WORKER_PATH = '../../LIP/vendor/pdfjs/pdf.worker.min.mjs';
     const TESSERACT_MODULE_PATH = '../../LIP/vendor/tesseract/tesseract.esm.min.js';
@@ -1130,11 +1594,83 @@
         }
     };
 
+    function openCoordinatesExportForm() {
+        if (!window.AtlasCoordinatesExport) {
+            alert('تعذر فتح فورم التصدير الآن.');
+            return;
+        }
+        window.AtlasCoordinatesExport.open(extractedRows, {
+            sourceTitle: 'استخراج الإحداثيات من PDF',
+            sourcePage: 'coordinates-extractor',
+            sourceCrs: sourceCrsSelect?.value || 'DLTM',
+            suggestedBaseName: exportSuggestedBaseName
+        });
+    }
+
+    if (window.AtlasCoordinatesExport?.registerProvider) {
+        window.AtlasCoordinatesExport.registerProvider(
+            () => ({
+                rows: extractedRows,
+                meta: {
+                    sourceTitle: 'استخراج الإحداثيات من PDF',
+                    sourcePage: 'coordinates-extractor',
+                    sourceCrs: sourceCrsSelect?.value || 'DLTM',
+                    suggestedBaseName: exportSuggestedBaseName
+                }
+            }),
+            { id: 'coordinates-extractor' }
+        );
+    }
+
+    const STEP_DETAILS = {
+        upload: {
+            label: 'رفع الملف',
+            message: 'ابدأ برفع ملف PDF الذي يحتوي على جدول الإحداثيات.'
+        },
+        viewer: {
+            label: 'تحديد الجدول',
+            message: 'حرّك الملف وحدد الجدول المطلوب قبل استخراج الإحداثيات.'
+        },
+        coordinates: {
+            label: 'مراجعة النتائج',
+            message: 'راجع الصفوف المستخرجة ثم اعرضها على الماب أو صدّرها.'
+        },
+        'points-map': {
+            label: 'عرض النقاط',
+            message: 'تحقق من مواقع النقاط على الماب قبل التصدير النهائي.'
+        }
+    };
+
+    function isWorkflowStepComplete(stepName) {
+        if (stepName === 'upload') return Boolean(pdfDoc);
+        if (stepName === 'viewer') return selections.length > 0;
+        if (stepName === 'coordinates') return extractedRows.length > 0;
+        if (stepName === 'points-map') return activeStep === 'points-map';
+        return false;
+    }
+
+    function updateWorkspaceSummary() {
+        const details = STEP_DETAILS[activeStep] || STEP_DETAILS.upload;
+        currentStepValue.textContent = details.label;
+        fileStatusValue.textContent = pdfDoc ? 'جاهز' : 'غير مرفوع';
+        selectionCountValue.textContent = String(selections.length);
+        rowsCountValue.textContent = String(extractedRows.length);
+        stageMessage.textContent = details.message;
+
+        workflowSteps.forEach((item) => {
+            const stepName = item.dataset.stepMarker;
+            item.classList.toggle('active', stepName === activeStep);
+            item.classList.toggle('done', isWorkflowStepComplete(stepName));
+        });
+    }
+
     function showStep(stepName) {
+        activeStep = stepName;
         uploadStep.classList.toggle('hidden', stepName !== 'upload');
         viewerStep.classList.toggle('hidden', stepName !== 'viewer');
         coordinatesStep.classList.toggle('hidden', stepName !== 'coordinates');
         pointsMapStep.classList.toggle('hidden', stepName !== 'points-map');
+        updateWorkspaceSummary();
         if (stepName === 'viewer') {
             setTimeout(() => leafletMap?.invalidateSize(), 0);
         }
@@ -1145,63 +1681,20 @@
 
     function updateExtractActionState() {
         extractBtn.disabled = !pdfDoc || selections.length === 0;
+        updateWorkspaceSummary();
     }
 
     function updateResultsCount() {
         resultsCount.textContent = `${extractedRows.length} سطر`;
-    }
-
-    function renderExtractedText(lines) {
-        const normalizedLines = (Array.isArray(lines) ? lines : [])
-            .map((line) => String(line ?? '').replace(/\s+/g, ' ').trim())
-            .filter(Boolean);
-
-        if (normalizedLines.length) {
-            extractedTextPreview.textContent = normalizedLines.join('\n');
-            extractedTextPreview.classList.remove('raw-text-empty');
-            rawTextShell.classList.remove('hidden');
-            return;
-        }
-
-        extractedTextPreview.textContent = 'لا يوجد نص مستخرج بعد.';
-        extractedTextPreview.classList.add('raw-text-empty');
-        rawTextShell.classList.add('hidden');
-    }
-
-    function hasDisplayValue(value) {
-        return String(value ?? '').replace(/\s+/g, ' ').trim() !== '';
-    }
-
-    function getVisibleResultsFields() {
-        return RESULTS_FIELDS.filter((field) => {
-            if (field.key === 'elevation' || field.key === 'code') {
-                return extractedRows.some((row) => hasDisplayValue(row[field.key]));
-            }
-            return true;
-        });
-    }
-
-    function renderResultsHeader(fields) {
-        resultsHeaderRow.innerHTML = '';
-        fields.forEach(({ key }) => {
-            const th = document.createElement('th');
-            th.textContent = key;
-            resultsHeaderRow.appendChild(th);
-        });
-
-        const actionTh = document.createElement('th');
-        actionTh.textContent = 'حذف';
-        resultsHeaderRow.appendChild(actionTh);
+        updateWorkspaceSummary();
     }
 
     function renderExtractedRows() {
-        const visibleFields = getVisibleResultsFields();
-        renderResultsHeader(visibleFields);
         resultsBody.innerHTML = '';
         extractedRows.forEach((row) => {
             const tr = document.createElement('tr');
 
-            visibleFields.forEach(({ key, label }) => {
+            RESULTS_FIELDS.forEach(({ key, label }) => {
                 const td = document.createElement('td');
                 td.dataset.label = label;
                 td.textContent = row[key] ?? '';
@@ -1225,6 +1718,7 @@
         resultsShell.classList.toggle('hidden', extractedRows.length === 0);
         exportBtn.disabled = extractedRows.length === 0;
         showOnMapBtn.disabled = extractedRows.length === 0;
+        window.AtlasCoordinatesExport?.updateButtonState?.();
     }
 
     function getDefaultZoomPercent() {
@@ -1255,7 +1749,7 @@
         if (!tesseractModule?.createWorker) {
             return null;
         }
-        ocrWorker = await tesseractModule.createWorker('ara+eng', 1, {
+        ocrWorker = await tesseractModule.createWorker('eng', 1, {
             workerPath: TESSERACT_WORKER_PATH,
             corePath: TESSERACT_CORE_PATH,
             langPath: `${TESSERACT_LANG_PATH}/`
@@ -1316,14 +1810,7 @@
     }
 
     function latLngFromPixel(x, y) {
-        return L.latLng(pagePixelSize.height - y, x);
-    }
-
-    function pixelFromLatLng(latlng) {
-        return {
-            x: clamp(latlng.lng, 0, pagePixelSize.width),
-            y: clamp(pagePixelSize.height - latlng.lat, 0, pagePixelSize.height)
-        };
+        return L.latLng(y, x);
     }
 
     function ensureLeafletMap() {
@@ -1465,9 +1952,8 @@
     }
 
     function resizeSelectionByCorner(selection, corner, latlng) {
-        const point = pixelFromLatLng(latlng);
-        const pointX = point.x;
-        const pointY = point.y;
+        const pointX = clamp(latlng.lng, 0, pagePixelSize.width);
+        const pointY = clamp(latlng.lat, 0, pagePixelSize.height);
         const minSize = 12;
         const current = getSelectionPixels(selection);
         let { left, top, right, bottom } = current;
@@ -1548,6 +2034,33 @@
         URL.revokeObjectURL(url);
     }
 
+    function sanitizeExportBaseName(baseName, fallback = 'extracted-coordinates') {
+        const cleaned = String(baseName || '')
+            .replace(/[<>:"/\\|?*\u0000-\u001F]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .replace(/[. ]+$/g, '')
+            .trim();
+        return cleaned || fallback;
+    }
+
+    function deriveSuggestedFileBaseName(fileName, fallback = 'extracted-coordinates') {
+        const rawName = String(fileName || '').split(/[\\/]/).pop() || '';
+        const withoutExt = rawName.replace(/\.[^.]+$/, '');
+        return sanitizeExportBaseName(withoutExt, fallback);
+    }
+
+    function promptExportFileName(extension, suggestedBaseName) {
+        const safeExt = String(extension || '').replace(/^\./, '').toLowerCase();
+        const safeBase = sanitizeExportBaseName(suggestedBaseName, 'extracted-coordinates');
+        const answer = window.prompt(`اكتب اسم الملف للتصدير (${safeExt.toUpperCase()})`, safeBase);
+        if (answer === null) return null;
+        const typedBase = sanitizeExportBaseName(answer, safeBase);
+        if (typedBase.toLowerCase().endsWith(`.${safeExt}`)) {
+            return typedBase;
+        }
+        return `${typedBase}.${safeExt}`;
+    }
+
     function escapeCsvCell(value) {
         const text = String(value ?? '');
         if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
@@ -1596,6 +2109,58 @@
     function parseNumeric(value) {
         const num = Number(normalizeNumberString(value));
         return Number.isFinite(num) ? num : null;
+    }
+
+    const NORTHING_INTEGER_DIGITS = 7;
+    const EASTING_INTEGER_DIGITS = 6;
+
+    function integerDigitLength(value) {
+        const normalized = normalizeNumberString(value).replace(/^[-+]/, '');
+        const integerPart = normalized.split('.')[0] || '';
+        return integerPart.replace(/[^\d]/g, '').length;
+    }
+
+    function hasExpectedCoordinateDigits(northingValue, eastingValue) {
+        return (
+            integerDigitLength(northingValue) === NORTHING_INTEGER_DIGITS &&
+            integerDigitLength(eastingValue) === EASTING_INTEGER_DIGITS
+        );
+    }
+
+    function coordinatePairScore(northingValue, eastingValue) {
+        const northingNum = parseNumeric(northingValue);
+        const eastingNum = parseNumeric(eastingValue);
+        if (!looksLikeCoord(northingNum) || !looksLikeCoord(eastingNum)) return Number.NEGATIVE_INFINITY;
+
+        const northingDigits = integerDigitLength(northingValue);
+        const eastingDigits = integerDigitLength(eastingValue);
+        let score = 0;
+
+        if (northingDigits === NORTHING_INTEGER_DIGITS) score += 16;
+        else if (northingDigits >= NORTHING_INTEGER_DIGITS) score += 7;
+        else if (northingDigits >= NORTHING_INTEGER_DIGITS - 1) score += 3;
+
+        if (eastingDigits === EASTING_INTEGER_DIGITS) score += 16;
+        else if (eastingDigits >= EASTING_INTEGER_DIGITS) score += 7;
+        else if (eastingDigits >= EASTING_INTEGER_DIGITS - 1) score += 3;
+
+        if (northingDigits === EASTING_INTEGER_DIGITS && eastingDigits === NORTHING_INTEGER_DIGITS) {
+            score -= 12;
+        }
+
+        const magnitudeGap = Math.abs(Math.abs(northingNum) - Math.abs(eastingNum));
+        if (magnitudeGap >= 100000) score += 3;
+        else if (magnitudeGap >= 10000) score += 1;
+
+        return score;
+    }
+
+    function isLikelyCoordinatePair(northingValue, eastingValue, requireExpectedDigits = false) {
+        if (requireExpectedDigits && !hasExpectedCoordinateDigits(northingValue, eastingValue)) {
+            return false;
+        }
+        const score = coordinatePairScore(northingValue, eastingValue);
+        return Number.isFinite(score) && score >= 8;
     }
 
     function isLikelyHeaderLine(lineText) {
@@ -1653,10 +2218,7 @@
                 const idToken = tokens[i];
                 const nToken = tokens[i + 1];
                 const eToken = tokens[i + 2];
-                const n = parseNumeric(nToken);
-                const e = parseNumeric(eToken);
-
-                if (!isPointIdToken(idToken) || !looksLikeCoord(n) || !looksLikeCoord(e)) {
+                if (!isPointIdToken(idToken) || !isLikelyCoordinatePair(nToken, eToken, true)) {
                     i += 1;
                     continue;
                 }
@@ -1673,9 +2235,10 @@
                 }
 
                 const codeToken = tokens[i + advance];
-                const maybeNextN = parseNumeric(tokens[i + advance + 1]);
-                const maybeNextE = parseNumeric(tokens[i + advance + 2]);
-                const startsNextPoint = isPointIdToken(codeToken) && looksLikeCoord(maybeNextN) && looksLikeCoord(maybeNextE);
+                const startsNextPoint = (
+                    isPointIdToken(codeToken) &&
+                    isLikelyCoordinatePair(tokens[i + advance + 1], tokens[i + advance + 2], true)
+                );
                 if (codeToken && !startsNextPoint && !Number.isFinite(parseNumeric(codeToken)) && isPointIdToken(codeToken)) {
                     code = codeToken;
                     advance += 1;
@@ -1708,10 +2271,6 @@
         return rows;
     }
 
-    function numericDigitLength(value) {
-        return String(value || '').replace(/[^\d]/g, '').length;
-    }
-
     function mapColumnsToCoordinateFields(lineText, cols) {
         const normalized = normalizeExtractedText(lineText);
         const fallbackCols = Array.isArray(cols) ? cols : [];
@@ -1736,23 +2295,13 @@
                 const cNum = parseNumeric(c.value);
                 if (aNum === null || bNum === null || cNum === null) continue;
 
-                const aDigits = numericDigitLength(a.value);
-                const bDigits = numericDigitLength(b.value);
-                let score = 0;
+                const aDigits = integerDigitLength(a.value);
+                const bDigits = integerDigitLength(b.value);
+                let score = coordinatePairScore(a.value, b.value);
+                if (!Number.isFinite(score)) continue;
 
-                if (aDigits >= 6) score += 4;
-                else if (aDigits >= 5) score += 2;
-                else if (aDigits >= 4) score += 1;
-
-                if (bDigits >= 6) score += 4;
-                else if (bDigits >= 5) score += 2;
-                else if (bDigits >= 4) score += 1;
-
-                if (Math.abs(aNum) >= 100000) score += 3;
-                else if (Math.abs(aNum) >= 10000) score += 1;
-
-                if (Math.abs(bNum) >= 100000) score += 3;
-                else if (Math.abs(bNum) >= 10000) score += 1;
+                if (hasExpectedCoordinateDigits(a.value, b.value)) score += 30;
+                if (hasExpectedCoordinateDigits(b.value, a.value)) score -= 10;
 
                 // Elevation is usually much smaller than N/E magnitudes.
                 if (Math.abs(cNum) <= 10000) score += 2;
@@ -1760,6 +2309,10 @@
 
                 // Favor windows after an initial point/serial number.
                 if (i > 0) score += 1;
+
+                // Keep a soft fallback for near-matches when OCR drops one digit.
+                if (Math.abs(aDigits - NORTHING_INTEGER_DIGITS) <= 1) score += 1;
+                if (Math.abs(bDigits - EASTING_INTEGER_DIGITS) <= 1) score += 1;
 
                 if (score > bestScore) {
                     bestScore = score;
@@ -1802,7 +2355,7 @@
         const z = parseNumeric(mapped?.elevation);
         if (n === null || e === null || z === null) return false;
 
-        if (Math.abs(n) < 10000 || Math.abs(e) < 10000) return false;
+        if (!isLikelyCoordinatePair(mapped?.northing, mapped?.easting, true)) return false;
         if (Math.abs(z) > 10000) return false;
 
         return true;
@@ -1845,11 +2398,9 @@
             const nameToken = tokens[i];
             const nToken = tokens[i + 1];
             const eToken = tokens[i + 2];
-            const n = parseNumeric(nToken);
-            const e = parseNumeric(eToken);
 
             // Packed pattern: [point-id/name] [northing] [easting]
-            if (n !== null && e !== null && Math.abs(n) >= 10000 && Math.abs(e) >= 10000) {
+            if (isLikelyCoordinatePair(nToken, eToken, true)) {
                 let elevation = '';
                 let advance = 3;
 
@@ -1857,14 +2408,7 @@
                 if (i + 3 < tokens.length) {
                     const zToken = tokens[i + 3];
                     const z = parseNumeric(zToken);
-                    const nextN = parseNumeric(tokens[i + 4] ?? '');
-                    const nextE = parseNumeric(tokens[i + 5] ?? '');
-                    const nextLooksLikePacked = (
-                        nextN !== null &&
-                        nextE !== null &&
-                        Math.abs(nextN) >= 10000 &&
-                        Math.abs(nextE) >= 10000
-                    );
+                    const nextLooksLikePacked = isLikelyCoordinatePair(tokens[i + 4], tokens[i + 5], true);
                     if (z !== null && Math.abs(z) < 10000 && !nextLooksLikePacked) {
                         elevation = normalizeNumberString(zToken);
                         advance = 4;
@@ -1951,9 +2495,7 @@
     }
 
     function buildCsv(rows) {
-        const header = ['name', 'northing', 'easting', 'elevation', 'code'];
-
-        const lines = [header.join(',')];
+        const lines = [];
         rows.forEach((row) => {
             const cells = [
                 row.name ?? '',
@@ -1995,8 +2537,9 @@
             y <= targetRect.bottom
         );
 
-        const directWords = [];
-        const flippedWords = [];
+        const words = [];
+        let directHits = 0;
+        let flippedHits = 0;
         textContent.items.forEach((item) => {
             const text = String(item.str || '').trim();
             if (!text) return;
@@ -2017,25 +2560,25 @@
             const centerY = (tokenRect.top + tokenRect.bottom) / 2;
             const inDirect = pointInsideRect(centerX, centerY, rect);
             const inFlipped = pointInsideRect(centerX, centerY, flippedRect);
-            if (inDirect) {
-                directWords.push({
-                    text,
-                    x: tokenRect.left,
-                    y: (tokenRect.top + tokenRect.bottom) / 2,
-                    h
-                });
-            }
-            if (inFlipped) {
-                flippedWords.push({
-                    text,
-                    x: tokenRect.left,
-                    y: (tokenRect.top + tokenRect.bottom) / 2,
-                    h
-                });
-            }
+            if (!inDirect && !inFlipped) return;
+            if (inDirect) directHits += 1;
+            if (inFlipped) flippedHits += 1;
+
+            words.push({
+                text,
+                x: tokenRect.left,
+                y: (tokenRect.top + tokenRect.bottom) / 2,
+                h,
+                _inDirect: inDirect,
+                _inFlipped: inFlipped
+            });
         });
 
-        const strictWords = directWords.length ? directWords : flippedWords;
+        if (!words.length) return [];
+
+        // Keep only one orientation to avoid pulling nearby outside text.
+        const preferFlipped = flippedHits > directHits;
+        const strictWords = words.filter((w) => (preferFlipped ? w._inFlipped : w._inDirect));
         if (!strictWords.length) return [];
 
         strictWords.sort((a, b) => (a.y - b.y) || (a.x - b.x));
@@ -2117,14 +2660,15 @@
                         await worker.setParameters({
                             preserve_interword_spaces: '1',
                             tessedit_pageseg_mode: variant.psm,
-                            user_defined_dpi: String(300 * smallSelectionBoost)
+                            user_defined_dpi: String(300 * smallSelectionBoost),
+                            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-.,()[]/_ '
                         });
                     }
 
                     if (worker && typeof worker.recognize === 'function') {
                         result = await worker.recognize(variant.canvas);
                     } else if (tesseractModule && typeof tesseractModule.recognize === 'function') {
-                        result = await tesseractModule.recognize(variant.canvas, 'ara+eng', {
+                        result = await tesseractModule.recognize(variant.canvas, 'eng', {
                             workerPath: TESSERACT_WORKER_PATH,
                             corePath: TESSERACT_CORE_PATH,
                             langPath: `${TESSERACT_LANG_PATH}/`
@@ -2502,11 +3046,8 @@
         await page.render({ canvasContext: context, viewport }).promise;
 
         const url = canvas.toDataURL('image/png');
+        const bounds = [[0, 0], [viewport.height, viewport.width]];
         pagePixelSize = { width: viewport.width, height: viewport.height };
-        const bounds = L.latLngBounds(
-            latLngFromPixel(0, 0),
-            latLngFromPixel(viewport.width, viewport.height)
-        );
 
         if (leafletLayer) leafletMap.removeLayer(leafletLayer);
         leafletLayer = L.imageOverlay(url, bounds).addTo(leafletMap);
@@ -2552,12 +3093,10 @@
                 return;
             }
 
-            const startPixel = pixelFromLatLng(bounds.getNorthWest());
-            const endPixel = pixelFromLatLng(bounds.getSouthEast());
-            const x1 = Math.min(startPixel.x, endPixel.x);
-            const x2 = Math.max(startPixel.x, endPixel.x);
-            const y1 = Math.min(startPixel.y, endPixel.y);
-            const y2 = Math.max(startPixel.y, endPixel.y);
+            const x1 = clamp(Math.min(bounds.getWest(), bounds.getEast()), 0, pagePixelSize.width);
+            const x2 = clamp(Math.max(bounds.getWest(), bounds.getEast()), 0, pagePixelSize.width);
+            const y1 = clamp(Math.min(bounds.getNorth(), bounds.getSouth()), 0, pagePixelSize.height);
+            const y2 = clamp(Math.max(bounds.getNorth(), bounds.getSouth()), 0, pagePixelSize.height);
             const width = x2 - x1;
             const height = y2 - y1;
             clearTempRect();
@@ -2825,7 +3364,6 @@
             const newRows = [];
             const baseTableId = replaceMode ? 0 : extractedSelectionIds.size;
             let detectedTextLineCount = 0;
-            const rawTextPreviewLines = [];
 
             for (let i = 0; i < targetSelections.length; i += 1) {
                 const selection = targetSelections[i];
@@ -2848,10 +3386,6 @@
                         .filter(Boolean);
                 }
                 detectedTextLineCount += lines.length;
-                rawTextPreviewLines.push(...lines);
-                if (i < targetSelections.length - 1 && lines.length) {
-                    rawTextPreviewLines.push('');
-                }
 
                 let nextId = lastExtractedRowId;
                 let nextRow = newRows.length;
@@ -2876,11 +3410,8 @@
                 extractedSelectionIds.add(selection.id);
             }
 
-            renderExtractedText(rawTextPreviewLines);
-
             if (!newRows.length && !extractedRows.length) {
                 if (detectedTextLineCount > 0) {
-                    showStep('coordinates');
                     alert('تم العثور على نص داخل المناطق المحددة، لكن لم أستطع تكوين صفوف إحداثيات صالحة منه. جرّب توسيع التحديد ليشمل الصف كاملًا أو حدّد الجدول بدقة أكبر.');
                 } else {
                     alert('لم يتم العثور على نص داخل المناطق المحددة. تأكد أن الملف يحتوي نصًا أو أن منطقة التحديد تشمل الجدول بالكامل.');
@@ -2913,7 +3444,7 @@
             alert('لا توجد إحداثيات للتصدير.');
             return;
         }
-        exportModal.classList.remove('hidden');
+        openCoordinatesExportForm();
     });
 
     closeExportModalBtn.addEventListener('click', () => {
@@ -2939,18 +3470,29 @@
                 return;
             }
             const format = btn.dataset.exportFormat;
+            if (format) {
+                openCoordinatesExportForm();
+                exportModal.classList.add('hidden');
+                return;
+            }
             if (format === 'csv') {
-                downloadText(buildCsv(extractedRows), 'extracted-coordinates.csv', 'text/csv;charset=utf-8');
+                const fileName = promptExportFileName('csv', exportSuggestedBaseName);
+                if (!fileName) return;
+                downloadText(buildCsv(extractedRows), fileName, 'text/csv;charset=utf-8');
                 exportModal.classList.add('hidden');
                 return;
             }
             if (format === 'sdr') {
-                downloadText(buildSdr(extractedRows), 'extracted-coordinates.sdr', 'text/plain;charset=utf-8');
+                const fileName = promptExportFileName('sdr', exportSuggestedBaseName);
+                if (!fileName) return;
+                downloadText(buildSdr(extractedRows), fileName, 'text/plain;charset=utf-8');
                 exportModal.classList.add('hidden');
                 return;
             }
             if (format === 'dxf') {
-                downloadText(buildDxf(extractedRows), 'extracted-coordinates.dxf', 'application/dxf;charset=utf-8');
+                const fileName = promptExportFileName('dxf', exportSuggestedBaseName);
+                if (!fileName) return;
+                downloadText(buildDxf(extractedRows), fileName, 'application/dxf;charset=utf-8');
                 exportModal.classList.add('hidden');
                 return;
             }
@@ -2966,17 +3508,39 @@
                     return;
                 }
                 const kmlContent = buildKml(extractedRows, key);
-                downloadText(kmlContent, 'extracted-coordinates.kml', 'application/vnd.google-earth.kml+xml;charset=utf-8');
+                const fileName = promptExportFileName('kml', exportSuggestedBaseName);
+                if (!fileName) return;
+                downloadText(kmlContent, fileName, 'application/vnd.google-earth.kml+xml;charset=utf-8');
                 exportModal.classList.add('hidden');
             }
         });
     });
 
-    pdfInput.addEventListener('change', async () => {
-        const file = pdfInput.files?.[0];
+    async function loadSharedCoordinateFile() {
+        if (!('caches' in window)) throw new Error('Cache API is not available.');
+        const cache = await caches.open('atlas-shared-files-v1');
+        const [fileResponse, metaResponse] = await Promise.all([
+            cache.match('/__atlas_shared_file__'),
+            cache.match('/__atlas_shared_file_meta__')
+        ]);
+        if (!fileResponse) throw new Error('Shared file was not found.');
+        const blob = await fileResponse.blob();
+        let meta = {};
+        if (metaResponse) {
+            try {
+                meta = await metaResponse.json();
+            } catch (_) {
+                meta = {};
+            }
+        }
+        return new File([blob], meta.name || 'shared-file', { type: meta.type || blob.type || 'application/octet-stream' });
+    }
+
+    async function handleIncomingCoordinateFile(file, source = 'manual') {
         if (!file) return;
 
-        fileHint.textContent = `تم اختيار: ${file.name}`;
+        exportSuggestedBaseName = deriveSuggestedFileBaseName(file.name, 'extracted-coordinates');
+        fileHint.textContent = source === 'share' ? `تم استقبال ملف المشاركة: ${file.name}` : `تم اختيار: ${file.name}`;
         viewerFileName.textContent = file.name;
         showStep('viewer');
 
@@ -2995,7 +3559,6 @@
             extractedRows = [];
             extractedSelectionIds = new Set();
             lastExtractedRowId = 0;
-            renderExtractedText([]);
             renderExtractedRows();
             updateZoomLabel();
             await renderPdf(currentPageNumber);
@@ -3005,6 +3568,25 @@
             showStep('upload');
             fileHint.textContent = 'حدث خطأ أثناء قراءة الملف. تأكد أن الملف PDF صالح.';
         }
+    }
+
+    async function initializeSharedFileIfRequested() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('shared') !== '1') return;
+
+        try {
+            const file = await loadSharedCoordinateFile();
+            await handleIncomingCoordinateFile(file, 'share');
+        } catch (error) {
+            console.error(error);
+            showStep('upload');
+            fileHint.textContent = 'لم يتم العثور على ملف مشارك. جرّب المشاركة مرة أخرى من WhatsApp.';
+        }
+    }
+
+    pdfInput.addEventListener('change', async () => {
+        const file = pdfInput.files?.[0];
+        if (file) await handleIncomingCoordinateFile(file, 'manual');
     });
 
     setMode('hand');
@@ -3013,6 +3595,7 @@
     attachPointerEvents();
     updateExtractActionState();
     applyPointsMapStyle(isSatelliteMode);
+    initializeSharedFileIfRequested();
     window.addEventListener('resize', () => {
         leafletMap?.invalidateSize();
         pointsLeafletMap?.invalidateSize();
@@ -3034,5 +3617,7 @@
 </script>
 </body>
 </html>
+
+
 
 

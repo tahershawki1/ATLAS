@@ -23,11 +23,11 @@
     <link rel="stylesheet" href="shared/style.css" />
     <link rel="stylesheet" href="shared/mobile-fix.css" />
   </head>
-  <body>
+  <body class="page-scroll-enabled">
     <!-- Update Banner -->
     <div id="updateBanner" class="update-banner">
         <span>تحديث جديد متاح!</span>
-        <button onclick="location.reload()">تحديث الآن</button>
+        <button onclick="forceRefreshAtlasApp(this)">تحديث الآن</button>
     </div>
 
     <div id="app" class="app-container">
@@ -68,7 +68,7 @@
         <!-- Home Menu -->
         <div id="homePage" class="page active">
           <div class="grid-menu">
-            <button class="menu-card" onclick="app.navigateTo('new')">
+            <button class="menu-card" data-permission="pages.new" onclick="window.location.href='pages/new/'">
               <div class="icon-wrapper new-icon">
                 <svg
                   viewBox="0 0 24 24"
@@ -82,7 +82,7 @@
               <span class="card-label">جديد</span>
             </button>
 
-            <button class="menu-card" onclick="app.navigateTo('check')">
+            <button class="menu-card" data-permission="pages.check" onclick="window.location.href='pages/check/'">
               <div class="icon-wrapper check-icon">
                 <svg
                   viewBox="0 0 24 24"
@@ -98,7 +98,7 @@
               <span class="card-label">تشييك</span>
             </button>
 
-            <button class="menu-card" onclick="app.navigateTo('survey')">
+            <button class="menu-card" data-permission="pages.survey" onclick="window.location.href='pages/survey/'">
               <div class="icon-wrapper survey-icon">
                 <svg
                   viewBox="0 0 24 24"
@@ -114,7 +114,7 @@
               <span class="card-label">رفع</span>
             </button>
 
-            <button class="menu-card" onclick="app.navigateTo('stakeout')">
+            <button class="menu-card" data-permission="pages.point-staking" onclick="window.location.href='pages/point-staking/'">
               <div class="icon-wrapper stake-icon">
                 <svg
                   viewBox="0 0 24 24"
@@ -173,7 +173,7 @@
               <span class="card-label">استخراج الاحداثيات</span>
             </button>
 
-            <button class="menu-card" data-permission="pages.coordinates-extractor" onclick="window.location.href='pages/coordinates-proposal/'">
+            <button class="menu-card" data-permission="pages.coordinates-proposal" onclick="window.location.href='pages/coordinates-proposal/'">
               <div class="icon-wrapper">
                 <svg
                   viewBox="0 0 24 24"
@@ -188,145 +188,24 @@
               </div>
               <span class="card-label">فحص المخطط واستخراج الإحداثيات</span>
             </button>
-          </div>
-        </div>
 
-        <!-- New Page -->
-        <div id="newPage" class="page">
-          <div class="page-header">
-            <h2>جديد</h2>
-          </div>
-          <div class="list-buttons">
-            <button class="list-item" data-permission="pages.new-level-mark" onclick="window.location.href='pages/new-level-mark/'">
-              <div class="item-icon">
+            <button class="menu-card refresh-cache-card" type="button" onclick="forceRefreshAtlasApp(this)">
+              <div class="icon-wrapper refresh-icon">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
                 >
-                  <path d="M12 2v20M2 12h20" />
+                  <path d="M21 12a9 9 0 0 1-15.5 6.2" />
+                  <path d="M3 12A9 9 0 0 1 18.5 5.8" />
+                  <path d="M18 2v4h-4" />
+                  <path d="M6 22v-4h4" />
                 </svg>
               </div>
-              <span>علام جيت لفل جديد</span>
-            </button>
-            <button class="list-item" onclick="app.action('survey_consultant')">
-              <div class="item-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M2 12h20M12 2v20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93"
-                  />
-                </svg>
-              </div>
-              <span>رفع أرض للاستشاري</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Check Page -->
-        <div id="checkPage" class="page">
-          <div class="page-header">
-            <h2>تشييك</h2>
-          </div>
-          <div class="list-buttons">
-            <button class="list-item" onclick="app.action('check_unassigned')">
-              <div class="item-icon">1</div>
-              <span>TBA</span>
-            </button>
-            <button class="list-item" onclick="app.action('excavation_bottom')">
-              <div class="item-icon">2</div>
-              <span>قاع حفر</span>
-            </button>
-            <button class="list-item" onclick="app.action('tie_beam')">
-              <div class="item-icon">3</div>
-              <span>تايبيم</span>
-            </button>
-            <button class="list-item" onclick="app.action('roofs')">
-              <div class="item-icon">4</div>
-              <span>أسقف</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Survey (Raising) Page -->
-        <div id="surveyPage" class="page">
-          <div class="page-header">
-            <h2>رفع</h2>
-          </div>
-          <div class="list-buttons">
-            <button class="list-item" onclick="app.action('gps_survey')">
-              <div class="item-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-                  />
-                </svg>
-              </div>
-              <span>رفع بال GPS</span>
-            </button>
-            <button
-              class="list-item"
-              onclick="app.action('total_station_survey')"
-            >
-              <div class="item-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M12 22v-9m0 0l-4-9m4 9l4-9M5 22h14" />
-                </svg>
-              </div>
-              <span>رفع Totalstation</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Stakeout (Signature) Page -->
-        <div id="stakePage" class="page">
-          <div class="page-header">
-            <h2>توقيع</h2>
-          </div>
-          <div class="list-buttons">
-            <button class="list-item" onclick="app.action('point_staking')">
-              <div class="item-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z"
-                  />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-              </div>
-              <span>توقيع نقاط</span>
-            </button>
-            <button class="list-item" onclick="app.action('level_staking')">
-              <div class="item-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M3 6l9 6 9-6M3 18l9-6 9 6M12 12v10" />
-                </svg>
-              </div>
-              <span>توقيع منسوب</span>
+              <span class="card-label">تحديث الموقع ومسح الكاش</span>
             </button>
           </div>
         </div>
@@ -367,7 +246,7 @@
         <div class="status-indicator">
           <span class="status-dot"></span>
           <span class="status-text">Atlas Engineering System</span>
-          <span class="version-tag">v1.0.0</span>
+          <span class="version-tag">v2.0.6</span>
         </div>
       </footer>
 
@@ -381,7 +260,7 @@
                       <button class="icon-btn" onclick="app.toggleSearch()" title="بحث">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                       </button>
-                      <button class="icon-btn" onclick="app.showAddSite()" title="إضافة موقع جديد">
+                      <button class="icon-btn" data-permission="sites.write" onclick="app.showAddSite()" title="إضافة موقع جديد">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                       </button>
                       <button class="icon-btn close-btn" onclick="app.closeSiteModal()" title="إغلاق">
@@ -576,8 +455,49 @@
     <script src="shared/sites_data.js"></script>
     <script src="shared/dialogs.js"></script>
     <script src="shared/auth.js"></script>
+    <script src="shared/coordinates-export.js"></script>
     <script src="shared/app.js"></script>
     <script>
+      async function forceRefreshAtlasApp(button) {
+        const confirmed = window.confirm(
+          'سيتم مسح كاش ATLAS وإعادة تحميل أحدث نسخة من الموقع. هل تريد المتابعة؟'
+        );
+        if (!confirmed) return;
+
+        const originalText = button?.textContent;
+        if (button) {
+          button.disabled = true;
+          button.textContent = 'جاري التحديث...';
+        }
+
+        try {
+          if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            await Promise.all(
+              cacheNames
+                .filter((name) => name.startsWith('atlas-'))
+                .map((name) => caches.delete(name))
+            );
+          }
+
+          if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map((registration) => registration.unregister()));
+          }
+
+          const freshUrl = new URL('index.html', window.location.origin);
+          freshUrl.searchParams.set('refresh', Date.now().toString());
+          window.location.replace(freshUrl.toString());
+        } catch (error) {
+          console.error('[PWA] Force refresh failed:', error);
+          alert('تعذر مسح الكاش تلقائيًا. جرّب إغلاق التطبيق وفتحه مرة أخرى.');
+          if (button) {
+            button.disabled = false;
+            button.textContent = originalText || 'تحديث الموقع ومسح الكاش';
+          }
+        }
+      }
+
       // Register Service Worker
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').then(reg => {

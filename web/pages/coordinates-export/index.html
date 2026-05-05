@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Atlas Surveying - تصدير الإحداثيات</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../shared/style.css" />
+  <link rel="stylesheet" href="../../shared/mobile-fix.css" />
+  <link rel="stylesheet" href="../../LIP/vendor/leaflet/leaflet.css" />
+  <script src="../../shared/auth.js"></script>
+  <script src="../../shared/coordinates-export.js"></script>
+  <style>
+    .custom-page {
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at top right, rgba(241, 135, 62, 0.16) 0%, transparent 34%),
+        radial-gradient(circle at left top, rgba(10, 127, 138, 0.12) 0%, transparent 30%),
+        linear-gradient(170deg, #f8fafc 0%, #eef2ff 50%, #f1f5f9 100%);
+    }
+
+    .wrap {
+      width: min(100%, 1280px);
+      margin: 0 auto;
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      border-radius: 16px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 16px 30px rgba(30, 64, 175, 0.08);
+      padding: 12px;
+    }
+
+    .title {
+      margin: 0;
+      color: var(--primary);
+      font-size: 1.05rem;
+      font-weight: 900;
+      line-height: 1.4;
+    }
+
+    .muted {
+      margin: 6px 0 0;
+      color: #475569;
+      font-size: 0.8rem;
+      font-weight: 700;
+      line-height: 1.8;
+    }
+
+    .metrics {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .metric {
+      border-radius: 12px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      background: #ffffff;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .metric .label {
+      color: #64748b;
+      font-size: 0.7rem;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .metric .value {
+      color: #0f172a;
+      font-family: "Outfit", "Cairo", sans-serif;
+      font-size: 1rem;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .table-wrap {
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      border-radius: 12px;
+      background: #ffffff;
+      max-height: 55vh;
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 900px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid rgba(30, 64, 175, 0.08);
+      padding: 8px 6px;
+      text-align: center;
+      font-size: 0.74rem;
+      line-height: 1.45;
+      font-family: "Outfit", "Cairo", sans-serif;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f8fafc;
+      color: var(--primary);
+      font-weight: 900;
+    }
+
+    .empty-row td {
+      font-family: "Cairo", sans-serif;
+      color: #64748b;
+      font-weight: 700;
+      padding: 14px 10px;
+    }
+
+    .map-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 220px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .map-select,
+    .name-input {
+      width: 100%;
+      min-height: 40px;
+      border-radius: 10px;
+      border: 1px solid rgba(30, 64, 175, 0.16);
+      background: #ffffff;
+      padding: 0 10px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      font-family: inherit;
+      color: #0f172a;
+      outline: none;
+    }
+
+    .map-area {
+      width: 100%;
+      height: min(52vh, 460px);
+      border-radius: 12px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      overflow: hidden;
+      background: #e2e8f0;
+    }
+
+    .status-note {
+      margin-top: 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      background: #f8fafc;
+      color: #0f172a;
+      padding: 8px 10px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      line-height: 1.75;
+    }
+
+    .formats-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .format-row {
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 8px;
+      display: grid;
+      grid-template-columns: minmax(120px, 170px) minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+    }
+
+    .format-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #0f172a;
+      font-size: 0.82rem;
+      font-weight: 900;
+    }
+
+    .format-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .primary-btn {
+      min-height: 44px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0a7f8a 0%, #1e3a8a 100%);
+      color: #ffffff;
+      font-size: 0.84rem;
+      font-weight: 900;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 12px 22px rgba(15, 23, 42, 0.18);
+    }
+
+    .primary-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    @media (min-width: 900px) {
+      .wrap {
+        padding: 18px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(330px, 0.55fr);
+        gap: 12px;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body class="page-scroll-enabled" data-disable-coordinates-export-button="true">
+  <div class="custom-page">
+    <div class="wrap">
+      <div data-auth-shell></div>
+
+      <div class="header-actions">
+        <button class="back-btn" type="button" onclick="window.history.back()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          <span>الرجوع</span>
+        </button>
+      </div>
+
+      <section class="card">
+        <h1 class="title">فورم تصدير الإحداثيات</h1>
+        <p id="metaHint" class="muted">سيتم عرض الإحداثيات القادمة من الصفحة السابقة هنا.</p>
+        <div class="metrics">
+          <div class="metric"><div class="label">عدد الإحداثيات</div><div id="rowsCountMetric" class="value">0</div></div>
+          <div class="metric"><div class="label">الصفحة المصدر</div><div id="sourcePageMetric" class="value">-</div></div>
+          <div class="metric"><div class="label">الملف الأساسي</div><div id="baseNameMetric" class="value">-</div></div>
+          <div class="metric"><div class="label">CRS الحالي</div><div id="crsMetric" class="value">DLTM</div></div>
+        </div>
+      </section>
+
+      <div class="layout">
+        <div class="stack">
+          <section class="card">
+            <div class="section-head">
+              <h2 class="title">جدول الإحداثيات المستخرجة</h2>
+              <span id="tableCountLabel" class="muted">0 سطر</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Northing / Lat</th>
+                    <th>Easting / Lon</th>
+                    <th>Elevation</th>
+                    <th>Code</th>
+                    <th>Kind</th>
+                  </tr>
+                </thead>
+                <tbody id="rowsTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2 class="title">عرض النقاط على الماب</h2>
+            <div class="map-head">
+              <p class="muted" style="margin: 0;">اختر نظام الإحداثيات للنقاط Projected قبل العرض أو تصدير KML.</p>
+              <select id="sourceCrsSelect" class="map-select">
+                <option value="DLTM">DLTM</option>
+                <option value="UTM40N">UTM Z40N</option>
+                <option value="UTM39N">UTM Z39N</option>
+              </select>
+            </div>
+            <div id="mapHost" class="map-area"></div>
+            <p id="mapStatus" class="status-note">جاهز لعرض النقاط.</p>
+          </section>
+        </div>
+
+        <section class="card">
+          <h2 class="title">اختيارات التصدير</h2>
+          <p class="muted">حدد الملفات المطلوبة واكتب اسم كل ملف، ثم اضغط تصدير الإحداثيات.</p>
+
+          <div class="formats-grid">
+            <div class="format-row">
+              <label class="format-label">
+                <input type="checkbox" data-format-toggle="csv" checked />
+                <span>CSV</span>
+              </label>
+              <input class="name-input" type="text" data-format-name="csv" />
+            </div>
+
+            <div class="format-row">
+              <label class="format-label">
+                <input type="checkbox" data-format-toggle="sdr" checked />
+                <span>SDR</span>
+              </label>
+              <input class="name-input" type="text" data-format-name="sdr" />
+            </div>
+
+            <div class="format-row">
+              <label class="format-label">
+                <input type="checkbox" data-format-toggle="dxf" checked />
+                <span>DXF</span>
+              </label>
+              <input class="name-input" type="text" data-format-name="dxf" />
+            </div>
+
+            <div class="format-row">
+              <label class="format-label">
+                <input type="checkbox" data-format-toggle="kml" checked />
+                <span>KML</span>
+              </label>
+              <input class="name-input" type="text" data-format-name="kml" />
+            </div>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <button id="exportSelectedBtn" class="primary-btn" type="button">تصدير الإحداثيات</button>
+          </div>
+          <p id="exportStatus" class="status-note">سيتم تصدير الملفات المحددة فقط.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../LIP/vendor/leaflet/leaflet.js"></script>
+  <script src="../../LIP/vendor/proj4/proj4.js"></script>
+  <script>
+    const rowsTableBody = document.getElementById("rowsTableBody");
+    const rowsCountMetric = document.getElementById("rowsCountMetric");
+    const sourcePageMetric = document.getElementById("sourcePageMetric");
+    const baseNameMetric = document.getElementById("baseNameMetric");
+    const crsMetric = document.getElementById("crsMetric");
+    const tableCountLabel = document.getElementById("tableCountLabel");
+    const sourceCrsSelect = document.getElementById("sourceCrsSelect");
+    const mapHost = document.getElementById("mapHost");
+    const mapStatus = document.getElementById("mapStatus");
+    const exportStatus = document.getElementById("exportStatus");
+    const exportSelectedBtn = document.getElementById("exportSelectedBtn");
+    const metaHint = document.getElementById("metaHint");
+
+    const formatToggles = Array.from(document.querySelectorAll("[data-format-toggle]"));
+    const formatNameInputs = Array.from(document.querySelectorAll("[data-format-name]"));
+
+    const state = {
+      rows: [],
+      meta: {},
+      baseName: "extracted-coordinates",
+      map: null,
+      mapLayer: null,
+    };
+
+    const MIME_TYPES = {
+      csv: "text/csv;charset=utf-8",
+      sdr: "text/plain;charset=utf-8",
+      dxf: "application/dxf;charset=utf-8",
+      kml: "application/vnd.google-earth.kml+xml;charset=utf-8",
+    };
+
+    function formatSourcePage(path) {
+      const normalized = String(path || "").replace(/^\/+|\/+$/g, "");
+      if (!normalized) return "-";
+      return normalized.split("/").slice(-2).join("/");
+    }
+
+    function renderRows() {
+      if (!state.rows.length) {
+        rowsTableBody.innerHTML = '<tr class="empty-row"><td colspan="7">لا توجد إحداثيات واردة للتصدير.</td></tr>';
+        return;
+      }
+
+      rowsTableBody.innerHTML = state.rows
+        .map((row, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${escapeHtml(row.name)}</td>
+            <td>${escapeHtml(row.northing)}</td>
+            <td>${escapeHtml(row.easting)}</td>
+            <td>${escapeHtml(row.elevation || "-")}</td>
+            <td>${escapeHtml(row.code || "-")}</td>
+            <td>${escapeHtml(row.kind || "PROJECTED")}</td>
+          </tr>
+        `)
+        .join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function updateMetrics() {
+      rowsCountMetric.textContent = String(state.rows.length);
+      sourcePageMetric.textContent = formatSourcePage(state.meta?.sourcePath || state.meta?.sourcePage || "-");
+      baseNameMetric.textContent = state.baseName;
+      crsMetric.textContent = sourceCrsSelect.value;
+      tableCountLabel.textContent = `${state.rows.length} سطر`;
+    }
+
+    function applyDefaultFileNames() {
+      formatNameInputs.forEach((input) => {
+        const ext = String(input.dataset.formatName || "").toLowerCase();
+        input.value = `${state.baseName}.${ext}`;
+      });
+    }
+
+    function syncFormatInputsState() {
+      formatToggles.forEach((toggle) => {
+        const format = String(toggle.dataset.formatToggle || "").toLowerCase();
+        const input = formatNameInputs.find((item) => item.dataset.formatName === format);
+        if (!input) return;
+        input.disabled = !toggle.checked;
+      });
+    }
+
+    function ensureMap() {
+      if (state.map) return;
+      state.map = L.map(mapHost, {
+        zoomControl: true,
+        attributionControl: true,
+      });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 20,
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(state.map);
+      state.mapLayer = L.layerGroup().addTo(state.map);
+      state.map.setView([25.2048, 55.2708], 13);
+    }
+
+    function renderMap() {
+      ensureMap();
+      state.mapLayer.clearLayers();
+      const sourceCrs = sourceCrsSelect.value;
+      const bounds = [];
+
+      state.rows.forEach((row, index) => {
+        const wgs = window.AtlasCoordinatesExport.toWgs84FromRow(row, sourceCrs);
+        if (!wgs) return;
+        const marker = L.marker([wgs.lat, wgs.lon]);
+        marker.bindTooltip(row.name || `P${index + 1}`, {
+          permanent: true,
+          direction: "top",
+          offset: [0, -16],
+          className: "point-name-tooltip",
+        });
+        marker.bindPopup(
+          `<b>${escapeHtml(row.name || `Point ${index + 1}`)}</b><br>` +
+            `Northing: ${escapeHtml(row.northing)}<br>` +
+            `Easting: ${escapeHtml(row.easting)}<br>` +
+            `Code: ${escapeHtml(row.code || "-")}`,
+        );
+        marker.addTo(state.mapLayer);
+        bounds.push([wgs.lat, wgs.lon]);
+      });
+
+      if (!bounds.length) {
+        mapStatus.textContent =
+          "لم أتمكن من تحويل أي نقطة إلى WGS84 لعرضها على الماب. غيّر CRS أو راجع القيم.";
+        return;
+      }
+
+      mapStatus.textContent = `تم عرض ${bounds.length} نقطة على الماب.`;
+      state.map.fitBounds(bounds, { padding: [24, 24], maxZoom: 19 });
+      setTimeout(() => state.map?.invalidateSize(), 0);
+    }
+
+    function getSelectedFormats() {
+      return formatToggles
+        .filter((toggle) => toggle.checked)
+        .map((toggle) => String(toggle.dataset.formatToggle || "").toLowerCase())
+        .filter(Boolean);
+    }
+
+    function getFormatFileName(format) {
+      const input = formatNameInputs.find((item) => item.dataset.formatName === format);
+      const typed = input?.value || `${state.baseName}.${format}`;
+      return window.AtlasCoordinatesExport.ensureFileExtension(typed, format);
+    }
+
+    function exportFormat(format, sourceCrs) {
+      const fileName = getFormatFileName(format);
+      if (format === "csv") {
+        const content = window.AtlasCoordinatesExport.buildCsv(state.rows);
+        window.AtlasCoordinatesExport.downloadText(content, fileName, MIME_TYPES.csv);
+        return true;
+      }
+      if (format === "sdr") {
+        const content = window.AtlasCoordinatesExport.buildSdr(state.rows);
+        window.AtlasCoordinatesExport.downloadText(content, fileName, MIME_TYPES.sdr);
+        return true;
+      }
+      if (format === "dxf") {
+        const content = window.AtlasCoordinatesExport.buildDxf(state.rows);
+        window.AtlasCoordinatesExport.downloadText(content, fileName, MIME_TYPES.dxf);
+        return true;
+      }
+      if (format === "kml") {
+        const content = window.AtlasCoordinatesExport.buildKml(state.rows, sourceCrs);
+        window.AtlasCoordinatesExport.downloadText(content, fileName, MIME_TYPES.kml);
+        return true;
+      }
+      return false;
+    }
+
+    function handleExport() {
+      if (!state.rows.length) {
+        exportStatus.textContent = "لا توجد إحداثيات قابلة للتصدير.";
+        return;
+      }
+
+      const selected = getSelectedFormats();
+      if (!selected.length) {
+        exportStatus.textContent = "اختر ملفًا واحدًا على الأقل للتصدير.";
+        return;
+      }
+
+      const sourceCrs = sourceCrsSelect.value;
+      let successCount = 0;
+
+      selected.forEach((format) => {
+        const ok = exportFormat(format, sourceCrs);
+        if (ok) successCount += 1;
+      });
+
+      exportStatus.textContent = `تم تجهيز ${successCount} ملف للتصدير.`;
+    }
+
+    function loadPayload() {
+      const payload = window.AtlasCoordinatesExport?.readPayload?.();
+      const rows = payload?.rows || [];
+      const meta = payload?.meta || {};
+      state.rows = rows;
+      state.meta = meta;
+
+      if (meta?.sourceCrs && window.AtlasCoordinatesExport?.CRS_OPTIONS?.[meta.sourceCrs]) {
+        sourceCrsSelect.value = meta.sourceCrs;
+      } else {
+        sourceCrsSelect.value = "DLTM";
+      }
+
+      state.baseName = window.AtlasCoordinatesExport.sanitizeExportBaseName(
+        meta?.suggestedBaseName || "extracted-coordinates",
+        "extracted-coordinates",
+      );
+
+      metaHint.textContent = rows.length
+        ? "تم استقبال الإحداثيات من الصفحة السابقة. راجع الجدول وحدد الملفات المطلوبة للتصدير."
+        : "لا توجد بيانات واردة. ارجع للصفحة السابقة واضغط زر تصدير الإحداثيات.";
+
+      renderRows();
+      applyDefaultFileNames();
+      updateMetrics();
+      renderMap();
+      exportSelectedBtn.disabled = rows.length === 0;
+    }
+
+    async function initializePage() {
+      if (!window.AtlasCoordinatesExport) return;
+
+      if (window.AtlasAuth) {
+        await window.AtlasAuth.initialize();
+        const allowed = await window.AtlasAuth.requirePageAccess("pages.coordinates-export");
+        if (!allowed) return;
+        window.AtlasAuth.decorateShell({ homeOnly: false });
+        window.AtlasAuth.applyPagePermissions();
+      }
+
+      sourceCrsSelect.addEventListener("change", () => {
+        updateMetrics();
+        renderMap();
+      });
+      formatToggles.forEach((toggle) => {
+        toggle.addEventListener("change", syncFormatInputsState);
+      });
+      exportSelectedBtn.addEventListener("click", handleExport);
+      window.addEventListener("resize", () => state.map?.invalidateSize());
+
+      loadPayload();
+      syncFormatInputsState();
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initializePage();
+    });
+  </script>
+</body>
+</html>
