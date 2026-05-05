@@ -1553,7 +1553,8 @@
     }
 
     function updateExtractActionState() {
-        extractBtn.disabled = !pdfDoc || selections.length === 0;
+        const disabled = !pdfDoc || selections.length === 0;
+        extractBtn.disabled = disabled;
         updateWorkspaceSummary();
     }
 
@@ -1608,7 +1609,7 @@
     async function getPdfApi() {
         if (pdfApiModule) return pdfApiModule;
         const mod = await import(PDF_JS_MODULE_PATH);
-        mod.GlobalWorkerOptions.workerSrc = PDF_JS_WORKER_PATH;
+        mod.GlobalWorkerOptions.workerSrc = new URL(PDF_JS_WORKER_PATH, window.location.href).toString();
         pdfApiModule = mod;
         return mod;
     }
@@ -1683,7 +1684,14 @@
     }
 
     function latLngFromPixel(x, y) {
-        return L.latLng(y, x);
+        return L.latLng(pagePixelSize.height - y, x);
+    }
+
+    function pixelFromLatLng(latlng) {
+        return {
+            x: clamp(latlng.lng, 0, pagePixelSize.width),
+            y: clamp(pagePixelSize.height - latlng.lat, 0, pagePixelSize.height)
+        };
     }
 
     function ensureLeafletMap() {
@@ -1825,8 +1833,9 @@
     }
 
     function resizeSelectionByCorner(selection, corner, latlng) {
-        const pointX = clamp(latlng.lng, 0, pagePixelSize.width);
-        const pointY = clamp(latlng.lat, 0, pagePixelSize.height);
+        const point = pixelFromLatLng(latlng);
+        const pointX = point.x;
+        const pointY = point.y;
         const minSize = 12;
         const current = getSelectionPixels(selection);
         let { left, top, right, bottom } = current;
@@ -1940,33 +1949,6 @@
         return text;
     }
 
-    function splitLineToColumns(lineText) {
-        const cleaned = lineText
-            .replace(/\u00A0/g, ' ')
-            .replace(/[،]/g, ',')
-            .trim();
-
-        if (!cleaned) return [];
-
-        let parts = cleaned
-            .split(/\t+|\s{2,}|[|]+/)
-            .map((part) => part.trim())
-            .filter(Boolean);
-
-        if (parts.length <= 1) {
-            parts = cleaned
-                .split(/[;,]|(?<=\d)\s+(?=[-+]?\d)/)
-                .map((part) => part.trim())
-                .filter(Boolean);
-        }
-
-        if (parts.length <= 1) {
-            parts = cleaned.split(/\s+/).filter(Boolean);
-        }
-
-        return parts;
-    }
-
     function normalizeExtractedText(text) {
         return String(text || '')
             .replace(/\u00A0/g, ' ')
@@ -1984,6 +1966,7 @@
         return Number.isFinite(num) ? num : null;
     }
 
+    const NUMBER_MATCH_PATTERN = /[-+]?\d+(?:[.,]\d+)?/g;
     const NORTHING_INTEGER_DIGITS = 7;
     const EASTING_INTEGER_DIGITS = 6;
 
@@ -2033,7 +2016,7 @@
             return false;
         }
         const score = coordinatePairScore(northingValue, eastingValue);
-        return Number.isFinite(score) && score >= 8;
+        return Number.isFinite(score) && score >= (requireExpectedDigits ? 8 : 4);
     }
 
     function isLikelyHeaderLine(lineText) {
@@ -2075,294 +2058,178 @@
         return Number.isFinite(num) && Math.abs(num) <= 10000;
     }
 
-    function extractCoordinateRowsFromLines(lines, tableId, pageNumber, nextIdFactory, nextRowFactory) {
-        const sourceLines = Array.isArray(lines) ? lines : [];
-        const rows = [];
-        const signatures = new Set();
-
-        sourceLines.forEach((lineText) => {
-            if (!lineText || isLikelyHeaderLine(lineText)) return;
-            const normalized = normalizeExtractedText(lineText);
-            const tokens = normalized.split(/\s+/).filter(Boolean);
-            if (tokens.length < 3) return;
-
-            let i = 0;
-            while (i <= tokens.length - 3) {
-                const idToken = tokens[i];
-                const nToken = tokens[i + 1];
-                const eToken = tokens[i + 2];
-                if (!isPointIdToken(idToken) || !isLikelyCoordinatePair(nToken, eToken, true)) {
-                    i += 1;
-                    continue;
-                }
-
-                let elevation = '';
-                let code = '';
-                let advance = 3;
-
-                const zToken = tokens[i + 3];
-                const z = parseNumeric(zToken);
-                if (looksLikeElevation(z)) {
-                    elevation = normalizeNumberString(zToken);
-                    advance += 1;
-                }
-
-                const codeToken = tokens[i + advance];
-                const startsNextPoint = (
-                    isPointIdToken(codeToken) &&
-                    isLikelyCoordinatePair(tokens[i + advance + 1], tokens[i + advance + 2], true)
-                );
-                if (codeToken && !startsNextPoint && !Number.isFinite(parseNumeric(codeToken)) && isPointIdToken(codeToken)) {
-                    code = codeToken;
-                    advance += 1;
-                }
-
-                const row = {
-                    id: nextIdFactory(),
-                    tableId,
-                    pageNumber,
-                    rowNumber: nextRowFactory(),
-                    name: idToken,
-                    northing: normalizeNumberString(nToken),
-                    easting: normalizeNumberString(eToken),
-                    elevation,
-                    code,
-                    cols: [idToken, nToken, eToken, elevation, code].filter(Boolean),
-                    rawText: normalized
-                };
-
-                const signature = `${row.name}|${row.northing}|${row.easting}|${row.elevation}|${row.code}`;
-                if (!signatures.has(signature)) {
-                    signatures.add(signature);
-                    rows.push(row);
-                }
-
-                i += advance;
-            }
-        });
-
-        return rows;
+    function splitLineToColumns(lineText) {
+        return normalizeExtractedText(lineText)
+            .split(/\t+|\s{2,}|[|;]+/)
+            .map((part) => part.trim())
+            .filter(Boolean);
     }
 
-    function mapColumnsToCoordinateFields(lineText, cols) {
-        const normalized = normalizeExtractedText(lineText);
-        const fallbackCols = Array.isArray(cols) ? cols : [];
+    function normalizeToken(value) {
+        return normalizeExtractedText(value).replace(/[,:;]+$/g, '');
+    }
 
-        const matches = [...normalized.matchAll(/[-+]?\d+(?:[.,]\d+)?/g)].map((m) => ({
-            raw: m[0],
-            value: normalizeNumberString(m[0]),
-            index: m.index ?? 0,
-            end: (m.index ?? 0) + m[0].length
-        }));
+    function isCoordinateToken(value) {
+        const numeric = parseNumeric(value);
+        if (!looksLikeCoord(numeric)) return false;
+        const digits = integerDigitLength(value);
+        return digits >= 5;
+    }
 
-        if (matches.length >= 3) {
-            // Score each 3-number window and pick the most coordinate-like one.
-            let startIdx = 0;
-            let bestScore = Number.NEGATIVE_INFINITY;
-            for (let i = 0; i <= matches.length - 3; i += 1) {
-                const a = matches[i];
-                const b = matches[i + 1];
-                const c = matches[i + 2];
-                const aNum = parseNumeric(a.value);
-                const bNum = parseNumeric(b.value);
-                const cNum = parseNumeric(c.value);
-                if (aNum === null || bNum === null || cNum === null) continue;
+    function isPossiblePointName(value) {
+        const token = normalizeToken(value);
+        if (!token) return false;
+        if (isCoordinateToken(token)) return false;
+        if (/^[.,:;|]+$/.test(token)) return false;
+        return /[A-Za-z0-9\u0600-\u06FF]/.test(token);
+    }
 
-                const aDigits = integerDigitLength(a.value);
-                const bDigits = integerDigitLength(b.value);
-                let score = coordinatePairScore(a.value, b.value);
-                if (!Number.isFinite(score)) continue;
+    function lineToTokens(lineText) {
+        return normalizeExtractedText(lineText)
+            .replace(/[|;]/g, ' ')
+            .split(/\s+/)
+            .map(normalizeToken)
+            .filter(Boolean);
+    }
 
-                if (hasExpectedCoordinateDigits(a.value, b.value)) score += 30;
-                if (hasExpectedCoordinateDigits(b.value, a.value)) score -= 10;
+    function resolveCoordinatePair(firstToken, secondToken) {
+        if (!isCoordinateToken(firstToken) || !isCoordinateToken(secondToken)) return null;
 
-                // Elevation is usually much smaller than N/E magnitudes.
-                if (Math.abs(cNum) <= 10000) score += 2;
-                else if (Math.abs(cNum) <= 100000) score += 1;
+        const first = normalizeNumberString(firstToken);
+        const second = normalizeNumberString(secondToken);
+        const firstDigits = integerDigitLength(first);
+        const secondDigits = integerDigitLength(second);
+        const firstAsNE = coordinatePairScore(first, second);
+        const secondAsNE = coordinatePairScore(second, first);
 
-                // Favor windows after an initial point/serial number.
-                if (i > 0) score += 1;
+        if (firstDigits === NORTHING_INTEGER_DIGITS && secondDigits === EASTING_INTEGER_DIGITS) {
+            return { northing: first, easting: second };
+        }
+        if (firstDigits === EASTING_INTEGER_DIGITS && secondDigits === NORTHING_INTEGER_DIGITS) {
+            return { northing: second, easting: first };
+        }
+        if (firstAsNE >= secondAsNE) {
+            return { northing: first, easting: second };
+        }
+        return { northing: second, easting: first };
+    }
 
-                // Keep a soft fallback for near-matches when OCR drops one digit.
-                if (Math.abs(aDigits - NORTHING_INTEGER_DIGITS) <= 1) score += 1;
-                if (Math.abs(bDigits - EASTING_INTEGER_DIGITS) <= 1) score += 1;
+    function parsePointSegment(tokens, tableId, pageNumber, nextIdFactory, rowNumber, rawText) {
+        if (!tokens.length) return null;
 
-                if (score > bestScore) {
-                    bestScore = score;
-                    startIdx = i;
-                }
+        let pairIndex = -1;
+        let pair = null;
+        for (let i = 0; i <= tokens.length - 2; i += 1) {
+            pair = resolveCoordinatePair(tokens[i], tokens[i + 1]);
+            if (pair) {
+                pairIndex = i;
+                break;
             }
-
-            const n = matches[startIdx];
-            const e = matches[startIdx + 1];
-            const z = matches[startIdx + 2];
-
-            const name = normalizeExtractedText(normalized.slice(0, n.index));
-            const code = normalizeExtractedText(normalized.slice(z.end));
-
-            return {
-                name: name || (fallbackCols[0] ?? ''),
-                northing: n.value,
-                easting: e.value,
-                elevation: z.value,
-                code: code || (fallbackCols[4] ?? '')
-            };
         }
 
-        // Fallback to column split if regex-based extraction is insufficient.
-        return {
-            name: fallbackCols[0] ?? '',
-            northing: normalizeNumberString(fallbackCols[1] ?? ''),
-            easting: normalizeNumberString(fallbackCols[2] ?? ''),
-            elevation: normalizeNumberString(fallbackCols[3] ?? ''),
-            code: fallbackCols[4] ?? ''
-        };
-    }
-
-    function isLikelyCoordinateRow(mapped, lineText) {
-        const numericCount = (String(lineText || '').match(/[-+]?\d+(?:[.,]\d+)?/g) || []).length;
-        if (numericCount < 3) return false;
-
-        const n = parseNumeric(mapped?.northing);
-        const e = parseNumeric(mapped?.easting);
-        const z = parseNumeric(mapped?.elevation);
-        if (n === null || e === null || z === null) return false;
-
-        if (!isLikelyCoordinatePair(mapped?.northing, mapped?.easting, true)) return false;
-        if (Math.abs(z) > 10000) return false;
-
-        return true;
-    }
-
-    function buildCoordinateDraftFromLineText(lineText, tableId, pageNumber, rowNumber, id) {
-        if (typeof lineText !== 'string' || !lineText.trim()) return null;
-        const cols = splitLineToColumns(lineText);
-        const mapped = mapColumnsToCoordinateFields(lineText, cols);
-
-        if (isLikelyCoordinateRow(mapped, lineText)) {
-            return {
-                id,
+        if (pairIndex < 0 || !pair) {
+            const raw = normalizeExtractedText(rawText || tokens.join(' '));
+            return raw ? {
+                id: nextIdFactory(),
                 tableId,
                 pageNumber,
                 rowNumber,
-                name: mapped.name,
-                northing: mapped.northing,
-                easting: mapped.easting,
-                elevation: mapped.elevation,
-                code: mapped.code,
-                cols,
-                rawText: lineText
-            };
+                name: raw,
+                northing: '',
+                easting: '',
+                elevation: '',
+                code: 'RAW',
+                cols: [raw],
+                rawText: raw,
+                isRawOnly: true
+            } : null;
         }
 
-        return null;
+        const nameTokens = tokens.slice(0, pairIndex).filter(isPossiblePointName);
+        const afterPair = tokens.slice(pairIndex + 2);
+        let elevation = '';
+        const codeTokens = [];
+
+        afterPair.forEach((token) => {
+            const numeric = parseNumeric(token);
+            if (!elevation && looksLikeElevation(numeric)) {
+                elevation = normalizeNumberString(token);
+                return;
+            }
+            codeTokens.push(token);
+        });
+
+        const name = nameTokens.join(' ') || `P${rowNumber}`;
+        const raw = normalizeExtractedText(rawText || tokens.join(' '));
+        return {
+            id: nextIdFactory(),
+            tableId,
+            pageNumber,
+            rowNumber,
+            name,
+            northing: pair.northing,
+            easting: pair.easting,
+            elevation,
+            code: codeTokens.join(' '),
+            cols: [name, pair.northing, pair.easting, elevation, codeTokens.join(' ')].filter(Boolean),
+            rawText: raw
+        };
     }
 
-    function buildPackedCoordinateDraftsFromLineText(lineText, tableId, pageNumber, nextIdFactory, nextRowFactory) {
-        const normalized = normalizeExtractedText(lineText);
-        if (!normalized) return [];
-
-        const tokens = normalized.split(/\s+/).filter(Boolean);
-        if (tokens.length < 6) return [];
-
-        const rows = [];
-        let i = 0;
-        while (i <= tokens.length - 3) {
-            const nameToken = tokens[i];
-            const nToken = tokens[i + 1];
-            const eToken = tokens[i + 2];
-
-            // Packed pattern: [point-id/name] [northing] [easting]
-            if (isLikelyCoordinatePair(nToken, eToken, true)) {
-                let elevation = '';
-                let advance = 3;
-
-                // Optional elevation token if present and not starting next packed point.
-                if (i + 3 < tokens.length) {
-                    const zToken = tokens[i + 3];
-                    const z = parseNumeric(zToken);
-                    const nextLooksLikePacked = isLikelyCoordinatePair(tokens[i + 4], tokens[i + 5], true);
-                    if (z !== null && Math.abs(z) < 10000 && !nextLooksLikePacked) {
-                        elevation = normalizeNumberString(zToken);
-                        advance = 4;
-                    }
-                }
-
-                rows.push({
-                    id: nextIdFactory(),
-                    tableId,
-                    pageNumber,
-                    rowNumber: nextRowFactory(),
-                    name: nameToken,
-                    northing: normalizeNumberString(nToken),
-                    easting: normalizeNumberString(eToken),
-                    elevation,
-                    code: '',
-                    cols: [nameToken, nToken, eToken, elevation].filter(Boolean),
-                    rawText: `${nameToken} ${nToken} ${eToken}${elevation ? ` ${elevation}` : ''}`
-                });
-
-                i += advance;
-                continue;
+    function splitTokensIntoPointSegments(tokens) {
+        const pairStarts = [];
+        for (let i = 0; i <= tokens.length - 2; i += 1) {
+            if (resolveCoordinatePair(tokens[i], tokens[i + 1])) {
+                pairStarts.push(i);
+                i += 1;
             }
-
-            i += 1;
         }
 
-        // Only trust this parser when it detected multiple packed points.
-        return rows.length >= 2 ? rows : [];
+        if (pairStarts.length <= 1) return [tokens];
+
+        return pairStarts.map((pairStart, index) => {
+            const segmentStart = pairStart > 0 ? pairStart - 1 : pairStart;
+            const nextPairStart = pairStarts[index + 1] ?? tokens.length;
+            const segmentEnd = index + 1 < pairStarts.length
+                ? Math.max(segmentStart + 1, nextPairStart - 1)
+                : tokens.length;
+            return tokens.slice(segmentStart, segmentEnd);
+        }).filter((segment) => segment.length);
     }
 
-    function buildRowsFromLineWindows(lines, tableId, pageNumber, nextIdFactory) {
-        const normalizedLines = (Array.isArray(lines) ? lines : [])
-            .map((line) => normalizeExtractedText(line))
-            .filter(Boolean);
+    function expandPackedCoordinateLines(lines) {
+        const out = [];
+        (Array.isArray(lines) ? lines : []).forEach((lineText) => {
+            const tokens = lineToTokens(lineText);
+            const segments = splitTokensIntoPointSegments(tokens);
+            if (segments.length > 1) {
+                segments.forEach((segment) => out.push(segment.join(' ')));
+                return;
+            }
+            const normalized = normalizeExtractedText(lineText);
+            if (normalized) out.push(normalized);
+        });
+        return out;
+    }
+
+    function extractCoordinateRowsFromLines(lines, tableId, pageNumber, nextIdFactory, nextRowFactory) {
+        const expandedLines = expandPackedCoordinateLines(lines);
         const rows = [];
-        const seenSignatures = new Set();
+        const seen = new Set();
 
-        for (let start = 0; start < normalizedLines.length; start += 1) {
-            let bestDraft = null;
-            let bestEnd = start;
-            let bestScore = Number.NEGATIVE_INFINITY;
-
-            for (let end = start; end < normalizedLines.length && end <= start + 3; end += 1) {
-                const candidate = normalizedLines.slice(start, end + 1).join(' ').replace(/\s+/g, ' ').trim();
-                const draft = buildCoordinateDraftFromLineText(
-                    candidate,
-                    tableId,
-                    pageNumber,
-                    rows.length + 1,
-                    nextIdFactory()
-                );
-                if (!draft) continue;
-
-                const numericCount = (candidate.match(/[-+]?\d+(?:[.,]\d+)?/g) || []).length;
-                const score = (isLikelyCoordinateRow(draft, candidate) ? 1000 : 0) + (numericCount * 10) + candidate.length;
-                if (score > bestScore) {
-                    bestDraft = draft;
-                    bestEnd = end;
-                    bestScore = score;
-                }
-            }
-
-            if (!bestDraft) continue;
-
-            const signature = [
-                normalizeNumberString(bestDraft.northing),
-                normalizeNumberString(bestDraft.easting),
-                normalizeNumberString(bestDraft.elevation),
-                normalizeExtractedText(bestDraft.name)
-            ].join('|');
-
-            if (seenSignatures.has(signature)) {
-                continue;
-            }
-
-            seenSignatures.add(signature);
-            bestDraft.rowNumber = rows.length + 1;
-            rows.push(bestDraft);
-            start = bestEnd;
-        }
+        expandedLines.forEach((lineText) => {
+            const rawText = normalizeExtractedText(lineText);
+            if (!rawText) return;
+            const tokens = lineToTokens(rawText);
+            const row = parsePointSegment(tokens, tableId, pageNumber, nextIdFactory, nextRowFactory(), rawText);
+            if (!row) return;
+            const signature = row.isRawOnly
+                ? `raw|${row.rawText}`
+                : `coord|${row.northing}|${row.easting}|${row.elevation}|${row.name}`;
+            if (seen.has(signature)) return;
+            seen.add(signature);
+            rows.push(row);
+        });
 
         return rows;
     }
@@ -2404,47 +2271,12 @@
             y <= targetRect.bottom
         );
 
-        const words = [];
-        textContent.items.forEach((item) => {
-            const text = String(item.str || '').trim();
-            if (!text) return;
-
-            const tx = pdfApi.Util.transform(viewport.transform, item.transform);
-            const x = tx[4];
-            const y = tx[5];
-            const h = Math.max(1, item.height || Math.hypot(tx[2], tx[3]));
-            const w = Math.max(1, item.width || Math.hypot(tx[0], tx[1]));
-
-            const tokenRect = {
-                left: x,
-                top: y - h,
-                right: x + w,
-                bottom: y
-            };
-            const centerX = (tokenRect.left + tokenRect.right) / 2;
-            const centerY = (tokenRect.top + tokenRect.bottom) / 2;
-            if (!pointInsideRect(centerX, centerY, rect)) return;
-
-            words.push({
-                text,
-                x: tokenRect.left,
-                y: (tokenRect.top + tokenRect.bottom) / 2,
-                h
-            });
-        });
-
-        if (words.length === 0) {
-            // Fallback: if we didn't capture anything, try a vertical-flip interpretation.
-            const flippedRect = {
-                left: rect.left,
-                right: rect.right,
-                top: viewport.height - rect.bottom,
-                bottom: viewport.height - rect.top
-            };
-
+        const collectWords = (targetRect) => {
+            const words = [];
             textContent.items.forEach((item) => {
                 const text = String(item.str || '').trim();
                 if (!text) return;
+
                 const tx = pdfApi.Util.transform(viewport.transform, item.transform);
                 const x = tx[4];
                 const y = tx[5];
@@ -2458,7 +2290,8 @@
                 };
                 const centerX = (tokenRect.left + tokenRect.right) / 2;
                 const centerY = (tokenRect.top + tokenRect.bottom) / 2;
-                if (!pointInsideRect(centerX, centerY, flippedRect)) return;
+                if (!pointInsideRect(centerX, centerY, targetRect)) return;
+
                 words.push({
                     text,
                     x: tokenRect.left,
@@ -2466,30 +2299,52 @@
                     h
                 });
             });
-        }
 
-        if (!words.length) return [];
+            return words;
+        };
 
-        words.sort((a, b) => (a.y - b.y) || (a.x - b.x));
-        const lineBuckets = [];
+        const wordsToLines = (words) => {
+            if (!words.length) return [];
+            words.sort((a, b) => (a.y - b.y) || (a.x - b.x));
+            const lineBuckets = [];
 
-        words.forEach((word) => {
-            const yTolerance = Math.max(3, Math.min(12, word.h * 0.75));
-            let bucket = lineBuckets.find((line) => Math.abs(line.y - word.y) <= yTolerance);
-            if (!bucket) {
-                bucket = { y: word.y, h: word.h, words: [] };
-                lineBuckets.push(bucket);
-            }
-            bucket.words.push(word);
-            bucket.h = Math.max(bucket.h || 0, word.h || 0);
-        });
+            words.forEach((word) => {
+                const yTolerance = Math.max(3, Math.min(12, word.h * 0.75));
+                let bucket = lineBuckets.find((line) => Math.abs(line.y - word.y) <= yTolerance);
+                if (!bucket) {
+                    bucket = { y: word.y, h: word.h, words: [] };
+                    lineBuckets.push(bucket);
+                }
+                bucket.words.push(word);
+                bucket.h = Math.max(bucket.h || 0, word.h || 0);
+            });
 
-        lineBuckets.sort((a, b) => a.y - b.y);
-        return lineBuckets.map((line) => {
-            line.words.sort((a, b) => a.x - b.x);
-            const text = line.words.map((w) => w.text).join(' ').replace(/\s+/g, ' ').trim();
-            return text;
-        }).filter(Boolean);
+            lineBuckets.sort((a, b) => a.y - b.y);
+            return lineBuckets.map((line) => {
+                line.words.sort((a, b) => a.x - b.x);
+                const text = line.words.map((w) => w.text).join(' ').replace(/\s+/g, ' ').trim();
+                return text;
+            }).filter(Boolean);
+        };
+
+        const scoreLines = (lines) => {
+            const numericWeight = lines.reduce((sum, line) => sum + ((line.match(/\d/g) || []).length), 0);
+            return (coordinateLikeScore(lines) * 100) + numericWeight + lines.length;
+        };
+
+        const flippedRect = {
+            left: rect.left,
+            right: rect.right,
+            top: viewport.height - rect.bottom,
+            bottom: viewport.height - rect.top
+        };
+
+        const normalLines = wordsToLines(collectWords(rect));
+        const flippedLines = wordsToLines(collectWords(flippedRect));
+        if (!normalLines.length) return flippedLines;
+        if (!flippedLines.length) return normalLines;
+
+        return scoreLines(flippedLines) > scoreLines(normalLines) ? flippedLines : normalLines;
     }
 
     async function extractTextRowsFromSelectionOcr(selection) {
@@ -2975,17 +2830,14 @@
         leafletMap.on('mouseup', (event) => {
             if (isResizingSelection) return;
             if (toolMode !== 'select' || !drawStartLatLng) return;
-            const bounds = L.latLngBounds(drawStartLatLng, event.latlng);
+            const startPoint = pixelFromLatLng(drawStartLatLng);
+            const endPoint = pixelFromLatLng(event.latlng);
             drawStartLatLng = null;
-            if (!bounds.isValid()) {
-                clearTempRect();
-                return;
-            }
 
-            const x1 = clamp(Math.min(bounds.getWest(), bounds.getEast()), 0, pagePixelSize.width);
-            const x2 = clamp(Math.max(bounds.getWest(), bounds.getEast()), 0, pagePixelSize.width);
-            const y1 = clamp(Math.min(bounds.getNorth(), bounds.getSouth()), 0, pagePixelSize.height);
-            const y2 = clamp(Math.max(bounds.getNorth(), bounds.getSouth()), 0, pagePixelSize.height);
+            const x1 = Math.min(startPoint.x, endPoint.x);
+            const x2 = Math.max(startPoint.x, endPoint.x);
+            const y1 = Math.min(startPoint.y, endPoint.y);
+            const y2 = Math.max(startPoint.y, endPoint.y);
             const width = x2 - x1;
             const height = y2 - y1;
             clearTempRect();
@@ -3274,6 +3126,7 @@
                         .map((line) => String(line).trim())
                         .filter(Boolean);
                 }
+                lines = expandPackedCoordinateLines(lines);
                 detectedTextLineCount += lines.length;
 
                 let nextId = lastExtractedRowId;

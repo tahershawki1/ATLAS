@@ -28,6 +28,7 @@
     { id: "pages.point-staking", label: "توقيع النقاط", url: "/pages/point-staking/" },
     { id: "pages.new-level-mark", label: "علام جيت لفل جديد", url: "/pages/new-level-mark/" },
     { id: "pages.level-budget", label: "جدول الميزانية والتحقق", url: "/pages/level-budget/" },
+    { id: "pages.coordinates-workspace", label: "مركز الإحداثيات", url: "/pages/coordinates-workspace/" },
     { id: "pages.coordinates-extractor", label: "استخراج الاحداثيات", url: "/pages/coordinates-extractor/" },
     { id: "pages.coordinates-proposal", label: "اقتراح الإحداثيات", url: "/pages/coordinates-proposal/" },
     { id: "pages.coordinates-export", label: "تصدير الإحداثيات", url: "/pages/coordinates-export/" },
@@ -811,4 +812,3 @@
     state,
   };
 })();
-

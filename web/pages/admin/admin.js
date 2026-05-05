@@ -791,6 +791,7 @@
         "pages.point-staking",
         "pages.new-level-mark",
         "pages.level-budget",
+        "pages.coordinates-workspace",
         "pages.coordinates-extractor",
         "pages.coordinates-proposal",
         "pages.coordinates-export",

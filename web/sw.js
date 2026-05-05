@@ -1,7 +1,7 @@
 // Atlas Site - Service Worker
 // Handles offline caching and update notifications
 
-const CACHE_NAME = 'atlas-site-v9';
+const CACHE_NAME = 'atlas-site-v20';
 const SHARED_FILES_CACHE = 'atlas-shared-files-v1';
 const SHARED_FILE_KEY = '/__atlas_shared_file__';
 const SHARED_FILE_META_KEY = '/__atlas_shared_file_meta__';
@@ -28,6 +28,7 @@ const ASSETS = [
   './pages/new-level-mark/index.html',
   './pages/level-budget/index.html',
   './pages/coordinates-extractor/index.html',
+  './pages/coordinates-workspace/index.html',
   './pages/coordinates-proposal/index.html',
   './pages/coordinates-export/index.html',
   './pages/shared-file/index.html',
@@ -127,9 +128,17 @@ self.addEventListener('fetch', event => {
           return networkResponse;
         })
         .catch(async () => {
+          const url = new URL(event.request.url);
+          const cleanRequest = new Request(url.pathname, { method: 'GET' });
           return (
             (await caches.match(event.request)) ||
-            (await caches.match('./index.html'))
+            (await caches.match(cleanRequest)) ||
+            (await caches.match(url.pathname)) ||
+            (await caches.match('./index.html')) ||
+            new Response('Offline page is not available.', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+            })
           );
         })
     );
@@ -150,7 +159,7 @@ self.addEventListener('fetch', event => {
         return networkResponse;
       }).catch(() => {
         // Network failed, rely on cache
-        return cachedResponse;
+        return cachedResponse || new Response('', { status: 504 });
       });
 
       return cachedResponse || fetchPromise;

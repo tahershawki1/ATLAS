@@ -369,6 +369,7 @@
     }
 
     .preview-wrap {
+      position: relative;
       border: 1px solid rgba(30, 64, 175, 0.12);
       border-radius: 14px;
       background: #fff;
@@ -378,12 +379,52 @@
       max-height: 58vh;
     }
 
+    .preview-stage {
+      position: relative;
+      width: fit-content;
+      max-width: 100%;
+      margin: 0 auto;
+    }
+
     .preview-embed {
       display: block;
       max-width: 100%;
       border-radius: 10px;
       background: #f8fafc;
       margin: 0 auto;
+    }
+
+    .text-highlight-layer {
+      position: absolute;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .text-highlight-box {
+      position: absolute;
+      border: 1px solid rgba(241, 135, 62, 0.95);
+      border-radius: 4px;
+      background:
+        repeating-linear-gradient(
+          -45deg,
+          rgba(241, 135, 62, 0.2) 0,
+          rgba(241, 135, 62, 0.2) 5px,
+          rgba(241, 135, 62, 0.04) 5px,
+          rgba(241, 135, 62, 0.04) 10px
+        );
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7), 0 6px 16px rgba(15, 23, 42, 0.08);
+    }
+
+    .text-highlight-box.is-coordinate {
+      border-color: rgba(10, 127, 138, 0.95);
+      background:
+        repeating-linear-gradient(
+          -45deg,
+          rgba(10, 127, 138, 0.22) 0,
+          rgba(10, 127, 138, 0.22) 5px,
+          rgba(10, 127, 138, 0.05) 5px,
+          rgba(10, 127, 138, 0.05) 10px
+        );
     }
 
     .preview-embed-pdf {
@@ -942,6 +983,10 @@
     const previewPdf = document.getElementById("previewPdf");
     const previewImage = document.getElementById("previewImage");
     const previewNote = document.getElementById("previewNote");
+    const textHighlightLayer = document.createElement("div");
+    textHighlightLayer.className = "text-highlight-layer hidden";
+    textHighlightLayer.setAttribute("aria-hidden", "true");
+    previewPdf.parentElement.appendChild(textHighlightLayer);
 
     const resultCard = document.getElementById("resultCard");
     const resultBadge = document.getElementById("resultBadge");
@@ -971,10 +1016,13 @@
       ocrWorker: null,
       lines: [],
       rows: [],
+      highlightEntries: [],
+      sourceEntries: [],
       pagesScanned: 0,
       ocrUsed: false,
       busy: false,
       previewUrl: null,
+      previewPageNumber: 1,
       projectedOrderPreference: "AUTO",
     };
 
@@ -983,6 +1031,7 @@
         URL.revokeObjectURL(state.previewUrl);
         state.previewUrl = null;
       }
+      clearTextHighlights();
       previewPdf.width = 0;
       previewPdf.height = 0;
       previewImage.removeAttribute("src");
@@ -996,6 +1045,116 @@
       }
       state.previewUrl = URL.createObjectURL(file);
       return state.previewUrl;
+    }
+
+    function clearTextHighlights() {
+      state.highlightEntries = [];
+      textHighlightLayer.innerHTML = "";
+      textHighlightLayer.classList.add("hidden");
+    }
+
+    function normalizeHighlightNumber(value) {
+      const numeric = extractNumericString(value);
+      return numeric ? numeric.replace(/\.0+$/, "") : "";
+    }
+
+    function buildHighlightEntriesForRows(rows, entries) {
+      return [];
+      const sourceEntries = (Array.isArray(entries) ? entries : []).filter((entry) => entry?.box);
+      const extractedRows = Array.isArray(rows) ? rows : [];
+      if (!sourceEntries.length || !extractedRows.length) return [];
+
+      const selected = [];
+      const seen = new Set();
+
+      extractedRows.forEach((row) => {
+        const rowPage = row?.page ?? 1;
+        const rawText = normalizeLineForParsing(row?.rawText || "");
+        const northing = normalizeHighlightNumber(row?.northing);
+        const easting = normalizeHighlightNumber(row?.easting);
+
+        sourceEntries.forEach((entry) => {
+          if ((entry.page ?? 1) !== rowPage) return;
+          const entryText = normalizeLineForParsing(entry.text || "");
+          if (!entryText) return;
+
+          const textMatchesRaw =
+            rawText &&
+            (
+              rawText.includes(entryText) ||
+              entryText.includes(rawText)
+            );
+          const textMatchesCoordinates =
+            northing &&
+            easting &&
+            entryText.includes(northing) &&
+            entryText.includes(easting);
+
+          if (!textMatchesRaw && !textMatchesCoordinates) return;
+
+          const key = `${entry.page}|${entryText}|${entry.box.left}|${entry.box.top}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          selected.push(entry);
+        });
+      });
+
+      return selected;
+    }
+
+    function renderTextHighlights(entries = state.highlightEntries) {
+      textHighlightLayer.innerHTML = "";
+
+      const previewTarget = !previewPdf.classList.contains("hidden")
+        ? previewPdf
+        : (!previewImage.classList.contains("hidden") ? previewImage : null);
+
+      if (!previewTarget) {
+        textHighlightLayer.classList.add("hidden");
+        return;
+      }
+
+      const targetRect = previewTarget.getBoundingClientRect();
+      const hostRect = previewTarget.parentElement.getBoundingClientRect();
+      if (!targetRect.width || !targetRect.height || !hostRect.width || !hostRect.height) {
+        textHighlightLayer.classList.add("hidden");
+        return;
+      }
+
+      const pageEntries = (Array.isArray(entries) ? entries : []).filter((entry) => (
+        entry?.page === state.previewPageNumber &&
+        entry?.box &&
+        Number.isFinite(entry.box.left) &&
+        Number.isFinite(entry.box.top) &&
+        Number.isFinite(entry.box.width) &&
+        Number.isFinite(entry.box.height)
+      ));
+
+      if (!pageEntries.length) {
+        textHighlightLayer.classList.add("hidden");
+        return;
+      }
+
+      textHighlightLayer.style.left = `${targetRect.left - hostRect.left}px`;
+      textHighlightLayer.style.top = `${targetRect.top - hostRect.top}px`;
+      textHighlightLayer.style.width = `${targetRect.width}px`;
+      textHighlightLayer.style.height = `${targetRect.height}px`;
+
+      pageEntries.slice(0, 220).forEach((entry) => {
+        const box = entry.box;
+        const marker = document.createElement("span");
+        marker.className = "text-highlight-box";
+        const numericCount = (normalizeLineForParsing(entry.text).match(NUMBER_PATTERN) || []).length;
+        if (numericCount >= 2) marker.classList.add("is-coordinate");
+        marker.style.left = `${clamp(box.left, 0, 1) * 100}%`;
+        marker.style.top = `${clamp(box.top, 0, 1) * 100}%`;
+        marker.style.width = `${clamp(box.width, 0.005, 1) * 100}%`;
+        marker.style.height = `${clamp(box.height, 0.006, 1) * 100}%`;
+        marker.title = entry.text || "";
+        textHighlightLayer.appendChild(marker);
+      });
+
+      textHighlightLayer.classList.remove("hidden");
     }
 
     function normalizeText(value) {
@@ -1478,6 +1637,13 @@
     }
 
     function buildLinesFromPdfItems(items) {
+      return buildLineEntriesFromPdfItems(items).map((entry) => entry.text);
+    }
+
+    function buildLineEntriesFromPdfItems(items, pageNumber = 1, page = null) {
+      const viewport = page?.getViewport ? page.getViewport({ scale: 1 }) : null;
+      const pageWidth = Math.max(1, Number(viewport?.width || 1));
+      const pageHeight = Math.max(1, Number(viewport?.height || 1));
       const words = [];
       items.forEach((item) => {
         const text = normalizeText(item?.str);
@@ -1486,7 +1652,8 @@
         const x = Number(tx[4] || 0);
         const y = Number(tx[5] || 0);
         const h = Math.max(1, Number(item?.height || Math.hypot(tx[2] || 0, tx[3] || 0) || 8));
-        words.push({ text, x, y, h });
+        const w = Math.max(1, Number(item?.width || Math.hypot(tx[0] || 0, tx[1] || 0) || text.length * h * 0.5));
+        words.push({ text, x, y, w, h });
       });
       if (!words.length) return [];
 
@@ -1504,8 +1671,31 @@
 
       lines.sort((a, b) => b.y - a.y);
       return lines
-        .map((line) => line.words.sort((a, b) => a.x - b.x).map((word) => word.text).join(" "))
-        .map((line) => normalizeText(line))
+        .map((line) => {
+          const lineWords = line.words.sort((a, b) => a.x - b.x);
+          const text = normalizeText(lineWords.map((word) => word.text).join(" "));
+          if (!text) return null;
+
+          const left = Math.min(...lineWords.map((word) => word.x));
+          const right = Math.max(...lineWords.map((word) => word.x + word.w));
+          const minY = Math.min(...lineWords.map((word) => word.y));
+          const maxY = Math.max(...lineWords.map((word) => word.y + word.h));
+          const lineHeight = Math.max(1, maxY - minY);
+          const top = clamp((pageHeight - maxY - (lineHeight * 0.1)) / pageHeight, 0, 1);
+          const bottom = clamp((pageHeight - minY + (lineHeight * 0.25)) / pageHeight, 0, 1);
+
+          return {
+            text,
+            page: pageNumber,
+            source: "text-layer",
+            box: {
+              left: clamp(left / pageWidth, 0, 1),
+              top,
+              width: clamp((right - left) / pageWidth, 0, 1),
+              height: clamp(bottom - top, 0, 1),
+            },
+          };
+        })
         .filter(Boolean);
     }
 
@@ -1639,7 +1829,112 @@
       return out;
     }
 
-    async function recognizeLinesFromCanvas(sourceCanvas) {
+    function normalizeOcrBox(box, width, height) {
+      if (!box || !width || !height) return null;
+      const isArrayBox = Array.isArray(box);
+      const x0 = Number(isArrayBox ? box[0] : (box.x0 ?? box.left ?? box.x));
+      const y0 = Number(isArrayBox ? box[1] : (box.y0 ?? box.top ?? box.y));
+      const x1 = Number(isArrayBox ? box[2] : (box.x1 ?? box.right ?? (Number.isFinite(x0) ? x0 + Number(box.width ?? box.w ?? 0) : NaN)));
+      const y1 = Number(isArrayBox ? box[3] : (box.y1 ?? box.bottom ?? (Number.isFinite(y0) ? y0 + Number(box.height ?? box.h ?? 0) : NaN)));
+      if (![x0, y0, x1, y1].every(Number.isFinite)) return null;
+
+      const left = clamp(Math.min(x0, x1) / width, 0, 1);
+      const top = clamp(Math.min(y0, y1) / height, 0, 1);
+      const right = clamp(Math.max(x0, x1) / width, 0, 1);
+      const bottom = clamp(Math.max(y0, y1) / height, 0, 1);
+      return {
+        left,
+        top,
+        width: clamp(right - left, 0, 1),
+        height: clamp(bottom - top, 0, 1),
+      };
+    }
+
+    function mergeOcrBoxes(boxes) {
+      const valid = boxes.filter(Boolean);
+      if (!valid.length) return null;
+      const left = Math.min(...valid.map((box) => box.left));
+      const top = Math.min(...valid.map((box) => box.top));
+      const right = Math.max(...valid.map((box) => box.left + box.width));
+      const bottom = Math.max(...valid.map((box) => box.top + box.height));
+      return {
+        left,
+        top,
+        width: clamp(right - left, 0, 1),
+        height: clamp(bottom - top, 0, 1),
+      };
+    }
+
+    function flattenOcrLines(data) {
+      const directLines = Array.isArray(data?.lines) ? data.lines : [];
+      if (directLines.length) return directLines;
+
+      const blockLines = [];
+      (Array.isArray(data?.blocks) ? data.blocks : []).forEach((block) => {
+        (Array.isArray(block?.paragraphs) ? block.paragraphs : []).forEach((paragraph) => {
+          (Array.isArray(paragraph?.lines) ? paragraph.lines : []).forEach((line) => blockLines.push(line));
+        });
+        (Array.isArray(block?.lines) ? block.lines : []).forEach((line) => blockLines.push(line));
+      });
+      return blockLines;
+    }
+
+    function buildOcrLineEntries(data, width, height, pageNumber = 1, source = "ocr") {
+      const entries = [];
+      const pushEntry = (text, box) => {
+        const normalized = normalizeText(text);
+        if (!normalized) return;
+        entries.push({
+          text: normalized,
+          page: pageNumber,
+          source,
+          box,
+        });
+      };
+
+      flattenOcrLines(data).forEach((line) => {
+        const lineBox = normalizeOcrBox(line?.bbox, width, height);
+        if (lineBox) {
+          pushEntry(line.text, lineBox);
+          return;
+        }
+        const words = Array.isArray(line?.words) ? line.words : [];
+        const wordText = words.map((word) => word?.text).filter(Boolean).join(" ");
+        const wordBox = mergeOcrBoxes(words.map((word) => normalizeOcrBox(word?.bbox, width, height)));
+        if (wordText && wordBox) pushEntry(wordText, wordBox);
+      });
+
+      if (entries.length) return entries;
+
+      const words = Array.isArray(data?.words) ? data.words : [];
+      const buckets = [];
+      words.forEach((word) => {
+        const text = normalizeText(word?.text);
+        const box = normalizeOcrBox(word?.bbox, width, height);
+        if (!text || !box) return;
+        const centerY = box.top + (box.height / 2);
+        const tolerance = Math.max(0.006, box.height * 0.75);
+        let bucket = buckets.find((item) => Math.abs(item.centerY - centerY) <= tolerance);
+        if (!bucket) {
+          bucket = { centerY, words: [] };
+          buckets.push(bucket);
+        }
+        bucket.words.push({ text, box });
+      });
+
+      buckets
+        .sort((a, b) => a.centerY - b.centerY)
+        .forEach((bucket) => {
+          const sortedWords = bucket.words.sort((a, b) => a.box.left - b.box.left);
+          const text = sortedWords.map((word) => word.text).join(" ");
+          const box = mergeOcrBoxes(sortedWords.map((word) => word.box));
+          pushEntry(text, box);
+        });
+
+      return entries;
+    }
+
+    async function recognizeLineEntriesFromCanvas(sourceCanvas, pageNumber = 1, source = "ocr") {
       const worker = await getOcrWorker();
       if (!state.tesseractModule) {
         const loaded = await import(TESSERACT_MODULE_PATH);
@@ -1647,9 +1942,9 @@
       }
       const variants = buildOcrVariants(sourceCanvas);
       let result = null;
-      let bestLines = [];
+      let bestEntries = [];
       let bestScore = -1;
-      const numericLines = [];
+      const numericEntries = [];
       try {
         for (const variant of variants) {
           if (worker && typeof worker.setParameters === "function") {
@@ -1662,7 +1957,7 @@
           }
 
           if (worker && typeof worker.recognize === "function") {
-            result = await worker.recognize(variant.canvas);
+            result = await worker.recognize(variant.canvas, {}, { text: true, blocks: true });
           } else if (state.tesseractModule && typeof state.tesseractModule.recognize === "function") {
             result = await state.tesseractModule.recognize(variant.canvas, "eng", {
               workerPath: TESSERACT_WORKER_PATH,
@@ -1673,18 +1968,23 @@
             throw new Error("OCR غير متاح في المكتبات المحلية.");
           }
 
-          const lines = String(result?.data?.text || "")
+          let entries = buildOcrLineEntries(result?.data, variant.canvas.width, variant.canvas.height, pageNumber, source);
+          if (!entries.length) {
+            entries = String(result?.data?.text || "")
             .split(/\r?\n/)
             .map((line) => normalizeText(line))
-            .filter(Boolean);
+              .filter(Boolean)
+              .map((line) => ({ text: line, page: pageNumber, source }));
+          }
+          const lines = entries.map((entry) => entry.text);
           const score = coordinateLikeScore(lines);
-          lines.forEach((line) => {
-            const count = (normalizeLineForParsing(line).match(NUMBER_PATTERN) || []).length;
-            if (count >= 2) numericLines.push(line);
+          entries.forEach((entry) => {
+            const count = (normalizeLineForParsing(entry.text).match(NUMBER_PATTERN) || []).length;
+            if (count >= 2) numericEntries.push(entry);
           });
-          if (score > bestScore || (score === bestScore && lines.join("").length > bestLines.join("").length)) {
+          if (score > bestScore || (score === bestScore && lines.join("").length > bestEntries.map((entry) => entry.text).join("").length)) {
             bestScore = score;
-            bestLines = lines;
+            bestEntries = entries;
           }
         }
       } finally {
@@ -1698,7 +1998,21 @@
         });
       }
 
-      return uniqueOcrLines([...bestLines, ...numericLines]);
+      const seen = new Set();
+      return [...bestEntries, ...numericEntries].filter((entry) => {
+        const normalized = normalizeText(entry?.text);
+        if (!normalized) return false;
+        const key = normalizeLineForParsing(normalized).toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        entry.text = normalized;
+        return true;
+      });
+    }
+
+    async function recognizeLinesFromCanvas(sourceCanvas) {
+      const entries = await recognizeLineEntriesFromCanvas(sourceCanvas);
+      return uniqueOcrLines(entries.map((entry) => entry.text));
     }
 
     async function renderPdfPreview() {
@@ -1716,6 +2030,8 @@
       previewPdf.style.width = "100%";
       previewPdf.style.maxWidth = `${Math.floor(viewport.width)}px`;
       await page.render({ canvasContext: context, viewport }).promise;
+      state.previewPageNumber = 1;
+      renderTextHighlights();
       previewNote.textContent = `PDF • الصفحة 1 من ${doc.numPages}`;
     }
 
@@ -1740,6 +2056,7 @@
       previewPdf.classList.add("hidden");
       previewImage.classList.remove("hidden");
       previewImage.src = url;
+      renderTextHighlights([]);
       previewNote.textContent = `Image • ${image.width} x ${image.height}`;
     }
 
@@ -1801,8 +2118,9 @@
 
         const page = await doc.getPage(pageNumber);
         const textContent = await page.getTextContent();
-        const pageLines = buildLinesFromPdfItems(textContent.items);
-        pageLines.forEach((line) => entries.push({ text: line, page: pageNumber, source: "text-layer" }));
+        const pageEntries = buildLineEntriesFromPdfItems(textContent.items, pageNumber, page);
+        const pageLines = pageEntries.map((entry) => entry.text);
+        pageEntries.forEach((entry) => entries.push(entry));
 
         const textQuality = countNumericRichLines(pageLines);
         const needsOcr = withOcr && (pageLines.length === 0 || textQuality === 0);
@@ -1815,8 +2133,8 @@
           canvas.height = Math.floor(viewport.height);
           const ctx = canvas.getContext("2d", { alpha: false });
           await page.render({ canvasContext: ctx, viewport }).promise;
-          const ocrLines = await recognizeLinesFromCanvas(canvas);
-          ocrLines.forEach((line) => entries.push({ text: line, page: pageNumber, source: "ocr" }));
+          const ocrEntries = await recognizeLineEntriesFromCanvas(canvas, pageNumber, "ocr");
+          ocrEntries.forEach((entry) => entries.push(entry));
           canvas.width = 0;
           canvas.height = 0;
           usedOcr = true;
@@ -1839,11 +2157,11 @@
       canvas.height = Math.max(1, Math.floor(image.height * scale));
       const ctx = canvas.getContext("2d", { alpha: false });
       ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-      const lines = await recognizeLinesFromCanvas(canvas);
+      const entries = await recognizeLineEntriesFromCanvas(canvas, 1, "ocr");
       canvas.width = 0;
       canvas.height = 0;
       return {
-        entries: lines.map((line) => ({ text: line, page: 1, source: "ocr" })),
+        entries,
         pagesScanned: 1,
         usedOcr: true,
       };
@@ -2481,9 +2799,12 @@
     function clearResults() {
       state.lines = [];
       state.rows = [];
+      state.highlightEntries = [];
+      state.sourceEntries = [];
       state.pagesScanned = 0;
       state.ocrUsed = false;
       window.AtlasCoordinatesExport?.updateButtonState?.();
+      renderTextHighlights([]);
 
       resultCard.classList.add("hidden");
       setResultBadge("بانتظار الفحص", "neutral");
@@ -2499,6 +2820,8 @@
       state.rows = state.rows.filter((row) => row.id !== rowId);
       if (state.rows.length === before) return;
       window.AtlasCoordinatesExport?.updateButtonState?.();
+      state.highlightEntries = buildHighlightEntriesForRows(state.rows, state.sourceEntries);
+      renderTextHighlights();
 
       const confidence = calculateConfidence(state.rows, state.lines);
       updateMetrics({
@@ -2609,6 +2932,7 @@
       state.fileBuffer = null;
       state.fileKind = null;
       state.pdfDoc = null;
+      state.sourceEntries = [];
       fileInput.value = "";
       clearPreviewMedia();
       fileMeta.classList.add("hidden");
@@ -2640,6 +2964,7 @@
         }
 
         state.lines = extraction.entries;
+        state.sourceEntries = extraction.entries;
         state.pagesScanned = extraction.pagesScanned;
         state.ocrUsed = extraction.usedOcr;
 
@@ -2668,6 +2993,7 @@
             const filteredEntries = extraction.entries.filter((entry) => !issueKeys.has(buildEntryKey(entry)));
             extraction.entries = filteredEntries;
             state.lines = filteredEntries;
+            state.sourceEntries = filteredEntries;
             parsed = parseLineEntriesToRows(filteredEntries, mode, {
               projectedOrder: initialOrder,
             });
@@ -2676,6 +3002,8 @@
         }
 
         state.rows = parsed.rows;
+        state.highlightEntries = buildHighlightEntriesForRows(state.rows, state.sourceEntries);
+        renderTextHighlights();
         window.AtlasCoordinatesExport?.updateButtonState?.();
 
         const confidence = calculateConfidence(state.rows, state.lines);
@@ -2913,6 +3241,10 @@
 
     document.addEventListener("DOMContentLoaded", async () => {
       await initializePage();
+    });
+
+    window.addEventListener("resize", () => {
+      renderTextHighlights();
     });
 
     window.addEventListener("beforeunload", async () => {
