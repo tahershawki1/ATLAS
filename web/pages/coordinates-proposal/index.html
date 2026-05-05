@@ -580,6 +580,148 @@
       word-break: break-word;
     }
 
+    .coord-order-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 3200;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      background: rgba(15, 23, 42, 0.38);
+    }
+
+    .coord-order-dialog {
+      width: min(100%, 920px);
+      max-height: min(82vh, 680px);
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      background: #ffffff;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: hidden;
+    }
+
+    .coord-order-head {
+      padding: 14px;
+      border-bottom: 1px solid rgba(30, 64, 175, 0.1);
+    }
+
+    .coord-order-title {
+      margin: 0;
+      color: var(--primary);
+      font-size: 0.98rem;
+      font-weight: 900;
+      line-height: 1.5;
+    }
+
+    .coord-order-desc {
+      margin: 6px 0 0;
+      color: #475569;
+      font-size: 0.78rem;
+      font-weight: 800;
+      line-height: 1.7;
+    }
+
+    .coord-order-lines {
+      padding: 10px 14px;
+      overflow: auto;
+      background: #f8fafc;
+    }
+
+    .coord-order-table {
+      width: 100%;
+      min-width: 860px;
+      border-collapse: collapse;
+      background: #ffffff;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      border-radius: 10px;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    .coord-order-table th,
+    .coord-order-table td {
+      border-bottom: 1px solid rgba(30, 64, 175, 0.08);
+      padding: 8px 6px;
+      font-size: 0.74rem;
+      line-height: 1.45;
+      color: #0f172a;
+      font-weight: 800;
+      vertical-align: top;
+    }
+
+    .coord-order-table th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f8fafc;
+      color: var(--primary);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .coord-order-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .coord-order-raw {
+      margin-top: 4px;
+      color: #64748b;
+      direction: ltr;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 260px;
+      font-family: "Outfit", "Cairo", monospace;
+      font-size: 0.68rem;
+      font-weight: 700;
+    }
+
+    .coord-order-note {
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 9px 10px;
+      color: #64748b;
+      font-size: 0.68rem;
+      font-weight: 900;
+    }
+
+    .coord-order-actions {
+      padding: 12px 14px 14px;
+      border-top: 1px solid rgba(30, 64, 175, 0.1);
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      background: #ffffff;
+    }
+
+    .coord-order-btn {
+      min-height: 42px;
+      border-radius: 10px;
+      border: 1px solid rgba(30, 64, 175, 0.14);
+      background: #ffffff;
+      color: var(--primary);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .coord-order-btn.primary {
+      border: none;
+      background: linear-gradient(135deg, #0a7f8a 0%, #1e3a8a 100%);
+      color: #ffffff;
+    }
+
+    .coord-order-btn.danger {
+      border-color: rgba(225, 29, 72, 0.22);
+      background: #fff1f2;
+      color: #be123c;
+    }
+
     .hidden {
       display: none !important;
     }
@@ -754,6 +896,21 @@
     </div>
   </div>
 
+  <div id="coordOrderModal" class="coord-order-modal hidden" role="dialog" aria-modal="true" aria-labelledby="coordOrderTitle">
+    <div class="coord-order-dialog">
+      <div class="coord-order-head">
+        <h2 id="coordOrderTitle" class="coord-order-title">تحديد ترتيب الإحداثيات</h2>
+        <p class="coord-order-desc">هذه السطور تحتوي أزواج إحداثيات لم يتم تحديد ترتيبها بثقة. اختر طريقة قراءة السطور أو احذفها من نتيجة الفحص الحالية.</p>
+      </div>
+      <div id="coordOrderLines" class="coord-order-lines"></div>
+      <div class="coord-order-actions">
+        <button id="coordOrderNeBtn" class="coord-order-btn primary" type="button">NE</button>
+        <button id="coordOrderEnBtn" class="coord-order-btn primary" type="button">EN</button>
+        <button id="coordOrderDeleteBtn" class="coord-order-btn danger" type="button">حذف السطور</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     const PDF_JS_MODULE_PATH = "../../LIP/vendor/pdfjs/pdf.min.mjs";
     const PDF_JS_WORKER_PATH = "../../LIP/vendor/pdfjs/pdf.worker.min.mjs";
@@ -798,6 +955,11 @@
     const rawTextHost = document.getElementById("rawTextHost");
     const exportCsvBtn = document.getElementById("exportCsvBtn");
     const copyJsonBtn = document.getElementById("copyJsonBtn");
+    const coordOrderModal = document.getElementById("coordOrderModal");
+    const coordOrderLines = document.getElementById("coordOrderLines");
+    const coordOrderNeBtn = document.getElementById("coordOrderNeBtn");
+    const coordOrderEnBtn = document.getElementById("coordOrderEnBtn");
+    const coordOrderDeleteBtn = document.getElementById("coordOrderDeleteBtn");
 
     const state = {
       file: null,
@@ -1060,6 +1222,167 @@
         return null;
       }
       return selected;
+    }
+
+    function buildEntryKey(entry) {
+      return [
+        entry?.page ?? "",
+        entry?.source ?? "",
+        normalizeLineForParsing(entry?.text),
+      ].join("\u001f");
+    }
+
+    function collectProjectedOrderIssueEntries(entries, mode) {
+      if (mode === "latlon") return [];
+      const issues = [];
+      const seen = new Set();
+
+      buildParsingEntries(entries).forEach((entry) => {
+        const line = normalizeLineForParsing(entry?.text);
+        if (!line || isLikelyHeaderLine(line)) return;
+
+        const projected = extractProjectedRowsFromLine(line, PROJECTED_ORDER_AUTO);
+        const hasIssue =
+          projected.stats.projectedAmbiguousCount > 0 ||
+          projected.stats.projectedUnresolvedCount > 0;
+        if (!hasIssue) return;
+
+        const key = buildEntryKey({ ...entry, text: line });
+        if (seen.has(key)) return;
+        seen.add(key);
+        issues.push({
+          ...entry,
+          text: line,
+          key,
+          issueCount:
+            projected.stats.projectedAmbiguousCount +
+            projected.stats.projectedUnresolvedCount,
+        });
+      });
+
+      return issues;
+    }
+
+    function summarizeProjectedIssueEntry(entry) {
+      const line = normalizeLineForParsing(entry?.text);
+      const tokens = line.split(/\s+/).filter(Boolean);
+      let firstValue = "";
+      let secondValue = "";
+      let point = "";
+      let elevation = "";
+      let code = "";
+
+      for (let index = 0; index <= tokens.length - 2; index += 1) {
+        const firstToken = tokens[index];
+        const secondToken = tokens[index + 1];
+        if (!isLikelyProjectedPairAnyOrder(firstToken, secondToken)) continue;
+
+        const pair = resolveProjectedPair(firstToken, secondToken, PROJECTED_ORDER_AUTO);
+        if (!pair.valid || (!pair.unresolved && !pair.ambiguous)) continue;
+
+        firstValue = extractNumericString(firstToken);
+        secondValue = extractNumericString(secondToken);
+        const prevToken = tokens[index - 1];
+        const nextToken = tokens[index + 2];
+        if (isLikelyPointNameToken(prevToken)) point = normalizeText(prevToken);
+        else if (isLikelyPointNameToken(nextToken)) point = normalizeText(nextToken);
+
+        const elevationToken = tokens[index + (point && point === normalizeText(nextToken) ? 3 : 2)];
+        const elevationValue = parseNumeric(elevationToken);
+        if (looksLikeElevation(elevationValue)) {
+          elevation = extractNumericString(elevationToken);
+        }
+
+        const codeToken = tokens.find((token, tokenIndex) =>
+          tokenIndex > index + 1 &&
+          token !== nextToken &&
+          !isNumericToken(token) &&
+          token.length <= 24
+        );
+        if (codeToken) code = normalizeText(codeToken);
+        break;
+      }
+
+      if (!firstValue || !secondValue) {
+        const numbers = [...line.matchAll(NUMBER_PATTERN)]
+          .map((match) => extractNumericString(match[0]))
+          .filter(Boolean);
+        firstValue = numbers[0] || "";
+        secondValue = numbers[1] || "";
+      }
+
+      return {
+        point: point || inferNameFromLine(line) || "-",
+        firstValue: firstValue || "-",
+        secondValue: secondValue || "-",
+        elevation: elevation || "-",
+        code: code || "-",
+        page: entry?.page ?? 1,
+        source: entry?.source || "text-layer",
+        rawText: line,
+      };
+    }
+
+    function showProjectedOrderModal(issueEntries) {
+      return new Promise((resolve) => {
+        const visibleEntries = issueEntries.slice(0, 60);
+        const rowsHtml = visibleEntries.map((entry, index) => {
+          const summary = summarizeProjectedIssueEntry(entry);
+          return `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${escapeHtml(summary.point)}</td>
+              <td>${escapeHtml(summary.firstValue)}</td>
+              <td>${escapeHtml(summary.secondValue)}</td>
+              <td>${escapeHtml(summary.elevation)}</td>
+              <td>${escapeHtml(summary.code)}</td>
+              <td>${escapeHtml(String(summary.page))}</td>
+              <td>${escapeHtml(summary.source)}<div class="coord-order-raw" title="${escapeHtml(summary.rawText)}">${escapeHtml(summary.rawText)}</div></td>
+            </tr>
+          `;
+        }).join("");
+        coordOrderLines.innerHTML = `
+          <table class="coord-order-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Point</th>
+                <th>Value 1</th>
+                <th>Value 2</th>
+                <th>Elevation</th>
+                <th>Code</th>
+                <th>Page</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        `;
+
+        if (issueEntries.length > visibleEntries.length) {
+          coordOrderLines.insertAdjacentHTML(
+            "beforeend",
+            `<div class="coord-order-note">تم إخفاء ${issueEntries.length - visibleEntries.length} سطر إضافي لتخفيف العرض.</div>`,
+          );
+        }
+
+        const close = (result) => {
+          coordOrderModal.classList.add("hidden");
+          coordOrderNeBtn.removeEventListener("click", chooseNe);
+          coordOrderEnBtn.removeEventListener("click", chooseEn);
+          coordOrderDeleteBtn.removeEventListener("click", chooseDelete);
+          resolve(result);
+        };
+        const chooseNe = () => close({ action: "order", order: PROJECTED_ORDER_NE });
+        const chooseEn = () => close({ action: "order", order: PROJECTED_ORDER_EN });
+        const chooseDelete = () => close({ action: "delete" });
+
+        coordOrderNeBtn.addEventListener("click", chooseNe);
+        coordOrderEnBtn.addEventListener("click", chooseEn);
+        coordOrderDeleteBtn.addEventListener("click", chooseDelete);
+        coordOrderModal.classList.remove("hidden");
+        coordOrderNeBtn.focus();
+      });
     }
 
     function shouldPromptForProjectedOrder(stats, mode) {
@@ -2330,16 +2653,25 @@
           (initialOrder === PROJECTED_ORDER_AUTO || parsed.rows.length === 0);
 
         if (shouldAskOrder) {
-          const defaultOrder =
-            parsed.stats.projectedOrderVotesEN > parsed.stats.projectedOrderVotesNE
-              ? PROJECTED_ORDER_EN
-              : PROJECTED_ORDER_NE;
-          const selectedOrder = promptProjectedOrder(defaultOrder);
-          if (selectedOrder) {
-            state.projectedOrderPreference = selectedOrder;
+          const issueEntries = collectProjectedOrderIssueEntries(extraction.entries, mode);
+          const modalChoice = issueEntries.length
+            ? await showProjectedOrderModal(issueEntries)
+            : null;
+
+          if (modalChoice?.action === "order") {
+            state.projectedOrderPreference = modalChoice.order;
             parsed = parseLineEntriesToRows(extraction.entries, mode, {
-              projectedOrder: selectedOrder,
+              projectedOrder: modalChoice.order,
             });
+          } else if (modalChoice?.action === "delete") {
+            const issueKeys = new Set(issueEntries.map((entry) => entry.key));
+            const filteredEntries = extraction.entries.filter((entry) => !issueKeys.has(buildEntryKey(entry)));
+            extraction.entries = filteredEntries;
+            state.lines = filteredEntries;
+            parsed = parseLineEntriesToRows(filteredEntries, mode, {
+              projectedOrder: initialOrder,
+            });
+            setHint(`تم حذف ${issueEntries.length} سطر غير واضح من نتيجة الفحص الحالية.`, "success", false);
           }
         }
 
