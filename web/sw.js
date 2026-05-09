@@ -1,7 +1,7 @@
 // Atlas Site - Service Worker
 // Handles offline caching and update notifications
 
-const CACHE_NAME = 'atlas-site-v21';
+const CACHE_NAME = 'atlas-site-v22';
 const SHARED_FILES_CACHE = 'atlas-shared-files-v1';
 const SHARED_FILE_KEY = '/__atlas_shared_file__';
 const SHARED_FILE_META_KEY = '/__atlas_shared_file_meta__';

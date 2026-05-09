@@ -58,7 +58,23 @@
   }
 
   function toAbsolute(url) {
-    return new URL(url, window.location.origin).toString();
+    return new URL(toAppPath(url), getAppBaseUrl()).toString();
+  }
+
+  function getAppBaseUrl() {
+    const marker = "/pages/";
+    const pathname = window.location.pathname || "/";
+    const markerIndex = pathname.indexOf(marker);
+    if (markerIndex >= 0) {
+      return `${window.location.origin}${pathname.slice(0, markerIndex + 1)}`;
+    }
+    return new URL("./", window.location.href).toString();
+  }
+
+  function toAppPath(path) {
+    const value = String(path ?? "");
+    if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return value;
+    return value.replace(/^\/+/, "");
   }
 
   function currentPath() {
@@ -388,7 +404,7 @@
   }
 
   function goToLogin(redirectPath = currentPath()) {
-    const loginUrl = new URL("/pages/login/", window.location.origin);
+    const loginUrl = new URL("pages/login/", getAppBaseUrl());
     if (redirectPath) loginUrl.searchParams.set("redirect", redirectPath);
     window.location.href = loginUrl.toString();
   }
@@ -458,7 +474,7 @@
           <p style="margin:0 0 18px;color:#475569;font-size:.92rem;line-height:1.8;">هذا المستخدم لا يملك صلاحية فتح هذه الصفحة${permission ? ` (${permission})` : ""}.</p>
           <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
             <button id="atlasDeniedLogoutBtn" type="button" style="min-height:42px;padding:0 16px;border:none;border-radius:10px;background:#1e3a8a;color:#fff;font-family:inherit;font-weight:800;cursor:pointer;">تسجيل الخروج</button>
-            <a href="/pages/login/" style="display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 16px;border-radius:10px;border:1px solid rgba(30,64,175,.14);background:#fff;color:#1e3a8a;text-decoration:none;font-weight:800;">صفحة الدخول</a>
+            <a href="${toAbsolute("/pages/login/")}" style="display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 16px;border-radius:10px;border:1px solid rgba(30,64,175,.14);background:#fff;color:#1e3a8a;text-decoration:none;font-weight:800;">صفحة الدخول</a>
           </div>
         </div>
       </div>
@@ -504,7 +520,7 @@
           <strong>${userLabel}</strong>
         </div>
         <div class="atlas-auth-actions">
-          ${canSeeAdmin ? '<a class="atlas-auth-link" href="/pages/admin/">لوحة الإدارة</a>' : ""}
+          ${canSeeAdmin ? `<a class="atlas-auth-link" href="${toAbsolute("/pages/admin/")}">لوحة الإدارة</a>` : ""}
           <button type="button" class="atlas-auth-link atlas-auth-logout">تسجيل الخروج</button>
         </div>
       </div>
