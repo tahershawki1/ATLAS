@@ -1,7 +1,7 @@
 // Atlas Site - Service Worker
 // Handles offline caching and update notifications
 
-const CACHE_NAME = 'atlas-site-v20';
+const CACHE_NAME = 'atlas-site-v21';
 const SHARED_FILES_CACHE = 'atlas-shared-files-v1';
 const SHARED_FILE_KEY = '/__atlas_shared_file__';
 const SHARED_FILE_META_KEY = '/__atlas_shared_file_meta__';
@@ -81,22 +81,26 @@ self.addEventListener('install', event => {
 // Activate: Clean old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
+    (async () => {
+      const keys = await caches.keys();
+      const oldSiteCaches = keys.filter(key => key.startsWith('atlas-site-') && key !== CACHE_NAME);
+      await Promise.all(
         keys
           .filter(key => key !== CACHE_NAME && key !== SHARED_FILES_CACHE)
           .map(key => caches.delete(key))
-      )
-    )
+      );
+
+      // Only notify existing clients when this activation replaced an older site cache.
+      // A manual "clear cache and reload" creates a fresh install and should not loop the banner.
+      if (oldSiteCaches.length) {
+        const clients = await self.clients.matchAll();
+        clients.forEach(client => {
+          client.postMessage({ type: 'SW_UPDATED' });
+        });
+      }
+    })()
   );
   self.clients.claim();
-
-  // Notify all clients that a new version is available
-  self.clients.matchAll().then(clients => {
-    clients.forEach(client => {
-      client.postMessage({ type: 'SW_UPDATED' });
-    });
-  });
 });
 
 // Fetch: Cache-first strategy with network update
@@ -105,7 +109,7 @@ self.addEventListener('fetch', event => {
   if (
     event.request.method === 'POST' &&
     reqUrl.origin === self.location.origin &&
-    reqUrl.pathname === '/share-target'
+    reqUrl.pathname.endsWith('/share-target')
   ) {
     event.respondWith(handleShareTarget(event.request));
     return;
@@ -173,7 +177,7 @@ async function handleShareTarget(request) {
     const file = formData.get('file');
 
     if (!(file instanceof File) || file.size === 0) {
-      return Response.redirect('/pages/shared-file/index.html?error=no-file', 303);
+      return Response.redirect(new URL('pages/shared-file/index.html?error=no-file', self.registration.scope).href, 303);
     }
 
     const metadata = {
@@ -200,9 +204,9 @@ async function handleShareTarget(request) {
       })
     );
 
-    return Response.redirect('/pages/shared-file/index.html', 303);
+    return Response.redirect(new URL('pages/shared-file/index.html', self.registration.scope).href, 303);
   } catch (error) {
     console.error('[SW] Share target failed:', error);
-    return Response.redirect('/pages/shared-file/index.html?error=no-file', 303);
+    return Response.redirect(new URL('pages/shared-file/index.html?error=no-file', self.registration.scope).href, 303);
   }
 }

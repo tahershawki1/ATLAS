@@ -502,7 +502,8 @@
             await Promise.all(registrations.map((registration) => registration.unregister()));
           }
 
-          const freshUrl = new URL('index.html', window.location.origin);
+          sessionStorage.setItem('atlasSuppressUpdateBannerUntil', String(Date.now() + 30000));
+          const freshUrl = new URL('index.html', window.location.href);
           freshUrl.searchParams.set('refresh', Date.now().toString());
           window.location.replace(freshUrl.toString());
         } catch (error) {
@@ -529,6 +530,9 @@
         // Listen for update messages from SW
         navigator.serviceWorker.addEventListener('message', event => {
           if (event.data && event.data.type === 'SW_UPDATED') {
+            const suppressUntil = Number(sessionStorage.getItem('atlasSuppressUpdateBannerUntil') || 0);
+            if (Date.now() < suppressUntil) return;
+            sessionStorage.removeItem('atlasSuppressUpdateBannerUntil');
             document.getElementById('updateBanner').classList.add('show');
           }
         });
@@ -536,6 +540,4 @@
     </script>
   </body>
 </html>
-
-
 
