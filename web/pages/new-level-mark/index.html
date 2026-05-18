@@ -12,6 +12,7 @@
     <!-- Load library locally for offline support -->
     <script src="../../LIP/html2pdf.bundle.min.js"></script>
     <script src="../../shared/auth.js"></script>
+    <script src="../../shared/workspace-memory.js"></script>
     <script src="../../shared/coordinates-export.js"></script>
       <link rel="stylesheet" href="page.css" />
 </head>
@@ -979,8 +980,15 @@
         }
 
         // --- Persistence Logic ---
-        function saveAppState() {
-            const state = {
+        const NEW_LEVEL_MEMORY_PAGE = "new-level-mark";
+        const LEGACY_APP_STATE_KEY = "atomic_app_state";
+
+        function getAppStateKey() {
+            return window.AtlasWorkspaceMemory?.localKey?.(NEW_LEVEL_MEMORY_PAGE) || LEGACY_APP_STATE_KEY;
+        }
+
+        function buildAppState() {
+            return {
                 points: points,
                 currentStep: currentStep,
                 stakingOffset: stakingOffset,
@@ -992,14 +1000,10 @@
                     read_2: document.getElementById('read_2').value
                 }
             };
-            localStorage.setItem("atomic_app_state", JSON.stringify(state));
         }
 
-        function loadAppState() {
-            const saved = localStorage.getItem("atomic_app_state");
-            if (!saved) return;
-
-            const state = JSON.parse(saved);
+        function applyAppState(state) {
+            if (!state) return;
             points = state.points || [];
             currentStep = state.currentStep || 1;
             stakingOffset = state.stakingOffset || 0;
@@ -1041,16 +1045,50 @@
             nextStep(currentStep, true);
         }
 
+        function readSavedAppState(raw) {
+            try {
+                return raw ? JSON.parse(raw) : null;
+            } catch (error) {
+                console.warn("Saved level state is invalid:", error.message);
+                return null;
+            }
+        }
+
+        function saveAppState() {
+            const state = buildAppState();
+            localStorage.setItem(getAppStateKey(), JSON.stringify(state));
+            window.AtlasWorkspaceMemory?.savePageState?.(NEW_LEVEL_MEMORY_PAGE, {
+                custom: { levelMark: state },
+            }).catch((error) => console.warn("Level mark memory save failed:", error.message));
+        }
+
+        async function loadAppState() {
+            if (window.AtlasAuth?.initialize) {
+                await window.AtlasAuth.initialize().catch(() => {});
+            }
+
+            const workspaceState = await window.AtlasWorkspaceMemory?.loadPageState?.(NEW_LEVEL_MEMORY_PAGE);
+            const state = workspaceState?.custom?.levelMark ||
+                readSavedAppState(localStorage.getItem(getAppStateKey())) ||
+                readSavedAppState(localStorage.getItem(LEGACY_APP_STATE_KEY));
+
+            applyAppState(state);
+        }
+
         async function resetPage() {
             if(await askConfirm("هل أنت متأكد من مسح كافة البيانات والبدء من جديد؟")) {
-                localStorage.removeItem("atomic_app_state");
+                localStorage.removeItem(getAppStateKey());
+                localStorage.removeItem(LEGACY_APP_STATE_KEY);
+                await window.AtlasWorkspaceMemory?.savePageState?.(NEW_LEVEL_MEMORY_PAGE, {
+                    custom: { levelMark: null },
+                }).catch((error) => console.warn("Level mark memory reset failed:", error.message));
                 location.reload();
             }
         }
 
         // Initialize session on load
-        document.addEventListener('DOMContentLoaded', () => {
-            loadAppState();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadAppState();
             
             const savedSite = localStorage.getItem("selectedSite");
             if (savedSite) {

@@ -2,7 +2,8 @@
   "name": "Atlas Site",
   "short_name": "Atlas",
   "description": "Atlas Engineering - Site Management System",
-  "start_url": "/index.html",
+  "start_url": "index.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0a0e1a",
@@ -27,7 +28,7 @@
     }
   ],
   "share_target": {
-    "action": "/share-target",
+    "action": "share-target",
     "method": "POST",
     "enctype": "multipart/form-data",
     "params": {

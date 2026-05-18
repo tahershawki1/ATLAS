@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="../../shared/style.css" />
   <link rel="stylesheet" href="../../shared/mobile-fix.css" />
   <script src="../../shared/auth.js"></script>
+  <script src="../../shared/workspace-memory.js"></script>
     <script src="../../shared/coordinates-export.js"></script>
     <link rel="stylesheet" href="page.css" />
 </head>
@@ -117,23 +118,27 @@
 
     function addRow() {
       createRow(rowsEl.children.length + 1);
+      saveBudgetState();
     }
 
     function deleteRow(btn) {
       btn.closest('tr').remove();
       renumberRows();
+      saveBudgetState();
     }
 
     function resetRows() {
       rowsEl.innerHTML = '';
       for (let i = 0; i < 6; i++) addRow();
       resetCheck();
+      saveBudgetState();
     }
 
     function resetAll() {
       document.getElementById('startRL').value = '45.566';
       document.getElementById('tol').value = '0.005';
       resetRows();
+      saveBudgetState();
     }
 
     function setCheck(id, value) {
@@ -249,9 +254,66 @@
         status.className = 'status bad';
         status.textContent = 'التحقق فشل. فرق الإقفال كبير.';
       }
+      saveBudgetState();
     }
 
     resetRows();
+
+    function readBudgetRows() {
+      return [...rowsEl.querySelectorAll('tr')].map((tr) => ({
+        point: tr.children[1].querySelector('input')?.value || '',
+        bs: tr.children[2].querySelector('input')?.value || '',
+        isv: tr.children[3].querySelector('input')?.value || '',
+        fs: tr.children[4].querySelector('input')?.value || '',
+        notes: tr.children[7].querySelector('input')?.value || '',
+      }));
+    }
+
+    function applyBudgetRows(rows = []) {
+      rowsEl.innerHTML = '';
+      const source = rows.length ? rows : Array.from({ length: 6 }, () => ({}));
+      source.forEach((row, index) => {
+        createRow(index + 1);
+        const tr = rowsEl.children[index];
+        tr.children[1].querySelector('input').value = row.point || '';
+        tr.children[2].querySelector('input').value = row.bs || '';
+        tr.children[3].querySelector('input').value = row.isv || '';
+        tr.children[4].querySelector('input').value = row.fs || '';
+        tr.children[7].querySelector('input').value = row.notes || '';
+      });
+      renumberRows();
+    }
+
+    function getBudgetState() {
+      return {
+        startRL: document.getElementById('startRL').value,
+        tol: document.getElementById('tol').value,
+        rows: readBudgetRows(),
+      };
+    }
+
+    function saveBudgetState() {
+      window.AtlasWorkspaceMemory?.savePageState?.('level-budget', {
+        custom: { budget: getBudgetState() },
+      }).catch((error) => console.warn('Budget memory save failed', error.message));
+    }
+
+    async function restoreBudgetState(event) {
+      const saved = event?.detail?.state || await window.AtlasWorkspaceMemory?.loadPageState?.('level-budget');
+      const budget = saved?.custom?.budget;
+      if (!budget) return;
+      document.getElementById('startRL').value = budget.startRL || '45.566';
+      document.getElementById('tol').value = budget.tol || '0.005';
+      applyBudgetRows(Array.isArray(budget.rows) ? budget.rows : []);
+      calculateBudget();
+    }
+
+    document.addEventListener('input', (event) => {
+      if (event.target.closest('#rows') || event.target.id === 'startRL' || event.target.id === 'tol') {
+        saveBudgetState();
+      }
+    });
+    window.addEventListener('atlas-workspace-memory-ready', restoreBudgetState, { once: true });
   </script>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {

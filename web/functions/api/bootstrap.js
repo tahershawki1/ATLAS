@@ -5,6 +5,7 @@ export async function onRequestGet(context) {
     data: Boolean(context.env.ATLAS_DATA),
     sessions: Boolean(context.env.ATLAS_SESSIONS),
     pages_bucket: Boolean(context.env.ATLAS_PAGES_BUCKET),
+    workspace_bucket: Boolean(context.env.ATLAS_WORKSPACE_BUCKET || context.env.ATLAS_PAGES_BUCKET),
   };
 
   let setupRequired = false;

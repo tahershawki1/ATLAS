@@ -208,7 +208,7 @@ async function putPagesManifest(env, manifest) {
   return putJson(env, PAGES_MANIFEST_KEY, manifest);
 }
 
-function setSessionCookie(token, request, maxAgeSeconds = 60 * 60 * 24 * 7) {
+function setSessionCookie(token, request, maxAgeSeconds = 60 * 60 * 24 * 30) {
   const isSecure = (() => {
     try {
       return new URL(request.url).protocol === "https:";

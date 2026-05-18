@@ -78,8 +78,75 @@
     this.state.workspaces = Array.isArray(stored) ? stored : [];
   },
 
+  remoteWorkspaceToLocal(entry) {
+    const meta = entry?.meta || {};
+    const site = {
+      ...(meta.site || {}),
+      workspace_id: entry?.id || meta.site?.workspace_id,
+      workspace_title: entry?.title || meta.title || meta.site?.workspace_title,
+    };
+    return {
+      id: entry?.id || site.workspace_id,
+      title: entry?.title || meta.title || this.formatWorkspaceTitle(site),
+      site,
+      created_at: entry?.created_at || new Date().toISOString(),
+      updated_at: entry?.updated_at || new Date().toISOString(),
+    };
+  },
+
+  mergeWorkspaceRecord(current, incoming) {
+    if (!current) return incoming;
+    const currentTime = new Date(current.updated_at || current.created_at || 0).getTime();
+    const incomingTime = new Date(incoming.updated_at || incoming.created_at || 0).getTime();
+    const incomingIsNewer = incomingTime > currentTime;
+    if (incomingIsNewer) {
+      return {
+        ...current,
+        ...incoming,
+        site: { ...(current.site || {}), ...(incoming.site || {}) },
+      };
+    }
+    return {
+      ...incoming,
+      ...current,
+      site: { ...(incoming.site || {}), ...(current.site || {}) },
+    };
+  },
+
+  async loadRemoteWorkspaces() {
+    if (!window.AtlasWorkspaceMemory?.loadWorkspaceManifest) return false;
+    try {
+      const manifest = await window.AtlasWorkspaceMemory.loadWorkspaceManifest();
+      const remote = Array.isArray(manifest?.workspaces)
+        ? manifest.workspaces.map((entry) => this.remoteWorkspaceToLocal(entry)).filter((entry) => entry.id)
+        : [];
+      if (!remote.length) return false;
+
+      const merged = new Map(this.state.workspaces.map((workspace) => [workspace.id, workspace]));
+      remote.forEach((workspace) => {
+        merged.set(workspace.id, this.mergeWorkspaceRecord(merged.get(workspace.id), workspace));
+      });
+
+      this.state.workspaces = Array.from(merged.values())
+        .sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime())
+        .slice(0, 100);
+      this.writeJsonStorage(this.storageKeys.workspaces, this.state.workspaces);
+      return true;
+    } catch (error) {
+      console.warn("Failed to load remote workspaces", error.message);
+      return false;
+    }
+  },
+
   saveWorkspaces() {
     this.writeJsonStorage(this.storageKeys.workspaces, this.state.workspaces);
+    if (window.AtlasWorkspaceMemory?.saveWorkspaceMeta) {
+      this.state.workspaces.forEach((workspace) => {
+        window.AtlasWorkspaceMemory.saveWorkspaceMeta(workspace).catch((error) => {
+          console.warn("Failed to sync workspace metadata", error.message);
+        });
+      });
+    }
   },
 
   buildWorkspaceId(site) {
@@ -223,7 +290,7 @@
     this.state.workspaces = [
       next,
       ...this.state.workspaces.filter((workspace) => workspace.id !== workspaceId),
-    ].slice(0, 30);
+    ].slice(0, 100);
     this.saveWorkspaces();
     this.renderWorkspaces();
     return next;
@@ -967,6 +1034,7 @@
     console.log("Atlas App Initialized");
     this.state.customSiteDb = await this.loadCustomSiteDb();
     this.loadWorkspaces();
+    await this.loadRemoteWorkspaces();
     this.refreshCompaniesData();
     this.populateCompanies();
     this.enhanceNewSiteForm();

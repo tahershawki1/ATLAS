@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="../../shared/mobile-fix.css">
     <link rel="stylesheet" href="../../LIP/vendor/leaflet/leaflet.css">
     <script src="../../shared/auth.js"></script>
+    <script src="../../shared/workspace-memory.js"></script>
     <script src="../../shared/coordinates-export.js"></script>
       <link rel="stylesheet" href="page.css" />
 </head>
@@ -129,6 +130,8 @@
         layer: null,
         stakingMode: false
     };
+    const POINT_STAKING_MEMORY_PAGE = 'point-staking';
+    let restoringPointMemory = false;
 
     const MAP_MAX_ZOOM = 24;
     const MAP_MAX_NATIVE_ZOOM = 19;
@@ -154,6 +157,16 @@
             .replaceAll('<', '&lt;')
             .replaceAll('>', '&gt;')
             .replaceAll('"', '&quot;');
+    }
+
+    function pointsSignature(rows = []) {
+        return rows.map((point) => [
+            normalizeText(point?.name),
+            normalizeNumberString(point?.northing),
+            normalizeNumberString(point?.easting),
+            normalizeNumberString(point?.elevation),
+            normalizeText(point?.code)
+        ].join('|')).join('\n');
     }
 
     function normalizeNumberString(value) {
@@ -205,6 +218,55 @@
             }),
             { id: 'point-staking' },
         );
+    }
+
+    function getPointMemoryState() {
+        return {
+            pointsRaw: state.pointsRaw,
+            signed: Array.from(state.signed || []),
+            invisible: Array.from(state.invisible || []),
+            selectedIndex: state.selectedIndex,
+            stakingMode: state.stakingMode,
+            sourceFileName: state.sourceFileName,
+            sourceCrs: crsSelect?.value || 'DLTM',
+        };
+    }
+
+    function savePointMemory() {
+        if (restoringPointMemory) return;
+        window.AtlasWorkspaceMemory?.savePageState?.(POINT_STAKING_MEMORY_PAGE, {
+            custom: { pointStaking: getPointMemoryState() },
+        }).catch((error) => console.warn('Point staking memory save failed:', error.message));
+    }
+
+    function applyPointMemory(saved) {
+        if (!saved || !Array.isArray(saved.pointsRaw) || !saved.pointsRaw.length) return false;
+        restoringPointMemory = true;
+        try {
+            state.pointsRaw = saved.pointsRaw;
+            state.signed = new Set(Array.isArray(saved.signed) ? saved.signed : []);
+            state.invisible = new Set(Array.isArray(saved.invisible) ? saved.invisible : []);
+            state.sourceFileName = saved.sourceFileName || state.sourceFileName || '';
+            if (saved.sourceCrs && CRS_OPTIONS[saved.sourceCrs]) crsSelect.value = saved.sourceCrs;
+            if (state.sourceFileName) fileHint.textContent = `تم استرجاع: ${state.sourceFileName}`;
+            exportCoordsBtn.disabled = state.pointsRaw.length === 0;
+            window.AtlasCoordinatesExport?.updateButtonState?.();
+            renderMap();
+            const selectedIndex = Number(saved.selectedIndex);
+            if (Number.isInteger(selectedIndex) && selectedIndex >= 0 && selectedIndex < state.pointsMap.length) {
+                selectPoint(selectedIndex, false);
+            }
+            setStakingMode(Boolean(saved.stakingMode));
+            setStatus(`تم استرجاع ${state.pointsRaw.length} نقطة من ذاكرة ملف العمل.`);
+            return true;
+        } finally {
+            restoringPointMemory = false;
+        }
+    }
+
+    async function restorePointMemory(event) {
+        const pageState = event?.detail?.state || await window.AtlasWorkspaceMemory?.loadPageState?.(POINT_STAKING_MEMORY_PAGE);
+        applyPointMemory(pageState?.custom?.pointStaking);
     }
 
     function dedupePoints(rows) {
@@ -516,6 +578,7 @@
                 state.map.setZoom(SINGLE_POINT_ZOOM - 1, { animate: true });
             }
         }
+        savePointMemory();
     }
 
     function setStakingMode(enabled) {
@@ -532,6 +595,7 @@
                 state.map.setView([point.lat, point.lon], state.stakingMode ? SINGLE_POINT_ZOOM - 1 : state.map.getZoom(), { animate: false });
             }
         }, 80);
+        savePointMemory();
     }
 
     function renderMap() {
@@ -616,6 +680,7 @@
                 ? `تم إعادة توقيع النقطة: ${point.name || `Point ${state.selectedIndex + 1}`}`
                 : `تم توقيع النقطة: ${point.name || `Point ${state.selectedIndex + 1}`}`
         );
+        savePointMemory();
     }
 
     function markCurrentInvisible() {
@@ -627,6 +692,7 @@
         updateMarkersStyle();
         updatePanel();
         setStatus(`تم تعليم النقطة كغير مرئية: ${point.name || `Point ${state.selectedIndex + 1}`}`);
+        savePointMemory();
     }
 
     function movePoint(step) {
@@ -680,9 +746,13 @@
                 return;
             }
 
+            const previousSignature = pointsSignature(state.pointsRaw);
+            const nextSignature = pointsSignature(points);
             state.pointsRaw = points;
-            state.signed = new Set();
-            state.invisible = new Set();
+            if (previousSignature !== nextSignature) {
+                state.signed = new Set();
+                state.invisible = new Set();
+            }
             exportCoordsBtn.disabled = state.pointsRaw.length === 0;
             window.AtlasCoordinatesExport?.updateButtonState?.();
 
@@ -711,6 +781,7 @@
                 return;
             }
             setStatus(`تم تحميل ${state.pointsRaw.length} نقطة. راجع المعاينة ثم اضغط بدء التوقيع.`);
+            savePointMemory();
         } catch (error) {
             console.error(error);
             state.pointsRaw = [];
@@ -725,6 +796,7 @@
     crsSelect.addEventListener('change', () => {
         if (!state.pointsRaw.length) return;
         renderMap();
+        savePointMemory();
     });
 
     startStakingBtn.addEventListener('click', () => {
@@ -743,6 +815,7 @@
     nextBtn.addEventListener('click', () => movePoint(1));
 
     window.addEventListener('resize', () => state.map?.invalidateSize());
+    window.addEventListener('atlas-workspace-memory-ready', restorePointMemory, { once: true });
 </script>
 <script>
     document.addEventListener('DOMContentLoaded', async () => {

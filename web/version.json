@@ -1,11 +1,12 @@
 {
-  "cache_version": 34,
-  "web_version": "2.0.17",
+  "cache_version": 35,
+  "web_version": "2.0.18",
   "mobile_version": "2.0.0",
-  "build_number": 22,
+  "build_number": 23,
   "apk_url": "https://atlas-e73.pages.dev/downloads/atlas_app_final.apk",
   "last_updated": "2026-05-18",
   "changelog": [
+    "إضافة حفظ ملفات العمل والبيانات على Cloudflare R2 لكل مستخدم",
     "تحسين الأمان والصلاحيات والمزامنة",
     "إصلاح اختيار المواقع المكررة",
     "إضافة فحوصات تلقائية للملفات والروابط",

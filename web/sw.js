@@ -1,7 +1,7 @@
 // Atlas Site - Service Worker
 // Handles offline caching and update notifications
 
-const CACHE_NAME = 'atlas-site-v34';
+const CACHE_NAME = 'atlas-site-v35';
 const SHARED_FILES_CACHE = 'atlas-shared-files-v1';
 const SHARED_FILE_KEY = '/__atlas_shared_file__';
 const SHARED_FILE_META_KEY = '/__atlas_shared_file_meta__';
@@ -13,6 +13,7 @@ const ASSETS = [
   './index.html',
   './shared/auth.js',
   './shared/dialogs.js',
+  './shared/workspace-memory.js',
   './shared/coordinates-export.js',
   './shared/app.js',
   './shared/style.css',
@@ -243,7 +244,7 @@ self.addEventListener('fetch', event => {
   if (
     event.request.method === 'POST' &&
     reqUrl.origin === self.location.origin &&
-    reqUrl.pathname === '/share-target'
+    reqUrl.pathname.endsWith('/share-target')
   ) {
     event.respondWith(handleShareTarget(event.request));
     return;
@@ -335,7 +336,7 @@ async function handleShareTarget(request) {
     const file = formData.get('file');
 
     if (!(file instanceof File) || file.size === 0) {
-      return Response.redirect('/pages/shared-file/index.html?error=no-file', 303);
+      return Response.redirect(new URL('pages/shared-file/index.html?error=no-file', self.registration.scope).href, 303);
     }
 
     const fileBlob = new Blob([await file.arrayBuffer()], {
@@ -382,9 +383,9 @@ async function handleShareTarget(request) {
       ])
     );
 
-    return Response.redirect('/pages/shared-file/index.html', 303);
+    return Response.redirect(new URL('pages/shared-file/index.html', self.registration.scope).href, 303);
   } catch (error) {
     console.error('[SW] Share target failed:', error);
-    return Response.redirect('/pages/shared-file/index.html?error=no-file', 303);
+    return Response.redirect(new URL('pages/shared-file/index.html?error=no-file', self.registration.scope).href, 303);
   }
 }
