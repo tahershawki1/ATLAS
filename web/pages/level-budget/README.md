@@ -1,4 +1,4 @@
-# الميزانية - جدول التسوية (Levelling Calculation)
+﻿# الميزانية - جدول التسوية (Levelling Calculation)
 
 ## 1) وظيفة الصفحة
 الصفحة تطبق **طريقة H.I (Height of Instrument)** لحساب مناسيب النقاط من:

@@ -1,12 +1,16 @@
-(function () {
+﻿(function () {
   function getSelectedSiteSummary() {
     const raw = localStorage.getItem("selectedSite");
     if (!raw) return "لم يتم اختيار موقع بعد";
 
     try {
       const site = JSON.parse(raw);
+      const projectName = String(site?.project_name || site?.workspace_title || "").trim();
       const company = String(site?.company || "").trim();
       const plot = String(site?.plot || "").trim();
+      if (projectName && company && plot) return `${projectName} - ${company} - ${plot}`;
+      if (projectName && plot) return `${projectName} - ${plot}`;
+      if (projectName) return projectName;
       if (company && plot) return `${company} - ${plot}`;
       if (plot) return plot;
     } catch (error) {

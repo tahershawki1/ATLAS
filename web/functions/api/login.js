@@ -1,4 +1,4 @@
-import { ensureUsers, json, sanitizeUser, setSessionCookie, sha256 } from "./_utils";
+﻿import { ensureUsers, json, sanitizeUser, setSessionCookie, sha256 } from "./_utils";
 
 export async function onRequestPost(context) {
   const body = await context.request.json();

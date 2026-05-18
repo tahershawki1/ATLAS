@@ -1,4 +1,4 @@
-const SESSION_COOKIE = "ATLAS_SESSION";
+﻿const SESSION_COOKIE = "ATLAS_SESSION";
 const USERS_KEY = "users";
 const CUSTOM_SITES_KEY = "custom_sites";
 const PAGES_MANIFEST_KEY = "pages_manifest";
@@ -185,6 +185,7 @@ function hasPermission(user, permission) {
   if (user.is_admin) return true;
 
   const permissions = Array.isArray(user.permissions) ? user.permissions : [];
+  if (permissions.includes("admin.panel")) return true;
   if (permissions.includes("*") || permissions.includes(permission)) return true;
 
   return permissions.some((entry) => entry.endsWith(".*") && permission.startsWith(entry.slice(0, -1)));

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -12,796 +12,7 @@
   <script src="../../shared/auth.js"></script>
   <script src="../../shared/coordinates-export.js"></script>
   <link rel="icon" type="image/png" href="../../icons/brand-logo.png" />
-  <style>
-    .custom-page {
-      min-height: 100vh;
-      min-height: 100dvh;
-      overflow-y: auto;
-      background:
-        radial-gradient(circle at top right, rgba(241, 135, 62, 0.16) 0%, transparent 38%),
-        radial-gradient(circle at bottom left, rgba(30, 64, 175, 0.15) 0%, transparent 40%),
-        linear-gradient(170deg, #f8fafc 0%, #eef2ff 52%, #f1f5f9 100%);
-    }
-
-    .wrap {
-      width: 100%;
-      max-width: 780px;
-      margin: 0 auto;
-      padding: 12px;
-      padding-bottom: 98px;
-      display: grid;
-      gap: 10px;
-    }
-
-    .top-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    .action-btn {
-      min-height: 44px;
-      border-radius: 12px;
-      border: 1px solid rgba(30, 64, 175, 0.14);
-      background: #fff;
-      color: var(--primary);
-      font-size: 0.82rem;
-      font-weight: 800;
-      cursor: pointer;
-      transition: var(--transition);
-      padding: 0 12px;
-      text-align: center;
-      font-family: inherit;
-    }
-
-    .action-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 10px 18px rgba(30, 64, 175, 0.1);
-    }
-
-    .action-btn.primary {
-      border: none;
-      background: linear-gradient(135deg, #0a7f8a 0%, #1e3a8a 100%);
-      color: #fff;
-      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.18);
-    }
-
-    .action-btn:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-      box-shadow: none;
-      transform: none;
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.88);
-      border: 1px solid rgba(255, 255, 255, 0.9);
-      border-radius: 22px;
-      padding: 12px;
-      box-shadow: 0 14px 28px rgba(30, 64, 175, 0.08);
-    }
-
-    .hero {
-      background:
-        linear-gradient(145deg, rgba(255, 255, 255, 0.96) 0%, rgba(240, 249, 255, 0.88) 50%, rgba(255, 255, 255, 0.96) 100%);
-      border: 1px solid rgba(30, 64, 175, 0.12);
-    }
-
-    .hero-tag {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 999px;
-      border: 1px solid rgba(241, 135, 62, 0.4);
-      background: rgba(241, 135, 62, 0.14);
-      color: #9a3412;
-      padding: 0.15rem 0.6rem;
-      font-family: "Outfit", sans-serif;
-      font-size: 0.68rem;
-      font-weight: 900;
-      margin-bottom: 6px;
-    }
-
-    .hero h1 {
-      margin: 0;
-      color: var(--primary-dark);
-      font-size: 1.04rem;
-      line-height: 1.55;
-      font-weight: 900;
-    }
-
-    .muted {
-      margin: 6px 0 0;
-      color: #475569;
-      font-size: 0.8rem;
-      font-weight: 700;
-      line-height: 1.8;
-    }
-
-    .hero-steps {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 6px;
-      margin-top: 10px;
-    }
-
-    .step-chip {
-      border-radius: 11px;
-      border: 1px solid rgba(30, 64, 175, 0.12);
-      background: #fff;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px;
-      color: #0f172a;
-      font-size: 0.78rem;
-      font-weight: 800;
-    }
-
-    .step-chip .num {
-      width: 23px;
-      height: 23px;
-      border-radius: 50%;
-      background: rgba(30, 64, 175, 0.13);
-      color: var(--primary);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-family: "Outfit", sans-serif;
-      font-size: 0.76rem;
-      font-weight: 900;
-      flex: 0 0 auto;
-    }
-
-    .section-title {
-      margin: 0 0 8px;
-      color: var(--primary);
-      font-size: 0.95rem;
-      font-weight: 900;
-      line-height: 1.4;
-    }
-
-    .drop-zone {
-      border: 2px dashed rgba(10, 127, 138, 0.34);
-      border-radius: 16px;
-      background:
-        linear-gradient(145deg, rgba(255, 255, 255, 1) 0%, rgba(239, 246, 255, 0.74) 100%);
-      min-height: 122px;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      padding: 12px;
-      cursor: pointer;
-      transition: var(--transition);
-      outline: none;
-    }
-
-    .drop-zone:hover,
-    .drop-zone.is-dragover,
-    .drop-zone:focus-visible {
-      border-color: rgba(30, 64, 175, 0.55);
-      transform: translateY(-1px);
-      box-shadow: 0 12px 20px rgba(30, 64, 175, 0.12);
-    }
-
-    .drop-title {
-      margin: 0;
-      color: var(--primary);
-      font-size: 0.92rem;
-      font-weight: 900;
-      line-height: 1.5;
-    }
-
-    .drop-sub {
-      margin: 4px 0 0;
-      color: #64748b;
-      font-size: 0.74rem;
-      font-weight: 700;
-      line-height: 1.7;
-    }
-
-    .file-meta {
-      margin-top: 8px;
-      border: 1px solid rgba(30, 64, 175, 0.12);
-      border-radius: 12px;
-      background: #fff;
-      padding: 8px;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 5px;
-    }
-
-    .meta-line {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.74rem;
-      border-bottom: 1px dashed rgba(30, 64, 175, 0.12);
-      padding-bottom: 4px;
-    }
-
-    .meta-line:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-
-    .meta-label {
-      color: #64748b;
-      font-weight: 800;
-    }
-
-    .meta-value {
-      color: #0f172a;
-      font-weight: 800;
-      font-family: "Outfit", "Cairo", sans-serif;
-      text-align: left;
-      direction: ltr;
-      overflow-wrap: anywhere;
-    }
-
-    .options-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 8px;
-      margin-top: 9px;
-    }
-
-    .option-field {
-      border: 1px solid rgba(30, 64, 175, 0.11);
-      border-radius: 12px;
-      background: #fff;
-      padding: 8px;
-      display: grid;
-      gap: 6px;
-    }
-
-    .option-field label {
-      color: #475569;
-      font-size: 0.72rem;
-      font-weight: 800;
-    }
-
-    .option-field input[type="number"],
-    .option-field select {
-      width: 100%;
-      height: 39px;
-      border-radius: 10px;
-      border: 1.5px solid rgba(30, 64, 175, 0.16);
-      background: #f8fafc;
-      color: #0f172a;
-      font-size: 0.82rem;
-      font-weight: 800;
-      padding: 0 10px;
-      font-family: inherit;
-      outline: none;
-      transition: var(--transition);
-    }
-
-    .option-field input[type="number"]:focus,
-    .option-field select:focus {
-      background: #fff;
-      border-color: rgba(30, 64, 175, 0.42);
-      box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12);
-    }
-
-    .check-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.8rem;
-      font-weight: 800;
-      color: #0f172a;
-    }
-
-    .check-row input {
-      width: 18px;
-      height: 18px;
-      accent-color: var(--primary);
-      cursor: pointer;
-    }
-
-    .scan-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .scan-hint {
-      margin-top: 8px;
-      border-radius: 12px;
-      border: 1px solid rgba(30, 64, 175, 0.12);
-      background: #f8fafc;
-      color: #1e293b;
-      min-height: 40px;
-      padding: 8px 10px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.76rem;
-      font-weight: 800;
-      line-height: 1.7;
-    }
-
-    .scan-hint.busy::before {
-      content: "";
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      border: 2px solid rgba(30, 64, 175, 0.25);
-      border-top-color: rgba(30, 64, 175, 0.95);
-      animation: spin 0.8s linear infinite;
-      flex: 0 0 auto;
-    }
-
-    .scan-hint.error {
-      border-color: rgba(220, 38, 38, 0.25);
-      background: #fef2f2;
-      color: #991b1b;
-    }
-
-    .scan-hint.success {
-      border-color: rgba(16, 185, 129, 0.28);
-      background: #ecfdf5;
-      color: #065f46;
-    }
-
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    .preview-head,
-    .results-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
-    }
-
-    .preview-note {
-      color: #64748b;
-      font-size: 0.73rem;
-      font-weight: 800;
-    }
-
-    .preview-wrap {
-      position: relative;
-      border: 1px solid rgba(30, 64, 175, 0.12);
-      border-radius: 14px;
-      background: #fff;
-      padding: 8px;
-      overflow: auto;
-      display: block;
-      max-height: 58vh;
-    }
-
-    .preview-stage {
-      position: relative;
-      width: fit-content;
-      max-width: 100%;
-      margin: 0 auto;
-    }
-
-    .preview-embed {
-      display: block;
-      max-width: 100%;
-      border-radius: 10px;
-      background: #f8fafc;
-      margin: 0 auto;
-    }
-
-    .text-highlight-layer {
-      position: absolute;
-      pointer-events: none;
-      z-index: 3;
-    }
-
-    .text-highlight-box {
-      position: absolute;
-      border: 1px solid rgba(241, 135, 62, 0.95);
-      border-radius: 4px;
-      background:
-        repeating-linear-gradient(
-          -45deg,
-          rgba(241, 135, 62, 0.2) 0,
-          rgba(241, 135, 62, 0.2) 5px,
-          rgba(241, 135, 62, 0.04) 5px,
-          rgba(241, 135, 62, 0.04) 10px
-        );
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7), 0 6px 16px rgba(15, 23, 42, 0.08);
-    }
-
-    .text-highlight-box.is-coordinate {
-      border-color: rgba(10, 127, 138, 0.95);
-      background:
-        repeating-linear-gradient(
-          -45deg,
-          rgba(10, 127, 138, 0.22) 0,
-          rgba(10, 127, 138, 0.22) 5px,
-          rgba(10, 127, 138, 0.05) 5px,
-          rgba(10, 127, 138, 0.05) 10px
-        );
-    }
-
-    .preview-embed-pdf {
-      width: 100%;
-      height: auto;
-      min-height: 260px;
-      border: 0;
-      background: #ffffff;
-    }
-
-    .preview-embed-image {
-      width: auto;
-      height: auto;
-    }
-
-    .result-badge {
-      border-radius: 999px;
-      padding: 3px 10px;
-      font-family: "Outfit", sans-serif;
-      font-size: 0.7rem;
-      font-weight: 900;
-      border: 1px solid transparent;
-      white-space: nowrap;
-    }
-
-    .result-badge.neutral {
-      background: #e2e8f0;
-      color: #334155;
-      border-color: rgba(100, 116, 139, 0.28);
-    }
-
-    .result-badge.success {
-      background: #dcfce7;
-      color: #065f46;
-      border-color: rgba(16, 185, 129, 0.35);
-    }
-
-    .result-badge.warn {
-      background: #ffedd5;
-      color: #9a3412;
-      border-color: rgba(249, 115, 22, 0.32);
-    }
-
-    .result-badge.error {
-      background: #fee2e2;
-      color: #991b1b;
-      border-color: rgba(239, 68, 68, 0.35);
-    }
-
-    .metrics {
-      margin-top: 8px;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-    }
-
-    .metric {
-      border: 1px solid rgba(30, 64, 175, 0.12);
-      border-radius: 12px;
-      background: #fff;
-      padding: 8px;
-      text-align: center;
-    }
-
-    .metric .label {
-      color: #64748b;
-      font-size: 0.67rem;
-      font-weight: 800;
-      margin-bottom: 3px;
-    }
-
-    .metric .value {
-      color: #0f172a;
-      font-family: "Outfit", sans-serif;
-      font-size: 1.02rem;
-      font-weight: 900;
-      line-height: 1.2;
-    }
-
-    .result-actions {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .table-wrap {
-      margin-top: 10px;
-      border: 1px solid rgba(30, 64, 175, 0.12);
-      border-radius: 12px;
-      background: #fff;
-      overflow: auto;
-      max-height: 56vh;
-    }
-
-    .results-table {
-      width: 100%;
-      min-width: 880px;
-      border-collapse: collapse;
-      text-align: center;
-    }
-
-    .results-table th,
-    .results-table td {
-      border-bottom: 1px solid rgba(30, 64, 175, 0.08);
-      padding: 8px 6px;
-      font-size: 0.74rem;
-      line-height: 1.4;
-    }
-
-    .results-table th {
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      background: #f8fafc;
-      color: var(--primary);
-      font-weight: 900;
-      letter-spacing: 0.1px;
-    }
-
-    .results-table td {
-      color: #0f172a;
-      font-weight: 700;
-      font-family: "Outfit", "Cairo", sans-serif;
-    }
-
-    .results-table tr.empty-row td {
-      text-align: center;
-      color: #64748b;
-      font-family: "Cairo", sans-serif;
-      font-size: 0.8rem;
-      padding: 14px 10px;
-    }
-
-    .row-del-btn {
-      min-width: 64px;
-      height: 34px;
-      border: none;
-      border-radius: 8px;
-      background: #fff1f2;
-      color: #be123c;
-      font-size: 0.74rem;
-      font-weight: 900;
-      cursor: pointer;
-      transition: transform 0.2s ease, filter 0.2s ease;
-    }
-
-    .row-del-btn:hover {
-      transform: translateY(-1px);
-      filter: brightness(0.96);
-    }
-
-    .row-del-btn:active {
-      transform: translateY(0);
-    }
-
-    .raw-shell {
-      margin-top: 10px;
-      border: 1px solid rgba(30, 64, 175, 0.12);
-      border-radius: 12px;
-      background: #fff;
-      overflow: hidden;
-    }
-
-    .raw-shell summary {
-      cursor: pointer;
-      list-style: none;
-      padding: 10px;
-      color: var(--primary);
-      font-size: 0.79rem;
-      font-weight: 900;
-      border-bottom: 1px solid rgba(30, 64, 175, 0.08);
-      user-select: none;
-    }
-
-    .raw-shell summary::-webkit-details-marker {
-      display: none;
-    }
-
-    .raw-shell pre {
-      margin: 0;
-      padding: 10px;
-      max-height: 220px;
-      overflow: auto;
-      font-size: 0.71rem;
-      font-weight: 700;
-      line-height: 1.7;
-      color: #0f172a;
-      font-family: "Outfit", "Cairo", monospace;
-      direction: ltr;
-      text-align: left;
-      background: #f8fafc;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .coord-order-modal {
-      position: fixed;
-      inset: 0;
-      z-index: 3200;
-      display: grid;
-      place-items: center;
-      padding: 16px;
-      background: rgba(15, 23, 42, 0.38);
-    }
-
-    .coord-order-dialog {
-      width: min(100%, 920px);
-      max-height: min(82vh, 680px);
-      border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.9);
-      background: #ffffff;
-      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
-      display: grid;
-      grid-template-rows: auto minmax(0, 1fr) auto;
-      overflow: hidden;
-    }
-
-    .coord-order-head {
-      padding: 14px;
-      border-bottom: 1px solid rgba(30, 64, 175, 0.1);
-    }
-
-    .coord-order-title {
-      margin: 0;
-      color: var(--primary);
-      font-size: 0.98rem;
-      font-weight: 900;
-      line-height: 1.5;
-    }
-
-    .coord-order-desc {
-      margin: 6px 0 0;
-      color: #475569;
-      font-size: 0.78rem;
-      font-weight: 800;
-      line-height: 1.7;
-    }
-
-    .coord-order-lines {
-      padding: 10px 14px;
-      overflow: auto;
-      background: #f8fafc;
-    }
-
-    .coord-order-table {
-      width: 100%;
-      min-width: 860px;
-      border-collapse: collapse;
-      background: #ffffff;
-      border: 1px solid rgba(30, 64, 175, 0.12);
-      border-radius: 10px;
-      overflow: hidden;
-      text-align: center;
-    }
-
-    .coord-order-table th,
-    .coord-order-table td {
-      border-bottom: 1px solid rgba(30, 64, 175, 0.08);
-      padding: 8px 6px;
-      font-size: 0.74rem;
-      line-height: 1.45;
-      color: #0f172a;
-      font-weight: 800;
-      vertical-align: top;
-    }
-
-    .coord-order-table th {
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      background: #f8fafc;
-      color: var(--primary);
-      font-weight: 900;
-      white-space: nowrap;
-    }
-
-    .coord-order-table tr:last-child td {
-      border-bottom: none;
-    }
-
-    .coord-order-raw {
-      margin-top: 4px;
-      color: #64748b;
-      direction: ltr;
-      text-align: left;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 260px;
-      font-family: "Outfit", "Cairo", monospace;
-      font-size: 0.68rem;
-      font-weight: 700;
-    }
-
-    .coord-order-note {
-      border: 1px solid rgba(30, 64, 175, 0.12);
-      border-radius: 10px;
-      background: #ffffff;
-      padding: 9px 10px;
-      color: #64748b;
-      font-size: 0.68rem;
-      font-weight: 900;
-    }
-
-    .coord-order-actions {
-      padding: 12px 14px 14px;
-      border-top: 1px solid rgba(30, 64, 175, 0.1);
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      background: #ffffff;
-    }
-
-    .coord-order-btn {
-      min-height: 42px;
-      border-radius: 10px;
-      border: 1px solid rgba(30, 64, 175, 0.14);
-      background: #ffffff;
-      color: var(--primary);
-      font-family: inherit;
-      font-size: 0.78rem;
-      font-weight: 900;
-      cursor: pointer;
-    }
-
-    .coord-order-btn.primary {
-      border: none;
-      background: linear-gradient(135deg, #0a7f8a 0%, #1e3a8a 100%);
-      color: #ffffff;
-    }
-
-    .coord-order-btn.danger {
-      border-color: rgba(225, 29, 72, 0.22);
-      background: #fff1f2;
-      color: #be123c;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    @media (min-width: 768px) {
-      .wrap {
-        padding: 16px;
-        gap: 12px;
-      }
-
-      .card {
-        padding: 14px;
-      }
-
-      .hero h1 {
-        font-size: 1.18rem;
-      }
-
-      .muted {
-        font-size: 0.84rem;
-      }
-
-      .options-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .scan-actions {
-        grid-template-columns: minmax(0, 1fr) 180px;
-      }
-
-      .result-actions {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .metrics {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
-    }
-  </style>
+    <link rel="stylesheet" href="page.css" />
 </head>
 <body class="page-scroll-enabled">
   <div class="custom-page">
@@ -810,7 +21,7 @@
 
       <div class="top-actions">
         <button class="back-btn" onclick="window.location.href='../../index.html'">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transform: rotate(180deg);" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="arrow-rtl-flip" aria-hidden="true">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
           <span>العودة للرئيسية</span>
@@ -862,7 +73,7 @@
               <option value="latlon">Latitude / Longitude</option>
             </select>
           </div>
-          <div class="option-field" style="grid-column: 1 / -1;">
+          <div class="option-field option-field-full">
             <div class="check-row">
               <input id="ocrToggle" type="checkbox" checked />
               <label for="ocrToggle">تفعيل OCR تلقائي إذا النص غير واضح</label>
@@ -880,7 +91,7 @@
 
       <section id="previewCard" class="card hidden">
         <div class="preview-head">
-          <h2 class="section-title" style="margin: 0;">معاينة الملف</h2>
+          <h2 class="section-title section-title-tight">معاينة الملف</h2>
           <span id="previewNote" class="preview-note">لا يوجد ملف</span>
         </div>
         <div class="preview-wrap">
@@ -891,10 +102,10 @@
 
       <section id="resultCard" class="card hidden">
         <div class="results-head">
-          <h2 class="section-title" style="margin: 0;">نتيجة الفحص</h2>
+          <h2 class="section-title section-title-tight">نتيجة الفحص</h2>
           <span id="resultBadge" class="result-badge neutral">بانتظار الفحص</span>
         </div>
-        <p id="resultMessage" class="muted" style="margin-top: 0;">بعد تشغيل الفحص ستظهر النتيجة هنا.</p>
+        <p id="resultMessage" class="muted result-message-tight">بعد تشغيل الفحص ستظهر النتيجة هنا.</p>
 
         <div class="metrics">
           <div class="metric"><div class="label">سطور تم تحليلها</div><div id="metricLines" class="value">0</div></div>
@@ -912,27 +123,20 @@
           <table class="results-table">
             <thead>
               <tr>
-                <th>#</th>
                 <th>Point</th>
                 <th>Northing / Lat</th>
                 <th>Easting / Lon</th>
-                <th>Elevation</th>
-                <th>Code</th>
-                <th>Page</th>
-                <th>Source</th>
+                <th id="elevationHead" hidden>Elevation</th>
+                <th id="codeHead" hidden>Code</th>
                 <th>حذف</th>
               </tr>
             </thead>
             <tbody id="rowsBody">
-              <tr class="empty-row"><td colspan="9">لا توجد نتائج بعد.</td></tr>
+              <tr class="empty-row"><td colspan="4">لا توجد نتائج بعد.</td></tr>
             </tbody>
           </table>
         </div>
 
-        <details class="raw-shell">
-          <summary>عرض النص الخام المستخرج</summary>
-          <pre id="rawTextHost">-</pre>
-        </details>
       </section>
     </div>
   </div>
@@ -983,11 +187,6 @@
     const previewPdf = document.getElementById("previewPdf");
     const previewImage = document.getElementById("previewImage");
     const previewNote = document.getElementById("previewNote");
-    const textHighlightLayer = document.createElement("div");
-    textHighlightLayer.className = "text-highlight-layer hidden";
-    textHighlightLayer.setAttribute("aria-hidden", "true");
-    previewPdf.parentElement.appendChild(textHighlightLayer);
-
     const resultCard = document.getElementById("resultCard");
     const resultBadge = document.getElementById("resultBadge");
     const resultMessage = document.getElementById("resultMessage");
@@ -997,7 +196,8 @@
     const metricConfidence = document.getElementById("metricConfidence");
     const resultActions = document.getElementById("resultActions");
     const rowsBody = document.getElementById("rowsBody");
-    const rawTextHost = document.getElementById("rawTextHost");
+    const elevationHead = document.getElementById("elevationHead");
+    const codeHead = document.getElementById("codeHead");
     const exportCsvBtn = document.getElementById("exportCsvBtn");
     const copyJsonBtn = document.getElementById("copyJsonBtn");
     const coordOrderModal = document.getElementById("coordOrderModal");
@@ -1016,7 +216,6 @@
       ocrWorker: null,
       lines: [],
       rows: [],
-      highlightEntries: [],
       sourceEntries: [],
       pagesScanned: 0,
       ocrUsed: false,
@@ -1031,7 +230,6 @@
         URL.revokeObjectURL(state.previewUrl);
         state.previewUrl = null;
       }
-      clearTextHighlights();
       previewPdf.width = 0;
       previewPdf.height = 0;
       previewImage.removeAttribute("src");
@@ -1045,116 +243,6 @@
       }
       state.previewUrl = URL.createObjectURL(file);
       return state.previewUrl;
-    }
-
-    function clearTextHighlights() {
-      state.highlightEntries = [];
-      textHighlightLayer.innerHTML = "";
-      textHighlightLayer.classList.add("hidden");
-    }
-
-    function normalizeHighlightNumber(value) {
-      const numeric = extractNumericString(value);
-      return numeric ? numeric.replace(/\.0+$/, "") : "";
-    }
-
-    function buildHighlightEntriesForRows(rows, entries) {
-      return [];
-      const sourceEntries = (Array.isArray(entries) ? entries : []).filter((entry) => entry?.box);
-      const extractedRows = Array.isArray(rows) ? rows : [];
-      if (!sourceEntries.length || !extractedRows.length) return [];
-
-      const selected = [];
-      const seen = new Set();
-
-      extractedRows.forEach((row) => {
-        const rowPage = row?.page ?? 1;
-        const rawText = normalizeLineForParsing(row?.rawText || "");
-        const northing = normalizeHighlightNumber(row?.northing);
-        const easting = normalizeHighlightNumber(row?.easting);
-
-        sourceEntries.forEach((entry) => {
-          if ((entry.page ?? 1) !== rowPage) return;
-          const entryText = normalizeLineForParsing(entry.text || "");
-          if (!entryText) return;
-
-          const textMatchesRaw =
-            rawText &&
-            (
-              rawText.includes(entryText) ||
-              entryText.includes(rawText)
-            );
-          const textMatchesCoordinates =
-            northing &&
-            easting &&
-            entryText.includes(northing) &&
-            entryText.includes(easting);
-
-          if (!textMatchesRaw && !textMatchesCoordinates) return;
-
-          const key = `${entry.page}|${entryText}|${entry.box.left}|${entry.box.top}`;
-          if (seen.has(key)) return;
-          seen.add(key);
-          selected.push(entry);
-        });
-      });
-
-      return selected;
-    }
-
-    function renderTextHighlights(entries = state.highlightEntries) {
-      textHighlightLayer.innerHTML = "";
-
-      const previewTarget = !previewPdf.classList.contains("hidden")
-        ? previewPdf
-        : (!previewImage.classList.contains("hidden") ? previewImage : null);
-
-      if (!previewTarget) {
-        textHighlightLayer.classList.add("hidden");
-        return;
-      }
-
-      const targetRect = previewTarget.getBoundingClientRect();
-      const hostRect = previewTarget.parentElement.getBoundingClientRect();
-      if (!targetRect.width || !targetRect.height || !hostRect.width || !hostRect.height) {
-        textHighlightLayer.classList.add("hidden");
-        return;
-      }
-
-      const pageEntries = (Array.isArray(entries) ? entries : []).filter((entry) => (
-        entry?.page === state.previewPageNumber &&
-        entry?.box &&
-        Number.isFinite(entry.box.left) &&
-        Number.isFinite(entry.box.top) &&
-        Number.isFinite(entry.box.width) &&
-        Number.isFinite(entry.box.height)
-      ));
-
-      if (!pageEntries.length) {
-        textHighlightLayer.classList.add("hidden");
-        return;
-      }
-
-      textHighlightLayer.style.left = `${targetRect.left - hostRect.left}px`;
-      textHighlightLayer.style.top = `${targetRect.top - hostRect.top}px`;
-      textHighlightLayer.style.width = `${targetRect.width}px`;
-      textHighlightLayer.style.height = `${targetRect.height}px`;
-
-      pageEntries.slice(0, 220).forEach((entry) => {
-        const box = entry.box;
-        const marker = document.createElement("span");
-        marker.className = "text-highlight-box";
-        const numericCount = (normalizeLineForParsing(entry.text).match(NUMBER_PATTERN) || []).length;
-        if (numericCount >= 2) marker.classList.add("is-coordinate");
-        marker.style.left = `${clamp(box.left, 0, 1) * 100}%`;
-        marker.style.top = `${clamp(box.top, 0, 1) * 100}%`;
-        marker.style.width = `${clamp(box.width, 0.005, 1) * 100}%`;
-        marker.style.height = `${clamp(box.height, 0.006, 1) * 100}%`;
-        marker.title = entry.text || "";
-        textHighlightLayer.appendChild(marker);
-      });
-
-      textHighlightLayer.classList.remove("hidden");
     }
 
     function normalizeText(value) {
@@ -2031,7 +1119,6 @@
       previewPdf.style.maxWidth = `${Math.floor(viewport.width)}px`;
       await page.render({ canvasContext: context, viewport }).promise;
       state.previewPageNumber = 1;
-      renderTextHighlights();
       previewNote.textContent = `PDF • الصفحة 1 من ${doc.numPages}`;
     }
 
@@ -2056,7 +1143,6 @@
       previewPdf.classList.add("hidden");
       previewImage.classList.remove("hidden");
       previewImage.src = url;
-      renderTextHighlights([]);
       previewNote.textContent = `Image • ${image.width} x ${image.height}`;
     }
 
@@ -2745,23 +1831,35 @@
       return clamp(Math.round((completeRatio * 55) + (withElevationRatio * 15) + (coverageRatio * 30)), 0, 100);
     }
 
+    function hasCellValue(value) {
+      return String(value ?? "").trim() !== "";
+    }
+
+    function updateOptionalResultColumns(rows) {
+      const showElevation = rows.some((row) => hasCellValue(row.elevation));
+      const showCode = rows.some((row) => hasCellValue(row.code));
+      elevationHead.hidden = !showElevation;
+      codeHead.hidden = !showCode;
+      return 4 + (showElevation ? 1 : 0) + (showCode ? 1 : 0);
+    }
+
     function renderRows(rows) {
+      const visibleColumnCount = updateOptionalResultColumns(rows);
       if (!rows.length) {
-        rowsBody.innerHTML = '<tr class="empty-row"><td colspan="9">لم يتم العثور على إحداثيات صالحة في الملف.</td></tr>';
+        rowsBody.innerHTML = `<tr class="empty-row"><td colspan="${visibleColumnCount}">لم يتم العثور على إحداثيات صالحة في الملف.</td></tr>`;
         return;
       }
 
+      const showElevation = !elevationHead.hidden;
+      const showCode = !codeHead.hidden;
       rowsBody.innerHTML = rows
-        .map((row, idx) => `
+        .map((row) => `
           <tr>
-            <td>${idx + 1}</td>
             <td>${escapeHtml(row.name)}</td>
             <td>${escapeHtml(row.northing)}</td>
             <td>${escapeHtml(row.easting)}</td>
-            <td>${escapeHtml(row.elevation || "-")}</td>
-            <td>${escapeHtml(row.code || "-")}</td>
-            <td>${escapeHtml(String(row.page))}</td>
-            <td>${escapeHtml(row.source)}</td>
+            ${showElevation ? `<td>${escapeHtml(row.elevation || "-")}</td>` : ""}
+            ${showCode ? `<td>${escapeHtml(row.code || "-")}</td>` : ""}
             <td><button class="row-del-btn" type="button" data-row-id="${row.id}" aria-label="حذف السطر">حذف</button></td>
           </tr>
         `)
@@ -2776,19 +1874,6 @@
         .replaceAll('"', "&quot;");
     }
 
-    function renderRawText(entries) {
-      if (!entries.length) {
-        rawTextHost.textContent = "-";
-        return;
-      }
-      const maxLines = 260;
-      const lines = entries.slice(0, maxLines).map((entry) => `[P${entry.page}][${entry.source}] ${entry.text}`);
-      if (entries.length > maxLines) {
-        lines.push(`... (${entries.length - maxLines} سطر إضافي)`);
-      }
-      rawTextHost.textContent = lines.join("\n");
-    }
-
     function updateMetrics({ lines, rows, pages, confidence }) {
       metricLines.textContent = String(lines);
       metricRows.textContent = String(rows);
@@ -2799,19 +1884,17 @@
     function clearResults() {
       state.lines = [];
       state.rows = [];
-      state.highlightEntries = [];
       state.sourceEntries = [];
       state.pagesScanned = 0;
       state.ocrUsed = false;
       window.AtlasCoordinatesExport?.updateButtonState?.();
-      renderTextHighlights([]);
 
       resultCard.classList.add("hidden");
       setResultBadge("بانتظار الفحص", "neutral");
       resultMessage.textContent = "بعد تشغيل الفحص ستظهر النتيجة هنا.";
       updateMetrics({ lines: 0, rows: 0, pages: 0, confidence: 0 });
-      rowsBody.innerHTML = '<tr class="empty-row"><td colspan="9">لا توجد نتائج بعد.</td></tr>';
-      renderRawText([]);
+      const visibleColumnCount = updateOptionalResultColumns([]);
+      rowsBody.innerHTML = `<tr class="empty-row"><td colspan="${visibleColumnCount}">لا توجد نتائج بعد.</td></tr>`;
       resultActions.classList.add("hidden");
     }
 
@@ -2820,8 +1903,6 @@
       state.rows = state.rows.filter((row) => row.id !== rowId);
       if (state.rows.length === before) return;
       window.AtlasCoordinatesExport?.updateButtonState?.();
-      state.highlightEntries = buildHighlightEntriesForRows(state.rows, state.sourceEntries);
-      renderTextHighlights();
 
       const confidence = calculateConfidence(state.rows, state.lines);
       updateMetrics({
@@ -3002,8 +2083,6 @@
         }
 
         state.rows = parsed.rows;
-        state.highlightEntries = buildHighlightEntriesForRows(state.rows, state.sourceEntries);
-        renderTextHighlights();
         window.AtlasCoordinatesExport?.updateButtonState?.();
 
         const confidence = calculateConfidence(state.rows, state.lines);
@@ -3015,7 +2094,6 @@
         });
 
         renderRows(state.rows);
-        renderRawText(state.lines);
 
         if (state.rows.length > 0) {
           setResultBadge("تم العثور على الإحداثيات", "success");
@@ -3053,7 +2131,6 @@
         resultMessage.textContent = `حدث خطأ أثناء التحليل: ${error.message || "خطأ غير معروف"}`;
         updateMetrics({ lines: 0, rows: 0, pages: 0, confidence: 0 });
         renderRows([]);
-        renderRawText([]);
         resultActions.classList.add("hidden");
         setHint(`فشل الفحص: ${error.message || "خطأ غير معروف"}`, "error", false);
       } finally {
@@ -3243,10 +2320,6 @@
       await initializePage();
     });
 
-    window.addEventListener("resize", () => {
-      renderTextHighlights();
-    });
-
     window.addEventListener("beforeunload", async () => {
       clearPreviewMedia();
       if (state.ocrWorker && typeof state.ocrWorker.terminate === "function") {
@@ -3260,3 +2333,11 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+

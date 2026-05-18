@@ -1,4 +1,4 @@
-import { getPagesManifest, json, putPagesManifest, requireUser } from "../_utils";
+﻿import { getPagesManifest, json, putPagesManifest, requireUser } from "../_utils";
 
 export async function onRequestDelete(context) {
   const auth = await requireUser(context, "admin.panel");

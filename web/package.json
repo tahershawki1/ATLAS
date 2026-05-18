@@ -1,8 +1,11 @@
 {
   "name": "atlas-site",
-  "version": "2.0.6",
+  "version": "2.0.11",
   "private": true,
   "scripts": {
+    "build:cloudflare": "node tools/build-cloudflare-pages.js",
+    "deploy:cloudflare": "npm run check && npm run build:cloudflare && npx wrangler pages deploy ../dist/cloudflare-pages --project-name atlas-site",
+    "dev:cloudflare": "npm run build:cloudflare && npx wrangler pages dev ../dist/cloudflare-pages",
     "check": "npm run check:js && npm run check:links",
     "check:js": "node tools/check-js.js",
     "check:links": "node tools/check-links.js"

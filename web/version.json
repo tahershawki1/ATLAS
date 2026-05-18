@@ -1,9 +1,10 @@
 {
-  "web_version": "2.0.6",
+  "cache_version": 34,
+  "web_version": "2.0.17",
   "mobile_version": "2.0.0",
-  "build_number": 8,
+  "build_number": 22,
   "apk_url": "https://atlas-e73.pages.dev/downloads/atlas_app_final.apk",
-  "last_updated": "2026-04-25",
+  "last_updated": "2026-05-18",
   "changelog": [
     "تحسين الأمان والصلاحيات والمزامنة",
     "إصلاح اختيار المواقع المكررة",

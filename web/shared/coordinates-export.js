@@ -326,7 +326,7 @@
   }
 
   function readPayload() {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     try {
       const parsed = JSON.parse(raw);
@@ -341,6 +341,7 @@
 
   function savePayload(payload) {
     try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       return true;
     } catch (_) {
@@ -349,6 +350,7 @@
   }
 
   function clearPayload() {
+    localStorage.removeItem(STORAGE_KEY);
     sessionStorage.removeItem(STORAGE_KEY);
   }
 

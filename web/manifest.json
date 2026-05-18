@@ -41,10 +41,17 @@
             ".txt",
             ".pdf",
             ".xlsx",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".webp",
             "text/csv",
             "text/plain",
             "application/pdf",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "image/png",
+            "image/jpeg",
+            "image/webp"
           ]
         }
       ]

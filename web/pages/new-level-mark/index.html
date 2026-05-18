@@ -13,748 +13,7 @@
     <script src="../../LIP/html2pdf.bundle.min.js"></script>
     <script src="../../shared/auth.js"></script>
     <script src="../../shared/coordinates-export.js"></script>
-    <style>
-        .custom-page {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background: radial-gradient(circle at top right, #f1f5f9 0%, #e2e8f0 100%);
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .header-btns {
-            display: flex;
-            gap: 12px;
-            width: 100%;
-            margin-bottom: 5px;
-        }
-
-        .reset-btn {
-            background: #fff5f5;
-            border: 1px solid rgba(220, 38, 38, 0.1);
-            color: #dc2626;
-            flex: 1;
-            height: 52px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-weight: 800;
-            cursor: pointer;
-            transition: var(--transition);
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.05);
-        }
-
-        .back-btn-header {
-            background: #ffffff;
-            border: 1px solid rgba(30, 64, 175, 0.1);
-            color: var(--primary);
-            flex: 1;
-            height: 52px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: var(--transition);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            font-weight: 800;
-            gap: 8px;
-        }
-
-        .reset-btn:hover, .back-btn-header:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-        }
-
-        .back-btn-header:active, .reset-btn:active {
-            transform: scale(0.96);
-        }
-
-        .form-container {
-            padding: 20px;
-            max-width: 600px;
-            margin: 0 auto;
-            width: 100%;
-            padding-bottom: 100px;
-        }
-
-        .level-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(15px);
-            border-radius: 32px;
-            padding: 2rem;
-            border: 1px solid rgba(255, 255, 255, 1);
-            box-shadow: 0 15px 35px rgba(30, 64, 175, 0.08);
-            margin-bottom: 2rem;
-            animation: slideUp 0.4s ease-out;
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .step-section {
-            display: none;
-        }
-
-        .step-section.active {
-            display: block;
-        }
-
-        /* Technical Table Style */
-        .points-table-container {
-            margin-top: 1.5rem;
-            background: #ffffff;
-            border-radius: 20px;
-            border: 1px solid rgba(30, 64, 175, 0.1);
-            overflow: hidden;
-        }
-
-        .points-table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: center;
-        }
-
-        .points-table th {
-            background: var(--accent-soft);
-            color: var(--primary);
-            padding: 1rem;
-            font-weight: 800;
-            font-size: 0.9rem;
-        }
-
-        .points-table td {
-            padding: 1rem;
-            border-top: 1px solid rgba(30, 64, 175, 0.05);
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
-        .empty-msg {
-            padding: 2rem;
-            color: var(--text-dim);
-            font-style: italic;
-        }
-
-        .add-point-btn {
-            background: #f0fdf4;
-            border: 2px dashed #22c55e;
-            color: #16a34a;
-            width: 100%;
-            height: 56px;
-            border-radius: 18px;
-            font-weight: 800;
-            font-size: 1.1rem;
-            margin-bottom: 1.5rem;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .action-btn-group {
-            display: flex;
-            gap: 12px;
-            margin-top: 2rem;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: #ffffff;
-            flex: 2;
-            height: 58px;
-            border-radius: 18px;
-            font-weight: 800;
-            font-size: 1.1rem;
-            border: none;
-            box-shadow: 0 10px 25px rgba(30, 64, 175, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .btn-secondary {
-            background: #ffffff;
-            border: 1px solid rgba(30, 64, 175, 0.15);
-            color: var(--text-main);
-            flex: 1;
-            height: 58px;
-            border-radius: 18px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 30px rgba(30, 64, 175, 0.25);
-        }
-
-        .btn-secondary:hover {
-            background: #f8fafc;
-            border-color: var(--primary);
-        }
-
-        .form-field {
-            margin-bottom: 1.5rem;
-            text-align: right;
-        }
-
-        .form-field label {
-            display: block;
-            font-weight: 800;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .form-field input {
-            width: 100%;
-            padding: 1rem;
-            border-radius: 12px;
-            border: 2px solid rgba(30, 64, 175, 0.1);
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.1rem;
-            font-weight: 700;
-            direction: ltr;
-        }
-
-        .technical-summary {
-            background: #f1f5f9;
-            border-radius: 16px;
-            padding: 1.2rem;
-            border: 1px solid #cbd5e1;
-            font-family: 'Outfit', sans-serif;
-            margin-top: 1.5rem;
-        }
-
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: var(--text-dark);
-        }
-
-        .summary-row span:last-child { 
-            color: var(--primary); 
-            direction: ltr; 
-            text-align: left;
-            font-family: 'Outfit', sans-serif;
-        }
-
-        /* Scientific/Technical Numbers should be LTR */
-        input[type="number"], 
-        .points-table td:nth-child(2),
-        #required_reading,
-        #target_rl_display,
-        #offset_display,
-        .type-option span:first-child {
-            direction: ltr !important;
-            unicode-bidi: isolate;
-            font-family: 'Outfit', sans-serif;
-            text-align: center;
-        }
-
-        /* Custom Toast Notification */
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: rgba(15, 23, 42, 0.9);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 20px;
-            font-weight: 700;
-            z-index: 9999;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            white-space: nowrap;
-        }
-
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
-        }
-
-        /* Offset Selector Styling */
-        .type-selector {
-            display: flex;
-            gap: 12px;
-            margin-top: 10px;
-        }
-
-        .type-option {
-            flex: 1;
-            background: #ffffff;
-            border: 2px solid rgba(30, 64, 175, 0.1);
-            border-radius: 16px;
-            padding: 1rem 0.5rem;
-            text-align: center;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            direction: ltr !important;
-        }
-
-        .type-option.active {
-            border-color: var(--primary);
-            background: rgba(30, 64, 175, 0.1);
-            box-shadow: 0 8px 15px rgba(30, 64, 175, 0.15);
-            color: var(--primary);
-            transform: translateY(-2px);
-        }
-
-        .type-option:hover {
-            border-color: var(--primary);
-            background: #f8fafc;
-        }
-
-        .type-option.active:hover {
-            background: rgba(30, 64, 175, 0.15);
-        }
-
-        .type-option .type-label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--text-dim);
-        }
-
-        .type-option.active .type-label {
-            color: var(--primary);
-        }
-
-        /* Premium Photo Capture Card */
-        .photo-staking-card {
-            background: #ffffff;
-            border: 2px dashed rgba(30, 64, 175, 0.2);
-            border-radius: 20px;
-            padding: 1.5rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            margin-top: 10px;
-        }
-
-        .photo-staking-card:hover {
-            border-color: var(--primary);
-            background: #f8fafc;
-            transform: translateY(-2px);
-        }
-
-        .photo-staking-card.has-image {
-            border-style: solid;
-            border-color: #059669;
-            background: #ecfdf5;
-        }
-
-        .photo-staking-card .icon-box {
-            width: 60px;
-            height: 60px;
-            background: var(--accent-soft);
-            color: var(--primary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 10px;
-            font-size: 1.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .photo-staking-card.has-image .icon-box {
-            background: #059669;
-            color: white;
-            box-shadow: 0 0 15px rgba(5, 150, 105, 0.3);
-        }
-
-        .photo-staking-card .upload-text {
-            display: block;
-            font-weight: 800;
-            color: var(--text-main);
-            margin-bottom: 4px;
-        }
-
-        .photo-staking-card .upload-hint {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            font-weight: 600;
-        }
-
-        .photo-staking-card .preview-img {
-            width: 100%;
-            max-height: 200px;
-            object-fit: cover;
-            border-radius: 12px;
-            margin: 10px 0;
-            display: none;
-            border: 2px solid white;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        /* === Mobile Responsive for Level Mark Page (v2 - Smaller) === */
-        @media (max-width: 480px) {
-            .form-container {
-                padding: 9px;
-                padding-bottom: 70px;
-            }
-
-            .level-card {
-                border-radius: 15px;
-                padding: 0.9rem;
-                margin-bottom: 0.9rem;
-                box-shadow: 0 5px 14px rgba(30, 64, 175, 0.04);
-            }
-
-            .level-card h2 {
-                font-size: 1rem !important;
-            }
-
-            .level-card p {
-                font-size: 0.7rem !important;
-                margin-bottom: 0.7rem !important;
-            }
-
-            .header-btns {
-                gap: 6px;
-                margin-bottom: 2px;
-            }
-
-            .reset-btn, .back-btn-header {
-                height: 34px;
-                border-radius: 10px;
-                font-size: 0.7rem;
-                font-weight: 700;
-                gap: 4px;
-            }
-
-            .add-point-btn {
-                height: 36px;
-                border-radius: 11px;
-                font-size: 0.8rem;
-                margin-bottom: 0.8rem;
-            }
-
-            .points-table-container {
-                border-radius: 11px;
-                margin-top: 0.8rem;
-            }
-
-            .points-table th {
-                padding: 0.45rem 0.3rem;
-                font-size: 0.6rem;
-            }
-
-            .points-table td {
-                padding: 0.45rem 0.3rem;
-                font-size: 0.65rem;
-            }
-
-            .action-btn-group {
-                gap: 6px;
-                margin-top: 0.9rem;
-            }
-
-            .btn-primary {
-                height: 37px;
-                border-radius: 11px;
-                font-size: 0.8rem;
-                gap: 5px;
-            }
-
-            .btn-secondary {
-                height: 37px;
-                border-radius: 11px;
-                font-size: 0.75rem;
-            }
-
-            .form-field {
-                margin-bottom: 0.75rem;
-            }
-
-            .form-field label {
-                font-size: 0.68rem !important;
-                margin-bottom: 0.25rem;
-            }
-
-            .form-field input,
-            .form-field select {
-                padding: 0.55rem;
-                font-size: 0.8rem;
-                border-radius: 9px;
-            }
-
-            /* Staking reading display */
-            #stakingResultBox {
-                padding: 0.9rem 0.6rem !important;
-                border-radius: 15px !important;
-                margin-top: 0.9rem !important;
-            }
-
-            #stakingResultBox span {
-                font-size: 0.72rem !important;
-            }
-
-            #required_reading {
-                font-size: 2.6rem !important;
-            }
-
-            #offset_display,
-            #target_rl_display {
-                font-size: 1.1rem !important;
-            }
-
-            .type-selector {
-                gap: 6px;
-            }
-
-            .type-option {
-                border-radius: 10px;
-                padding: 0.55rem 0.25rem;
-            }
-
-            .type-option span:first-child {
-                font-size: 0.85rem !important;
-            }
-
-            .type-option .type-label {
-                font-size: 0.55rem;
-            }
-
-            .technical-summary {
-                border-radius: 10px;
-                padding: 0.7rem;
-                margin-top: 0.8rem;
-            }
-
-            .summary-row {
-                font-size: 0.65rem;
-                margin-bottom: 0.25rem;
-            }
-
-            .photo-staking-card {
-                border-radius: 11px;
-                padding: 0.8rem;
-            }
-
-            .photo-staking-card .icon-box {
-                width: 38px;
-                height: 38px;
-                font-size: 1rem;
-            }
-
-            .photo-staking-card .upload-text {
-                font-size: 0.75rem;
-            }
-
-            .photo-staking-card .upload-hint {
-                font-size: 0.58rem;
-            }
-
-            .import-level-btn {
-                width: 100%;
-                justify-content: center;
-                padding: 7px 10px;
-                font-size: 0.66rem;
-            }
-
-            .levels-import-shell {
-                padding: 14px;
-                border-radius: 20px;
-            }
-
-            .levels-import-header {
-                align-items: flex-start;
-            }
-
-            .levels-import-table {
-                font-size: 0.72rem;
-            }
-
-            .levels-import-table th,
-            .levels-import-table td {
-                padding: 10px 8px;
-            }
-
-            .empty-msg {
-                padding: 0.9rem;
-                font-size: 0.75rem;
-            }
-
-            /* Toast override */
-            .toast {
-                padding: 6px 13px;
-                font-size: 0.65rem;
-                border-radius: 13px;
-                gap: 5px;
-            }
-        }
-
-        .import-level-btn {
-            border: none;
-            border-radius: 999px;
-            padding: 8px 12px;
-            font-size: 0.72rem;
-            font-weight: 800;
-            line-height: 1;
-            cursor: pointer;
-            transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
-            color: #ffffff;
-            white-space: nowrap;
-            box-shadow: 0 8px 18px rgba(30, 64, 175, 0.10);
-        }
-
-        .import-level-btn:hover {
-            transform: translateY(-1px);
-            opacity: 0.96;
-        }
-
-        .import-level-btn:active {
-            transform: translateY(0);
-        }
-
-        .design-btn {
-            background: var(--primary);
-        }
-
-        .asbuilt-btn {
-            background: var(--accent);
-        }
-
-        .levels-import-shell {
-            width: min(100%, 1040px);
-            max-height: 90vh;
-            overflow: hidden;
-            margin-bottom: 0;
-            display: flex;
-            flex-direction: column;
-            padding: 18px;
-        }
-
-        .levels-import-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 14px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid rgba(30, 64, 175, 0.12);
-        }
-
-        .levels-import-close {
-            flex: 0 0 auto;
-            white-space: nowrap;
-        }
-
-        .levels-import-table-wrap {
-            overflow: auto;
-            border: 1px solid rgba(30, 64, 175, 0.08);
-            border-radius: 16px;
-            background: #fff;
-        }
-
-        .levels-import-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            font-size: 0.82rem;
-        }
-
-        .levels-import-table thead {
-            position: sticky;
-            top: 0;
-            z-index: 1;
-            background: var(--primary);
-            color: white;
-        }
-
-        .levels-import-table th {
-            padding: 12px 10px;
-            text-align: right;
-            white-space: nowrap;
-        }
-
-        .levels-import-table td {
-            padding: 12px 10px;
-            vertical-align: middle;
-            color: var(--text-main);
-        }
-
-        .levels-import-table tbody tr:nth-child(even) {
-            background: #f8fafc;
-        }
-
-        .levels-import-table tbody tr:nth-child(odd) {
-            background: #ffffff;
-        }
-
-        .levels-import-table tbody tr + tr td {
-            border-top: 1px solid #e5e7eb;
-        }
-
-        @media (min-width: 768px) {
-            html {
-                background: radial-gradient(circle at top right, #dbeafe 0%, #bfdbfe 42%, #e2e8f0 100%);
-            }
-
-            body.custom-page {
-                width: 100% !important;
-                max-width: none !important;
-                min-height: 100vh !important;
-                min-height: 100dvh !important;
-                height: auto !important;
-                max-height: none !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                overflow-x: hidden !important;
-                overflow-y: auto !important;
-                border: none !important;
-                border-radius: 0 !important;
-                box-shadow: none !important;
-            }
-
-            body.custom-page > .form-container {
-                flex: 1 1 auto;
-                width: min(100%, 780px) !important;
-                max-width: 780px !important;
-                margin: 0 auto !important;
-                overflow: visible;
-                padding-bottom: 96px;
-            }
-
-            #pointModal,
-            #levelsImportModal {
-                position: fixed !important;
-                inset: 0 !important;
-                width: auto !important;
-                height: auto !important;
-                border-radius: 0;
-            }
-        }
-    </style>
+      <link rel="stylesheet" href="page.css" />
 </head>
 <body class="custom-page page-scroll-enabled">
     <header class="main-header">
@@ -786,7 +45,7 @@
                       stroke-width="2.5"
                       width="20"
                       height="20"
-                      style="transform: rotate(180deg);"
+                      class="nmlm-s001"
                     >
                       <path d="M19 12H5M12 19l-7-7 7-7" />
                     </svg>
@@ -803,8 +62,8 @@
         <!-- Section 1: إدخال النقاط المؤقتة -->
         <div id="step1" class="step-section active">
             <div class="level-card">
-                <h2 style="margin-bottom: 0.5rem; color: var(--primary); font-weight: 900; font-size: 1.6rem;">1) غرفة إدخال النقاط</h2>
-                <p style="color: var(--text-dim); margin-bottom: 1.5rem; font-weight: 600; font-size: 0.9rem;">إدخال النقاط المؤقتة في الموقع لإثبات المنسوب.</p>
+                <h2 class="nmlm-s002">1) غرفة إدخال النقاط</h2>
+                <p class="nmlm-s003">إدخال النقاط المؤقتة في الموقع لإثبات المنسوب.</p>
                 
                 <button class="add-point-btn" onclick="showPointForm()">+ إضافة نقطة</button>
 
@@ -839,8 +98,8 @@
         <!-- Section 2: التحقق من النقاط -->
         <div id="step2" class="step-section">
             <div class="level-card">
-                <h2 style="margin-bottom: 0.5rem; color: var(--primary); font-weight: 900; font-size: 1.6rem;">2) التحقق من النقاط</h2>
-                <p style="color: var(--text-dim); margin-bottom: 1.5rem; font-weight: 600; font-size: 0.9rem;">إجراء عمليات الرصد لمطابقة المنسوب بين النقاط المكتشفة.</p>
+                <h2 class="nmlm-s002">2) التحقق من النقاط</h2>
+                <p class="nmlm-s003">إجراء عمليات الرصد لمطابقة المنسوب بين النقاط المكتشفة.</p>
                 
                 <div class="form-field">
                     <label>النقطة الأولى (Reference)</label>
@@ -867,8 +126,8 @@
                 </div>
 
                 <!-- Calculation Results Box -->
-                <div id="calcBox" class="technical-summary" style="display: none; border-left: 5px solid var(--primary);">
-                    <h4 style="margin-bottom: 1rem; color: var(--primary); font-weight: 900;">نتائج التحقيق الفني</h4>
+                <div id="calcBox" class="technical-summary nmlm-s004">
+                    <h4 class="nmlm-s005">نتائج التحقيق الفني</h4>
                     
                     <div class="summary-row">
                         <span>منسوب سطح الميزان (HI)</span>
@@ -885,17 +144,17 @@
                         <span id="res_calc_diff">0.000</span>
                     </div>
 
-                    <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px dashed #cbd5e1;">
-                        <div class="summary-row" style="margin-bottom:0.8rem">
-                            <span style="color: var(--text-dark)">السماحية المطلوبة</span>
-                            <span style="background:var(--primary); color:white; padding: 2px 8px; border-radius: 6px;">4cm</span>
+                    <div class="nmlm-s006">
+                        <div class="summary-row nmlm-s007">
+                            <span class="nmlm-s008">السماحية المطلوبة</span>
+                            <span class="nmlm-s009">4cm</span>
                         </div>
                         <div class="summary-row">
                             <span>الفارق بين الناتجين (الخطأ)</span>
-                            <span id="res_error" style="font-size: 1.1rem;">0.000</span>
+                            <span id="res_error" class="nmlm-s010">0.000</span>
                         </div>
                         
-                        <div id="statusBadge" style="margin-top: 1rem; text-align: center; padding: 12px; border-radius: 12px; font-weight: 900; font-size: 1.1rem; display: none;">
+                        <div id="statusBadge" class="nmlm-s011">
                             <!-- Status text appears here -->
                         </div>
                     </div>
@@ -913,8 +172,8 @@
         <!-- Section 3: توقيع علام جيت لفل -->
         <div id="step3" class="step-section">
             <div class="level-card">
-                <h2 style="margin-bottom: 0.5rem; color: var(--primary); font-weight: 900; font-size: 1.6rem;">3) توقيع علام جيت لفل</h2>
-                <p style="color: var(--text-dim); margin-bottom: 2rem; font-weight: 600; font-size: 0.9rem;">تحديد القراءة المطلوبة لتوقيع المنسوب بدقة على الموقع.</p>
+                <h2 class="nmlm-s002">3) توقيع علام جيت لفل</h2>
+                <p class="nmlm-s012">تحديد القراءة المطلوبة لتوقيع المنسوب بدقة على الموقع.</p>
 
                 <div class="form-field">
                     <label>منسوب الجيت لفل (تلقائي من التحقق)</label>
@@ -933,39 +192,39 @@
                     <label>إضافة إزاحة (Offset)</label>
                     <div class="type-selector">
                         <div id="off_0" class="type-option active" onclick="setStakingOffset(0, this)">
-                            <span style="font-size: 1.2rem; font-weight: 800;">0.00</span>
+                            <span class="nmlm-s013">0.00</span>
                             <span class="type-label">افتراضي</span>
                         </div>
                         <div id="off_1" class="type-option" onclick="setStakingOffset(1, this)">
-                            <span style="font-size: 1.2rem; font-weight: 800;">+1m</span>
+                            <span class="nmlm-s013">+1m</span>
                             <span class="type-label">إزاحة متر</span>
                         </div>
                         <div id="off_custom" class="type-option" onclick="showCustomOffsetModal()">
-                            <span style="font-size: 1.2rem; font-weight: 800;">+</span>
+                            <span class="nmlm-s013">+</span>
                             <span class="type-label" id="custom_off_label">قيمة خاصة</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Primary Reading Box -->
-                <div id="stakingResultBox" class="level-card" style="display: none; margin-top: 2rem; background: var(--primary); color: white; border: none; text-align: center; padding: 2rem 1rem; border-radius: 28px; box-shadow: 0 15px 35px rgba(30,64,175,0.2);">
-                    <span style="display: block; font-size: 1rem; opacity: 0.9; font-weight: 700; margin-bottom: 0.5rem;">القراءة المطلوبة على القامة</span>
-                    <h1 id="required_reading" style="font-size: 5rem; font-weight: 950; margin: 0; font-family: 'Outfit', sans-serif; line-height:1;">0.000</h1>
-                    <span id="reading_warning" style="display: none; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 800; margin-top: 8px;">المنسوب أعلى من الميزان ⚠️</span>
+                <div id="stakingResultBox" class="level-card nmlm-s014">
+                    <span class="nmlm-s015">القراءة المطلوبة على القامة</span>
+                    <h1 id="required_reading" class="nmlm-s016">0.000</h1>
+                    <span id="reading_warning" class="nmlm-s017">المنسوب أعلى من الميزان ⚠️</span>
                 </div>
 
                 <!-- Secondary Technical Info Box -->
-                <div id="stakingSecondaryBox" class="level-card" style="display: none; margin-top: 1.2rem; background: #ffffff; border: 2px solid var(--primary); padding: 1.2rem; border-radius: 24px; text-align: center;">
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <span id="offset_display" style="font-size: 1.8rem; font-weight: 950; color: var(--text-main); direction: ltr; line-height: 1.2;">+0.00m</span>
-                        <div style="height: 1px; background: #e2e8f0; width: 60%; margin: 4px auto;"></div>
-                        <span id="target_rl_display" style="font-size: 1.8rem; font-weight: 950; color: var(--text-main); direction: ltr; line-height: 1.2;">+0.000</span>
+                <div id="stakingSecondaryBox" class="level-card nmlm-s018">
+                    <div class="nmlm-s019">
+                        <span id="offset_display" class="nmlm-s020">+0.00m</span>
+                        <div class="nmlm-s021"></div>
+                        <span id="target_rl_display" class="nmlm-s020">+0.000</span>
                     </div>
                 </div>
 
-                <div class="form-field" style="margin-top: 2rem;">
+                <div class="form-field nmlm-s022">
                     <label>توثيق العلام (Photo Documentation)</label>
-                    <input type="file" id="staking_image" accept="image/*" capture="environment" style="display: none;" onchange="updateStakingImageStatus()">
+                    <input type="file" id="staking_image" accept="image/*" capture="environment" class="nmlm-s023" onchange="updateStakingImageStatus()">
                     <div id="photoCard" class="photo-staking-card" onclick="document.getElementById('staking_image').click()">
                         <div class="icon-box" id="photoIcon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24">
@@ -978,7 +237,7 @@
                     </div>
                 </div>
 
-                <div class="action-btn-group" style="margin-top: 2rem;">
+                <div class="action-btn-group nmlm-s022">
                     <button class="btn-primary" onclick="nextStep(4)">
                         <span>التالي: التوثيق النهائي</span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -989,135 +248,107 @@
 
         <!-- Section 4: معاينة التقرير النهائي -->
         <div id="step4" class="step-section">
-            <div class="level-card" style="border: none; background: transparent; padding: 0; box-shadow: none;">
-                <h2 style="margin-bottom: 0.5rem; color: var(--primary); font-weight: 900; font-size: 1.6rem;">4) معاينة التقرير الميداني</h2>
-                <p style="color: var(--text-dim); margin-bottom: 2rem; font-weight: 600; font-size: 0.9rem;">مراجعة نهائية لكافة البيانات قبل اعتماد التقرير وحفظه.</p>
+            <div class="level-card nmlm-s024">
+                <h2 class="nmlm-s002">4) معاينة التقرير الميداني</h2>
+                <p class="nmlm-s012">مراجعة نهائية لكافة البيانات قبل اعتماد التقرير وحفظه.</p>
 
-                <style id="mobile-report-style">
-                    @media (max-width: 650px) {
-                        #reportContent { padding: 10px !important; }
-                        .rep-title { font-size: 1rem !important; line-height: 1.2 !important; }
-                        .rep-subtitle { font-size: 0.65rem !important; }
-                        .rep-header-info { padding: 5px 6px !important; font-size: 0.6rem !important; }
-                        
-                        .rep-content-row { flex-direction: column !important; gap: 10px !important; }
-                        .rep-info-box { padding: 10px !important; }
-                        
-                        .rep-calc-col { border-right: none !important; padding-right: 0 !important; border-top: 1px dashed #e2e8f0 !important; padding-top: 10px !important; }
-                        
-                        .rep-points-table th, .rep-points-table td { font-size: 0.6rem !important; padding: 3px !important; }
-                        .rep-calc-row { font-size: 0.6rem !important; margin-bottom: 3px !important; padding-bottom: 2px !important; }
-                        .rep-calc-err { font-size: 0.7rem !important; padding: 3px 5px !important; margin-top: 4px !important; }
-                        
-                        .rep-gwd-sec { padding: 10px 8px !important; flex-direction: column !important; text-align: center; gap: 8px !important; }
-                        .rep-gwd-sec > div { width: 100% !important; align-items: center; display: flex; flex-direction: column; }
-                        .rep-gwd-val { font-size: 1.35rem !important; }
-                        .rep-dmd-bg { justify-content: center; font-size: 0.65rem !important; }
-                        .rep-reading-box { width: 95% !important; padding: 10px !important; margin-top: 4px !important; }
-                        .rep-reading-val { font-size: 1.6rem !important; }
-                        
-                        .rep-photo-sig-row { height: auto !important; flex-direction: column !important; gap: 8px !important; }
-                        .rep-photo-box { height: 110px !important; }
-                        .rep-sig-box { padding: 8px !important; }
-                        .rep-sig-val { font-size: 0.9rem !important; }
-                    }
-                </style>
+                
 
-                <div id="reportContent" style="background: linear-gradient(135deg, #f8fafc, #e2e8f0); border-radius: 20px; padding: 15px 25px; border: 2px solid #ffffff; box-shadow: 0 10px 20px rgba(30,64,175,0.05); max-width: 800px; margin: 0 auto; color: var(--text-main); font-family: 'Cairo', sans-serif;">
+                <div id="reportContent" class="nmlm-s025">
                     
                     <!-- 1. Header -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed rgba(30, 64, 175, 0.15); padding-bottom: 15px; margin-bottom: 15px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="width: 45px; height: 45px; background: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(30,64,175,0.2);">
-                                <img src="../../icons/brand-logo.png" style="width: 25px; height: 25px; filter: brightness(0) invert(1);">
+                    <div class="nmlm-s026">
+                        <div class="nmlm-s027">
+                            <div class="nmlm-s028">
+                                <img src="../../icons/brand-logo.png" class="nmlm-s029">
                             </div>
                             <div>
-                                <h1 class="rep-title" style="color: var(--primary); font-weight: 900; font-size: 1.3rem; margin: 0; line-height: 1.2;">ATLAS SURVEYING</h1>
-                                <h2 class="rep-subtitle" style="color: var(--text-dim); font-weight: 700; font-size: 0.8rem; margin: 0;">تقرير تحديد منسوب (Gate Level)</h2>
+                                <h1 class="rep-title nmlm-s030">ATLAS SURVEYING</h1>
+                                <h2 class="rep-subtitle nmlm-s031">تقرير تحديد منسوب (Gate Level)</h2>
                             </div>
                         </div>
-                        <div class="rep-header-info" style="text-align: left; background: #ffffff; padding: 8px 12px; border-radius: 10px; font-weight: 700; font-size: 0.75rem; border: 1px solid rgba(30,64,175,0.05); box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
-                            <div>رقم التقرير: <span id="rep_id" style="color: var(--primary); font-weight: 900;">--</span></div>
-                            <div style="margin-top: 2px; color: var(--text-dim);"><span id="rep_date">--/--/----</span></div>
+                        <div class="rep-header-info nmlm-s032">
+                            <div>رقم التقرير: <span id="rep_id" class="nmlm-s033">--</span></div>
+                            <div class="nmlm-s034"><span id="rep_date">--/--/----</span></div>
                         </div>
                     </div>
 
                     <!-- 2. Points & Check (Merged into one box) -->
-                    <div class="rep-info-box" style="background: #ffffff; border-radius: 16px; padding: 15px; border: 1px solid rgba(30,64,175,0.05); box-shadow: 0 4px 15px rgba(0,0,0,0.02); margin-bottom: 15px;">
-                        <div class="rep-content-row" style="display: flex; gap: 15px;">
-                            <div style="flex: 1.2;">
-                                <h3 style="color: var(--primary); font-weight: 800; font-size: 0.9rem; margin-top: 0; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-                                    <span style="background: var(--accent-soft); width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 0.7rem;">📍</span> النقاط المرجعية
+                    <div class="rep-info-box nmlm-s035">
+                        <div class="rep-content-row nmlm-s036">
+                            <div class="nmlm-s037">
+                                <h3 class="nmlm-s038">
+                                    <span class="nmlm-s039">📍</span> النقاط المرجعية
                                 </h3>
-                                <table class="rep-points-table" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 0.75rem; font-weight: 700;">
-                                    <thead style="background: var(--accent-soft); color: var(--primary);">
+                                <table class="rep-points-table nmlm-s040">
+                                    <thead class="nmlm-s041">
                                         <tr>
-                                            <th style="padding: 6px; border-radius: 0 6px 6px 0;">اسم النقطة</th>
-                                            <th style="padding: 6px;">المنسوب</th>
-                                            <th style="padding: 6px; border-radius: 6px 0 0 0;">صورة</th>
+                                            <th class="nmlm-s042">اسم النقطة</th>
+                                            <th class="nmlm-s043">المنسوب</th>
+                                            <th class="nmlm-s044">صورة</th>
                                         </tr>
                                     </thead>
                                     <tbody id="rep_points_list"></tbody>
                                 </table>
                             </div>
-                            <div class="rep-calc-col" style="flex: 1; border-right: 1px solid #f1f5f9; padding-right: 15px;">
-                                <h3 style="color: var(--primary); font-weight: 800; font-size: 0.9rem; margin-top: 0; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-                                    <span style="background: var(--accent-soft); width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 0.7rem;">⚙️</span> التحقيق الحسابي
+                            <div class="rep-calc-col nmlm-s045">
+                                <h3 class="nmlm-s038">
+                                    <span class="nmlm-s039">⚙️</span> التحقيق الحسابي
                                 </h3>
-                                <div class="rep-calc-row" style="display: flex; justify-content: space-between; font-weight: 700; font-size: 0.75rem; margin-bottom: 6px; border-bottom: 1px solid #f1f5f9; padding-bottom: 3px;"><span style="color: var(--text-dim);">سطح الميزان (MSM):</span> <span id="rep_msm" style="direction: ltr; color: var(--text-main);">0.000m</span></div>
-                                <div class="rep-calc-row" style="display: flex; justify-content: space-between; font-weight: 700; font-size: 0.75rem; margin-bottom: 6px; border-bottom: 1px solid #f1f5f9; padding-bottom: 3px;"><span style="color: var(--text-dim);">الفرق الحقيقي:</span> <span id="rep_true_diff" style="direction: ltr; color: var(--text-main);">0.000m</span></div>
-                                <div class="rep-calc-row" style="display: flex; justify-content: space-between; font-weight: 700; font-size: 0.75rem; margin-bottom: 6px; border-bottom: 1px solid #f1f5f9; padding-bottom: 3px;"><span style="color: var(--text-dim);">الفرق المرصود:</span> <span id="rep_calc_diff" style="direction: ltr; color: var(--text-main);">0.000m</span></div>
-                                <div class="rep-calc-err" style="display: flex; justify-content: space-between; font-weight: 800; font-size: 0.85rem; margin-top: 8px; background: #f8fafc; padding: 6px 8px; border-radius: 8px; border: 1px solid rgba(30,64,175,0.05);"><span style="color: var(--primary);">مقدار الخطأ:</span> <span id="rep_error" style="direction: ltr;">0.000m</span></div>
+                                <div class="rep-calc-row nmlm-s046"><span class="nmlm-s047">سطح الميزان (MSM):</span> <span id="rep_msm" class="nmlm-s048">0.000m</span></div>
+                                <div class="rep-calc-row nmlm-s046"><span class="nmlm-s047">الفرق الحقيقي:</span> <span id="rep_true_diff" class="nmlm-s048">0.000m</span></div>
+                                <div class="rep-calc-row nmlm-s046"><span class="nmlm-s047">الفرق المرصود:</span> <span id="rep_calc_diff" class="nmlm-s048">0.000m</span></div>
+                                <div class="rep-calc-err nmlm-s049"><span class="nmlm-s050">مقدار الخطأ:</span> <span id="rep_error" class="nmlm-s051">0.000m</span></div>
                             </div>
                         </div>
                     </div>
 
                     <!-- 3. Reading Standalone -->
-                    <div class="rep-reading-box" style="background: #ffffff; border-radius: 16px; padding: 15px; margin-bottom: 15px; text-align: center; border: 2px solid var(--primary); box-shadow: 0 4px 15px rgba(30,64,175,0.1);">
-                        <div style="font-weight: 800; font-size: 0.95rem; color: var(--primary); margin-bottom: 5px;">القراءة المطلوبة على القامة</div>
-                        <div class="rep-reading-val" id="rep_reading" style="font-weight: 950; font-size: 2.8rem; color: #0f172a; direction: ltr; line-height: 1;">0.000</div>
+                    <div class="rep-reading-box nmlm-s052">
+                        <div class="nmlm-s053">القراءة المطلوبة على القامة</div>
+                        <div class="rep-reading-val nmlm-s054" id="rep_reading">0.000</div>
                     </div>
 
                     <!-- 4. Target / Gate Level Info -->
-                    <div class="rep-gwd-sec" style="background: var(--primary); border-radius: 16px; padding: 15px 20px; color: white; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 8px 15px rgba(30,64,175,0.2); position: relative; overflow: hidden;">
-                        <div style="position: absolute; top: -40px; right: -40px; width: 120px; height: 120px; background: rgba(255,255,255,0.05); border-radius: 50%;"></div>
-                        <div style="position: relative; z-index: 2;">
-                            <span style="font-weight: 700; font-size: 0.85rem; opacity: 0.9; display: block; margin-bottom: 4px;">المنسوب النهائي المستهدف للعلام</span>
-                            <div class="rep-gwd-val" id="rep_gwd" style="font-weight: 950; font-size: 2rem; direction: ltr; line-height: 1.1;">+0.000</div>
+                    <div class="rep-gwd-sec nmlm-s055">
+                        <div class="nmlm-s056"></div>
+                        <div class="nmlm-s057">
+                            <span class="nmlm-s058">المنسوب النهائي المستهدف للعلام</span>
+                            <div class="rep-gwd-val nmlm-s059" id="rep_gwd">+0.000</div>
                         </div>
-                        <div class="rep-dmd-bg" style="position: relative; z-index: 2; display: flex; flex-direction: column; gap: 8px; text-align: left;">
-                            <div style="background: rgba(0,0,0,0.2); padding: 5px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;" id="rep_dmd"></div>
-                            <div style="background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 6px; color: white; font-weight: 700; font-size: 0.8rem;" id="rep_offset"></div>
+                        <div class="rep-dmd-bg nmlm-s060">
+                            <div class="nmlm-s061" id="rep_dmd"></div>
+                            <div class="nmlm-s062" id="rep_offset"></div>
                         </div>
                     </div>
 
                     <!-- 5. Photo & Signatures -->
-                    <div class="rep-photo-sig-row" style="display: flex; gap: 15px; align-items: stretch; height: 160px;">
-                        <div class="rep-photo-box" style="flex: 1.5; background: #ffffff; border-radius: 16px; padding: 10px; border: 1px solid rgba(30,64,175,0.05); display: flex; flex-direction: column; box-shadow: 0 2px 10px rgba(0,0,0,0.02);">
-                            <div id="rep_image_box" style="flex: 1; background: #f8fafc; border-radius: 12px; border: 2px dashed rgba(30,64,175,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden; height: 100%;">
-                                <span id="rep_no_img" style="color: var(--text-dim); font-weight: 700; font-size: 0.75rem;">📷 لا توجد صورة مرفقة</span>
-                                <img id="rep_staking_img" style="display: none; width: 100%; height: 100%; object-fit: contain;">
+                    <div class="rep-photo-sig-row nmlm-s063">
+                        <div class="rep-photo-box nmlm-s064">
+                            <div id="rep_image_box" class="nmlm-s065">
+                                <span id="rep_no_img" class="nmlm-s066">📷 لا توجد صورة مرفقة</span>
+                                <img id="rep_staking_img" class="nmlm-s067">
                             </div>
                         </div>
                         
-                        <div class="rep-sig-box" style="flex: 1; background: #ffffff; border-radius: 16px; padding: 12px; border: 1px solid rgba(30,64,175,0.05); box-shadow: 0 2px 10px rgba(0,0,0,0.02); display: flex; flex-direction: row; gap: 12px;">
-                            <div style="flex: 1; text-align: center; display: flex; flex-direction: column; justify-content: center; border-left: 1px dashed rgba(30,64,175,0.15);">
-                                <span style="font-weight: 800; font-size: 0.8rem; color: var(--text-dim); display: block; margin-bottom: 5px;">المساح المسئول</span>
-                                <span class="rep-sig-val" style="font-weight: 900; font-size: 1.1rem; color: var(--primary);">طاهر شوقي</span>
+                        <div class="rep-sig-box nmlm-s068">
+                            <div class="nmlm-s069">
+                                <span class="nmlm-s070">المساح المسئول</span>
+                                <span class="rep-sig-val nmlm-s071">طاهر شوقي</span>
                             </div>
-                            <div style="flex: 1; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 12px; border: 1px dashed rgba(30,64,175,0.1);">
-                                <span style="color: #cbd5e1; font-weight: 600; font-size: 0.85rem;">(التوقيع)</span>
+                            <div class="nmlm-s072">
+                                <span class="nmlm-s073">(التوقيع)</span>
                             </div>
                         </div>
                     </div>
                 </div> <!-- End of reportContent -->
 
-                <div class="action-btn-group" style="flex-wrap: wrap;">
-                    <button class="btn-primary" onclick="exportToPDF()" style="flex: 1; min-width: 140px;">
+                <div class="action-btn-group nmlm-s074">
+                    <button class="btn-primary nmlm-s075" onclick="exportToPDF()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         تصدير PDF
                     </button>
-                    <button class="btn-primary" style="background: #1d4ed8; flex: 1; min-width: 140px;" onclick="exportToWord()">
+                    <button class="btn-primary nmlm-s076" onclick="exportToWord()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                         تصدير Word
                     </button>
@@ -1128,9 +359,9 @@
     </main>
 
     <!-- Point Add/Edit Modal -->
-    <div id="pointModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); backdrop-filter:blur(5px); z-index:2000; align-items:center; justify-content:center;">
-        <div class="level-card" style="width: 90%; max-width: 400px; margin-bottom:0;">
-            <h3 id="modalTitle" style="margin-bottom:1.5rem; color:var(--primary); font-weight:900;">إضافة نقطة جديدة</h3>
+    <div id="pointModal" class="nmlm-s077">
+        <div class="level-card nmlm-s078">
+            <h3 id="modalTitle" class="nmlm-s079">إضافة نقطة جديدة</h3>
             <div class="form-field">
                 <label>اسم النقطة</label>
                 <input type="text" id="pt_name" placeholder="مثال: PM 1">
@@ -1141,27 +372,27 @@
             </div>
             <div class="form-field">
                 <label>صورة النقطة (اختياري)</label>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <button class="btn-secondary" style="height: 45px; flex: 1; font-size: 0.8rem;" onclick="document.getElementById('pt_image').click()">
+                <div class="nmlm-s080">
+                    <button class="btn-secondary nmlm-s081" onclick="document.getElementById('pt_image').click()">
                         📷 اختيار / تغيير صورة
                     </button>
-                    <input type="file" id="pt_image" accept="image/*" style="display: none;" onchange="updateImageStatus()">
-                    <span id="img_status" style="font-size: 0.8rem; color: var(--text-dim);">لا توجد صورة</span>
+                    <input type="file" id="pt_image" accept="image/*" class="nmlm-s023" onchange="updateImageStatus()">
+                    <span id="img_status" class="nmlm-s082">لا توجد صورة</span>
                 </div>
             </div>
-            <div style="display:flex; gap:12px;">
-                <button id="modalSaveBtn" class="btn-primary" style="flex:1" onclick="savePoint()">إضافة</button>
-                <button class="btn-secondary" style="flex:1" onclick="hidePointForm()">إلغاء</button>
+            <div class="nmlm-s083">
+                <button id="modalSaveBtn" class="btn-primary nmlm-s084" onclick="savePoint()">إضافة</button>
+                <button class="btn-secondary nmlm-s084" onclick="hidePointForm()">إلغاء</button>
             </div>
         </div>
     </div>
 
-    <div id="levelsImportModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.72); backdrop-filter:blur(8px); z-index:2100; align-items:center; justify-content:center; padding:16px;">
+    <div id="levelsImportModal" class="nmlm-s085">
         <div class="level-card levels-import-shell">
             <div class="levels-import-header">
-                <div style="min-width:0;">
-                    <h3 style="margin:0; color:var(--primary); font-weight:900; font-size:1.2rem;">استيراد من قاعدة البيانات</h3>
-                    <p id="levelsImportSubtitle" style="margin:6px 0 0; color:var(--text-dim); font-weight:700; font-size:0.82rem; line-height:1.4;"></p>
+                <div class="nmlm-s086">
+                    <h3 class="nmlm-s087">استيراد من قاعدة البيانات</h3>
+                    <p id="levelsImportSubtitle" class="nmlm-s088"></p>
                 </div>
                 <button class="btn-secondary levels-import-close" type="button" onclick="closeLevelsImportModal()">إغلاق</button>
             </div>
@@ -1553,9 +784,9 @@
                         <td>${escapeHtml(p.name)}</td>
                         <td>${Number.isFinite(rlValue) ? rlValue.toFixed(3) : ""}</td>
                         <td>${escapeHtml(p.image)}</td>
-                        <td style="white-space:nowrap">
-                            <button onclick="editPoint(${index})" style="background:none; border:none; color:var(--primary); cursor:pointer; font-size:1rem;" title="تعديل">✏️</button>
-                            <button onclick="deletePoint(${index})" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:1rem;" title="حذف">🗑️</button>
+                        <td class="nmlm-s089">
+                            <button onclick="editPoint(${index})" class="nmlm-s090" title="تعديل">✏️</button>
+                            <button onclick="deletePoint(${index})" class="nmlm-s091" title="حذف">🗑️</button>
                         </td>
                     </tr>
                 `;
@@ -1688,28 +919,28 @@
             body.innerHTML = '';
 
             if (!levels.length) {
-                body.innerHTML = '<tr><td colspan="5" style="padding:22px; text-align:center; color:var(--text-dim); font-weight:700;">لا توجد مستويات مرتبطة بهذا الموقع</td></tr>';
+                body.innerHTML = '<tr><td colspan="5" class="nmlm-s092">لا توجد مستويات مرتبطة بهذا الموقع</td></tr>';
             } else {
                 levels.forEach((level, index) => {
                     const tr = document.createElement('tr');
                     tr.style.borderBottom = '1px solid #e5e7eb';
                     tr.style.background = index % 2 === 0 ? '#ffffff' : '#f8fafc';
                     tr.innerHTML = `
-                        <td style="padding:12px 10px; font-weight:800; color:var(--text-main); white-space:nowrap;">${formatLevelCell(level.row_no)}</td>
-                        <td style="padding:12px 10px; direction:ltr; vertical-align:middle;">
-                            <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start;">
-                                <span style="font-weight:800; color:var(--text-main);">${formatLevelCell(level.design_level)}</span>
+                        <td class="nmlm-s093">${formatLevelCell(level.row_no)}</td>
+                        <td class="nmlm-s094">
+                            <div class="nmlm-s095">
+                                <span class="nmlm-s096">${formatLevelCell(level.design_level)}</span>
                                 <button type="button" class="import-level-btn design-btn" onclick="importLevelToDesign(${index}, 'design')">اختيار Design</button>
                             </div>
                         </td>
-                        <td style="padding:12px 10px; direction:ltr; vertical-align:middle;">
-                            <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start;">
-                                <span style="font-weight:800; color:var(--text-main);">${formatLevelCell(level.asbuilt_level)}</span>
+                        <td class="nmlm-s094">
+                            <div class="nmlm-s095">
+                                <span class="nmlm-s096">${formatLevelCell(level.asbuilt_level)}</span>
                                 <button type="button" class="import-level-btn asbuilt-btn" onclick="importLevelToDesign(${index}, 'asbuilt')">اختيار As Built</button>
                             </div>
                         </td>
-                        <td style="padding:12px 10px; direction:ltr; color:var(--text-main); font-weight:700; white-space:nowrap;">${formatLevelCell(level.difference_value)}</td>
-                        <td style="padding:12px 10px; color:var(--text-main); font-weight:700;">${formatLevelCell(level.remarks)}</td>
+                        <td class="nmlm-s097">${formatLevelCell(level.difference_value)}</td>
+                        <td class="nmlm-s098">${formatLevelCell(level.remarks)}</td>
                     `;
                     body.appendChild(tr);
                 });
@@ -1840,7 +1071,7 @@
             points.forEach(p => {
                 const rlValue = Number.parseFloat(p.rl);
                 const hasImage = p.image && p.image !== '-' && p.image !== 'لا توجد صورة';
-                pList.innerHTML += `<tr><td>${escapeHtml(p.name)}</td><td style="direction:ltr">${Number.isFinite(rlValue) ? rlValue.toFixed(3) : ""}</td><td>${hasImage ? 'photo' : '-'}</td></tr>`;
+                pList.innerHTML += `<tr><td>${escapeHtml(p.name)}</td><td class="nmlm-s099">${Number.isFinite(rlValue) ? rlValue.toFixed(3) : ""}</td><td>${hasImage ? 'photo' : '-'}</td></tr>`;
             });
 
             // 2. Step 2 Calculations
@@ -2037,6 +1268,13 @@
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
 
 
 

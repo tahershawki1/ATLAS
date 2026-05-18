@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   if (window.AtlasDialog) return;
 
   const STYLE_ID = "atlas-dialog-style";

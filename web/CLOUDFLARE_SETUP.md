@@ -1,230 +1,129 @@
-# Cloudflare Pages Setup
+﻿# نقل ATLAS إلى Cloudflare بدون GitHub
 
-هذا المشروع جاهز للنشر على Cloudflare Pages، لكن النشر الفعلي يحتاج ضبط المشروع من لوحة Cloudflare وربط الموارد المطلوبة.
+المقصود غالبا هو **Cloudflare R2** وليس P2.  
+الخطة الصحيحة ليست أن نضع البيانات الحساسة داخل ملفات الموقع، لأن أي ملف Static يصل للمتصفح يمكن قراءته. الخطة الأفضل:
 
-المستودع المرفوع:
+- نشر واجهة الموقع على **Cloudflare Pages** عن طريق Direct Upload بدون GitHub.
+- تخزين الملفات والصفحات المرفوعة في **Cloudflare R2** كـ bucket خاص.
+- تخزين المستخدمين والجلسات والبيانات الصغيرة في **Cloudflare KV**.
+- الوصول للبيانات الحساسة يكون فقط من خلال Pages Functions بعد تسجيل الدخول والصلاحيات.
 
-- `https://github.com/tahershawki1/ATLAS.git`
+## لماذا لا نستخدم GitHub؟
 
-## مهم قبل البدء
+يمكن استخدام GitHub Private Repository، لكن لو هدفك ألا يكون الكود والملفات الحساسة موجودة على GitHub نهائيا، استخدم Direct Upload من جهازك إلى Cloudflare Pages.
 
-المشروع الفعلي الذي يجب اعتباره Root Directory داخل Cloudflare هو:
+## المهم أمنيا
 
-- `web`
+لا تضع أي بيانات حساسة داخل:
 
-السبب:
+- `index.html`
+- ملفات JS/CSS
+- `sites_data.js`
+- أي ملف داخل مجلد النشر العام
 
-- ملفات الموقع الجاهزة موجودة داخل `web/`
-- مجلد `functions/` الخاص بـ Pages Functions موجود داخل `web/functions/`
-- Cloudflare يشترط أن يكون مجلد `functions` عند جذر مشروع Pages
+أي شيء داخل الواجهة يمكن للمستخدم تحميله. البيانات الحساسة يجب أن تكون خلف API في `functions/` وتخزن في R2/KV.
 
-بحسب وثائق Cloudflare الرسمية:
+## موارد Cloudflare المطلوبة
 
-- عند نشر موقع Static HTML على Pages يمكن استخدام:
-  - Build command: `exit 0`
-  - Build output directory: مجلد الموقع نفسه
-- وعند استخدام `functions/` يجب أن يكون داخل جذر مشروع Pages
+أنشئ الموارد التالية من Cloudflare Dashboard:
 
-المصادر الرسمية:
+1. Pages Project
+   - الاسم المقترح: `atlas-site`
+   - طريقة النشر: Direct Upload
 
-- Static HTML deployment:
-  - https://developers.cloudflare.com/pages/framework-guides/deploy-anything/
-- Pages Functions configuration:
-  - https://developers.cloudflare.com/pages/functions/wrangler-configuration/
-- Bindings:
-  - https://developers.cloudflare.com/pages/functions/bindings/
-- R2 with Pages:
-  - https://developers.cloudflare.com/pages/tutorials/use-r2-as-static-asset-storage-for-pages/
+2. KV Namespace
+   - الاسم: `atlas-data`
+   - Binding داخل Pages: `ATLAS_DATA`
+   - الاستخدام: المستخدمون، بيانات المواقع، manifest للصفحات المرفوعة
 
-## إعداد مشروع Cloudflare Pages
+3. KV Namespace
+   - الاسم: `atlas-sessions`
+   - Binding داخل Pages: `ATLAS_SESSIONS`
+   - الاستخدام: جلسات تسجيل الدخول
 
-من لوحة Cloudflare:
+4. R2 Bucket
+   - الاسم المقترح: `atlas-pages-bucket`
+   - Binding داخل Pages: `ATLAS_PAGES_BUCKET`
+   - الاستخدام: الملفات والصفحات المرفوعة من لوحة الإدارة
 
-1. افتح:
-   - `Workers & Pages`
-2. اختر:
-   - `Create application`
-3. اختر:
-   - `Pages`
-4. اختر:
-   - `Import an existing Git repository`
-5. اربط GitHub وحدد هذا المستودع:
-   - `tahershawki1/ATLAS`
+5. Environment variable
+   - الاسم: `ATLAS_ADMIN_PASSWORD`
+   - القيمة: كلمة مرور قوية للمدير الأول
 
-## إعدادات البناء الصحيحة
+## النشر بدون GitHub
 
-في صفحة إعداد المشروع استخدم القيم التالية:
+من داخل مجلد `web`:
 
-- Production branch:
-  - `main`
-- Root directory:
-  - `web`
-- Build command:
-  - `exit 0`
-- Build output directory:
-  - `.`
+```bash
+npm run check
+npm run build:cloudflare
+npx wrangler login
+npx wrangler pages deploy ../dist/cloudflare-pages --project-name atlas-site
+```
 
-هذه النقطة مهمة جدًا:
+أو بعد تسجيل الدخول:
 
-- لا تضع `ATLAS-main`
-- لا تضع `web` كـ output directory إذا كنت قد اخترت `web` أصلًا كـ Root Directory
-- لأن Cloudflare وقتها سيبحث داخل `web/web`
+```bash
+npm run deploy:cloudflare
+```
 
-## الموارد المطلوبة
+السكربت `build:cloudflare` ينسخ ملفات التشغيل فقط إلى:
 
-حتى تعمل لوحة الإدارة وتسجيل الدخول ورفع الصفحات، أنشئ هذه الموارد داخل Cloudflare:
+```text
+dist/cloudflare-pages
+```
 
-### 1. KV Namespace للمستخدمين والبيانات
+ولا يرفع ملفات التطوير مثل:
 
-أنشئ Namespace باسم مناسب مثل:
+- `package.json`
+- `README.md`
+- `CLOUDFLARE_SETUP.md`
+- `local-server-router.php`
+- `wrangler.example.toml`
 
-- `atlas-data`
+## إعداد bindings
 
-ثم اربطه بالاسم:
+يمكن عملها من Dashboard:
 
-- `ATLAS_DATA`
+1. افتح `Workers & Pages`
+2. افتح مشروع `atlas-site`
+3. ادخل إلى `Settings`
+4. افتح `Bindings`
+5. أضف:
+   - KV: `ATLAS_DATA`
+   - KV: `ATLAS_SESSIONS`
+   - R2: `ATLAS_PAGES_BUCKET`
+6. أعد النشر بعد إضافة bindings
 
-الاستخدام:
+بديل متقدم: انسخ `wrangler.example.toml` إلى `wrangler.toml` وضع IDs الحقيقية. لا تضع أسرار أو كلمات مرور في `wrangler.toml`.
 
-- المستخدمون
-- بيانات المواقع المخصصة
-- Manifest الصفحات المرفوعة
+## تخزين الموقع في R2
 
-### 2. KV Namespace للجلسات
+لو تقصد ملفات المستخدمين والصفحات المرفوعة: نعم، هذا معمول له binding باسم:
 
-أنشئ Namespace باسم مناسب مثل:
+```text
+ATLAS_PAGES_BUCKET
+```
 
-- `atlas-sessions`
-
-ثم اربطه بالاسم:
-
-- `ATLAS_SESSIONS`
-
-الاستخدام:
-
-- جلسات تسجيل الدخول
-
-### 3. R2 Bucket للصفحات المرفوعة
-
-أنشئ Bucket باسم مناسب مثل:
-
-- `atlas-pages-bucket`
-
-ثم اربطه بالاسم:
-
-- `ATLAS_PAGES_BUCKET`
-
-الاستخدام:
-
-- ملفات HTML / CSS / JS للصفحات أو المجلدات التي يتم رفعها من لوحة الإدارة
-
-## أين تضيف الـ Bindings
-
-بعد إنشاء مشروع Pages:
-
-1. افتح المشروع
-2. اذهب إلى:
-   - `Settings`
-3. ثم:
-   - `Functions`
-4. أضف:
-   - KV bindings
-   - R2 bucket bindings
-
-بالأسماء نفسها حرفيًا:
-
-- `ATLAS_DATA`
-- `ATLAS_SESSIONS`
-- `ATLAS_PAGES_BUCKET`
-
-## المسارات المهمة داخل المشروع
-
-### صفحات الواجهة
-
-- الصفحة الرئيسية:
-  - `/index.html`
-- صفحة تسجيل الدخول:
-  - `/pages/login/`
-- لوحة الإدارة:
-  - `/pages/admin/`
-
-### Pages Functions
-
-هذه الملفات موجودة بالفعل:
-
-- `web/functions/api/bootstrap.js`
-- `web/functions/api/login.js`
-- `web/functions/api/logout.js`
-- `web/functions/api/me.js`
-- `web/functions/api/users.js`
-- `web/functions/api/users/[id].js`
-- `web/functions/api/sites.js`
-- `web/functions/api/pages.js`
-- `web/functions/api/pages/[slug].js`
-- `web/functions/published/[[path]].js`
-
-## وضع التشغيل
-
-### Cloudflare mode
-
-إذا كانت الـ bindings مضبوطة:
-
-- تسجيل الدخول يعمل عبر KV
-- إدارة المستخدمين تعمل عبر KV
-- حفظ المواقع الجديدة أو المعدلة يعمل عبر KV
-- رفع صفحات جديدة يعمل عبر R2
-- الصفحات المرفوعة تُفتح من:
-  - `/published/<slug>/`
-
-### Local mode
-
-إذا لم تضف الـ bindings:
-
-- النظام سيعمل محليًا داخل المتصفح
-- المستخدمون والمواقع سيُحفظون في `localStorage`
-- رفع الصفحات الديناميكي سيظل معطلًا
-
-## كلمة مرور المدير الأول
-
-قبل أول نشر عام، أضف متغير بيئة في Cloudflare Pages باسم:
-
-- `ATLAS_ADMIN_PASSWORD`
-
-واختر كلمة مرور قوية لأول مستخدم مدير. اسم المستخدم الأول يبقى:
-
-- `admin`
-
-لا تعتمد على كلمة المرور التطويرية القديمة `admin123` في أي بيئة منشورة.
-للاختبار المحلي فقط يمكن ضبط `ATLAS_ALLOW_DEFAULT_ADMIN=1`.
+ولو تقصد وضع كل ملفات الموقع نفسه داخل R2: لا أنصح به في هذه المرحلة. Cloudflare Pages أفضل لملفات الواجهة، وR2 أفضل للملفات الخاصة أو الكبيرة التي يتم الوصول لها عبر API وصلاحيات.
 
 ## بعد أول نشر
 
-بعد نجاح أول Deploy، اختبر الروابط التالية:
+اختبر:
 
-1. الصفحة الرئيسية
-   - `https://<your-project>.pages.dev/`
-2. تسجيل الدخول
-   - `https://<your-project>.pages.dev/pages/login/`
-3. لوحة الإدارة
-   - `https://<your-project>.pages.dev/pages/admin/`
+- `/pages/login/`
+- `/pages/admin/`
+- `/api/me`
+- رفع صفحة من لوحة الإدارة
+- فتح صفحة مرفوعة من `/published/<slug>/`
 
-## إذا أردت استخدام Wrangler لاحقًا
+## مراجع Cloudflare الرسمية
 
-لا تكتب `wrangler.toml` يدويًا الآن إلا بعد إنشاء مشروع Pages والـ bindings من لوحة Cloudflare.
-
-الطريقة الموصى بها من Cloudflare هي:
-
-- ادخل إلى مجلد `web`
-- ثم شغل:
-
-```bash
-npx wrangler pages download config
-```
-
-هذا سيولد ملف Wrangler مطابقًا لإعدادات المشروع الحالية بدل كتابة ملف ناقص يدويًا.
-
-## ملاحظات تنفيذية
-
-- المشروع الآن مناسب أكثر للنشر من خلال GitHub integration داخل Cloudflare Pages
-- لا تحتاج Build system فعلي لأن الموقع Static
-- `functions/` ستعمل فقط إذا كان Root Directory مضبوطًا على `web`
+- Direct Upload:
+  - https://developers.cloudflare.com/pages/how-to/use-direct-upload-with-continuous-integration/
+- Pages Functions configuration:
+  - https://developers.cloudflare.com/pages/functions/wrangler-configuration/
+- Pages bindings مع R2:
+  - https://developers.cloudflare.com/pages/functions/bindings/
+- R2:
+  - https://developers.cloudflare.com/r2/

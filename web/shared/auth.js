@@ -1,19 +1,24 @@
-(function () {
+﻿(function () {
   if (window.AtlasAuth && window.AtlasStore) return;
 
   const STORAGE = {
     localUsers: "atlasAdminUsers",
     localSession: "atlasAdminSession",
+    localSessionSnapshot: "atlasAuthSessionSnapshot",
     localCustomSites: "atlasCustomSitesDb",
     localPages: "atlasUploadedPagesManifest",
     localConfig: "atlasRuntimeConfig",
   };
 
+  const DEFAULT_ADMIN_PASSWORD = "admin123";
+  const PASSWORD_HASH_PREFIX = "pbkdf2-sha256";
+  const PASSWORD_HASH_ITERATIONS = 120000;
+
   const DEFAULT_ADMIN = {
     id: "user-admin",
     username: "admin",
     full_name: "مدير النظام",
-    password_hint: "admin123",
+    password_hint: "",
     password_hash: "",
     is_admin: true,
     permissions: ["*"],
@@ -21,6 +26,7 @@
   };
 
   const STATIC_PAGES = [
+    { id: "pages.login", label: "تسجيل الدخول", url: "/pages/login/" },
     { id: "pages.home", label: "الرئيسية", url: "/index.html" },
     { id: "pages.new", label: "قائمة الأعمال الجديدة", url: "/pages/new/" },
     { id: "pages.check", label: "قائمة أعمال التحقق", url: "/pages/check/" },
@@ -28,10 +34,10 @@
     { id: "pages.point-staking", label: "توقيع النقاط", url: "/pages/point-staking/" },
     { id: "pages.new-level-mark", label: "علام جيت لفل جديد", url: "/pages/new-level-mark/" },
     { id: "pages.level-budget", label: "جدول الميزانية والتحقق", url: "/pages/level-budget/" },
-    { id: "pages.coordinates-workspace", label: "مركز الإحداثيات", url: "/pages/coordinates-workspace/" },
     { id: "pages.coordinates-extractor", label: "استخراج الاحداثيات", url: "/pages/coordinates-extractor/" },
     { id: "pages.coordinates-proposal", label: "اقتراح الإحداثيات", url: "/pages/coordinates-proposal/" },
     { id: "pages.coordinates-export", label: "تصدير الإحداثيات", url: "/pages/coordinates-export/" },
+    { id: "pages.shared-file", label: "اختيار أداة الملف المشترك", url: "/pages/shared-file/" },
     { id: "pages.site-management", label: "إدارة الشركات والمناطق والمواقع", url: "/pages/site-management/" },
     { id: "sites.write", label: "إضافة وتعديل بيانات المواقع", url: "/index.html", is_permission: true },
     { id: "admin.panel", label: "لوحة الإدارة", url: "/pages/admin/" },
@@ -113,17 +119,91 @@
       .join("");
   }
 
+  function bytesToHex(bytes) {
+    return Array.from(bytes)
+      .map((value) => value.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  function hexToBytes(hex) {
+    const clean = String(hex || "").replace(/[^a-f0-9]/gi, "");
+    const bytes = new Uint8Array(Math.floor(clean.length / 2));
+    for (let index = 0; index < bytes.length; index += 1) {
+      bytes[index] = Number.parseInt(clean.slice(index * 2, index * 2 + 2), 16);
+    }
+    return bytes;
+  }
+
+  async function hashPassword(password) {
+    const salt = new Uint8Array(16);
+    crypto.getRandomValues(salt);
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(String(password ?? "")),
+      "PBKDF2",
+      false,
+      ["deriveBits"],
+    );
+    const bits = await crypto.subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        hash: "SHA-256",
+        salt,
+        iterations: PASSWORD_HASH_ITERATIONS,
+      },
+      keyMaterial,
+      256,
+    );
+    return `${PASSWORD_HASH_PREFIX}$${PASSWORD_HASH_ITERATIONS}$${bytesToHex(salt)}$${bytesToHex(new Uint8Array(bits))}`;
+  }
+
+  async function verifyPassword(password, storedHash) {
+    const hash = normalize(storedHash);
+    if (!hash) return false;
+
+    if (!hash.startsWith(`${PASSWORD_HASH_PREFIX}$`)) {
+      return (await sha256(password)) === hash;
+    }
+
+    const [, iterationsText, saltHex, expectedHex] = hash.split("$");
+    const iterations = Number(iterationsText);
+    if (!Number.isFinite(iterations) || !saltHex || !expectedHex) return false;
+
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(String(password ?? "")),
+      "PBKDF2",
+      false,
+      ["deriveBits"],
+    );
+    const bits = await crypto.subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        hash: "SHA-256",
+        salt: hexToBytes(saltHex),
+        iterations,
+      },
+      keyMaterial,
+      256,
+    );
+    return bytesToHex(new Uint8Array(bits)) === expectedHex;
+  }
+
+  function passwordHashNeedsUpgrade(storedHash) {
+    return !normalize(storedHash).startsWith(`${PASSWORD_HASH_PREFIX}$${PASSWORD_HASH_ITERATIONS}$`);
+  }
+
   async function buildDefaultAdmin() {
     return {
       ...DEFAULT_ADMIN,
-      password_hash: await sha256(DEFAULT_ADMIN.password_hint),
+      password_hash: await hashPassword(DEFAULT_ADMIN_PASSWORD),
     };
   }
 
   async function normalizeStoredUser(user, defaultAdmin) {
     const fallbackPassword =
       normalize(user?.username).toLowerCase() === normalize(DEFAULT_ADMIN.username).toLowerCase()
-        ? DEFAULT_ADMIN.password_hint
+        ? DEFAULT_ADMIN_PASSWORD
         : "";
     const next = {
       ...user,
@@ -141,7 +221,7 @@
 
     if (!normalize(next.password_hash)) {
       const rawPassword = normalize(next.password_hint) || fallbackPassword;
-      if (rawPassword) next.password_hash = await sha256(rawPassword);
+      if (rawPassword) next.password_hash = await hashPassword(rawPassword);
     }
 
     if (next.username === defaultAdmin.username) {
@@ -212,7 +292,10 @@
         typeof payload === "string"
           ? payload
           : payload?.error || payload?.message || "Request failed";
-      throw new Error(message);
+      const requestError = new Error(message);
+      requestError.status = response.status;
+      requestError.payload = payload;
+      throw requestError;
     }
 
     return payload;
@@ -277,6 +360,42 @@
     localStorage.setItem(STORAGE.localSession, JSON.stringify(session));
   }
 
+  function saveSessionSnapshot(user, options = {}) {
+    const safeUser = stripSensitiveUser(user);
+    if (!safeUser) {
+      localStorage.removeItem(STORAGE.localSessionSnapshot);
+      return;
+    }
+
+    const maxAgeMs = Number(options.maxAgeMs) || 30 * 24 * 60 * 60 * 1000;
+    localStorage.setItem(
+      STORAGE.localSessionSnapshot,
+      JSON.stringify({
+        user: safeUser,
+        mode: options.mode || state.mode || "local",
+        saved_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + maxAgeMs).toISOString(),
+      }),
+    );
+  }
+
+  function clearSessionSnapshot() {
+    localStorage.removeItem(STORAGE.localSessionSnapshot);
+  }
+
+  function getSessionSnapshot() {
+    const snapshot = jsonParse(localStorage.getItem(STORAGE.localSessionSnapshot), null);
+    if (!snapshot?.user) return null;
+
+    const expiresAt = snapshot.expires_at ? new Date(snapshot.expires_at).getTime() : 0;
+    if (expiresAt && expiresAt < Date.now()) {
+      clearSessionSnapshot();
+      return null;
+    }
+
+    return stripSensitiveUser(snapshot.user);
+  }
+
   function matchesPermission(permissionList, permission) {
     if (!permission) return true;
     if (!Array.isArray(permissionList)) return false;
@@ -298,16 +417,24 @@
     if (state.apiAvailable) {
       try {
         const payload = await apiFetch("/api/me", { method: "GET" });
-        state.currentUser = payload?.user || null;
+        const serverUser = payload?.user || null;
+        state.currentUser = serverUser || getSessionSnapshot();
+        if (serverUser) saveSessionSnapshot(serverUser, { mode: "cloudflare" });
       } catch (error) {
-        state.currentUser = null;
+        if (error?.status === 401 || error?.status === 403) {
+          clearSessionSnapshot();
+          state.currentUser = null;
+        } else {
+          state.currentUser = getSessionSnapshot();
+        }
       }
     } else {
       const users = await ensureLocalUsers();
       const session = localGetSession();
       const matchedUser =
         users.find((user) => user.id === session?.user_id || user.username === session?.username) || null;
-      state.currentUser = stripSensitiveUser(matchedUser);
+      state.currentUser = stripSensitiveUser(matchedUser) || getSessionSnapshot();
+      if (state.currentUser) saveSessionSnapshot(state.currentUser, { mode: state.mode });
     }
 
     state.initialized = true;
@@ -335,18 +462,26 @@
         body: JSON.stringify({ username, password }),
       });
       state.currentUser = payload?.user || null;
+      saveSessionSnapshot(state.currentUser, { mode: "cloudflare" });
       return state.currentUser;
     }
 
     const users = await ensureLocalUsers();
-    const passwordHash = await sha256(password);
-    const user = users.find(
-      (entry) =>
-        normalize(entry.username).toLowerCase() === normalize(username).toLowerCase() &&
-        entry.password_hash === passwordHash,
-    );
+    let user = null;
+    for (const entry of users) {
+      if (normalize(entry.username).toLowerCase() !== normalize(username).toLowerCase()) continue;
+      if (await verifyPassword(password, entry.password_hash)) {
+        user = entry;
+        break;
+      }
+    }
 
     if (!user) throw new Error("اسم المستخدم أو كلمة المرور غير صحيحة");
+
+    if (passwordHashNeedsUpgrade(user.password_hash)) {
+      user.password_hash = await hashPassword(password);
+      localStorage.setItem(STORAGE.localUsers, JSON.stringify(users));
+    }
 
     localSetSession({
       user_id: user.id,
@@ -354,6 +489,7 @@
       created_at: new Date().toISOString(),
     });
     state.currentUser = stripSensitiveUser(user);
+    saveSessionSnapshot(state.currentUser, { mode: "local" });
     return state.currentUser;
   }
 
@@ -369,6 +505,7 @@
     }
 
     localSetSession(null);
+    clearSessionSnapshot();
     state.currentUser = null;
   }
 
@@ -384,6 +521,7 @@
     if (!permission) return true;
     if (!user) return false;
     if (Boolean(user.is_admin)) return true;
+    if (matchesPermission(user.permissions, "admin.panel")) return true;
     return matchesPermission(user.permissions, permission);
   }
 
@@ -433,7 +571,7 @@
       label: page.title || page.slug,
       slug: page.slug,
       is_uploaded: true,
-      url: `/published/${page.slug}/`,
+      url: page.url || `/published/${page.slug}/`,
     }));
   }
 
@@ -497,11 +635,15 @@
     const userLabel = user?.full_name || user?.username || "مستخدم";
     const canSeeAdmin = canAccess("admin.panel");
 
+    const headerHost = document.querySelector(".main-header .header-right");
+    if (headerHost && mount.parentElement !== headerHost) {
+      headerHost.appendChild(mount);
+    }
+
     mount.innerHTML = `
-      <div class="atlas-auth-shell">
+      <div class="atlas-auth-shell atlas-auth-shell-inline">
         <div class="atlas-auth-user">
-          <span class="atlas-auth-user-label">المستخدم الحالي</span>
-          <strong>${userLabel}</strong>
+          <span class="atlas-auth-user-label">المستخدم الحالي</span><strong>${userLabel}</strong>
         </div>
         <div class="atlas-auth-actions">
           ${canSeeAdmin ? '<a class="atlas-auth-link" href="/pages/admin/">لوحة الإدارة</a>' : ""}
@@ -526,46 +668,59 @@
         .atlas-auth-shell {
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          justify-content: flex-end;
           gap: 12px;
-          margin-bottom: 14px;
-          padding: 12px 14px;
-          border-radius: 18px;
-          background: rgba(255, 255, 255, 0.88);
-          border: 1px solid rgba(30, 64, 175, 0.1);
-          box-shadow: 0 10px 24px rgba(30, 64, 175, 0.06);
+          margin: 0;
+          padding: 0;
+          flex-wrap: nowrap;
+          white-space: nowrap;
         }
         .atlas-auth-user {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          color: var(--text-main);
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          color: #0f172a;
+          font-size: 0.78rem;
+          font-weight: 800;
         }
         .atlas-auth-user-label {
-          font-size: 0.72rem;
-          color: var(--text-dim);
+          color: #64748b;
           font-weight: 700;
         }
         .atlas-auth-actions {
           display: flex;
           gap: 8px;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
         }
         .atlas-auth-link {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          min-height: 40px;
-          padding: 0 14px;
-          border-radius: 12px;
-          border: 1px solid rgba(30, 64, 175, 0.14);
+          min-height: 34px;
+          padding: 0 10px;
+          border-radius: 9px;
+          border: 1px solid rgba(30, 64, 175, 0.18);
           background: #fff;
           color: var(--primary);
           text-decoration: none;
           font-weight: 800;
           cursor: pointer;
           font-family: inherit;
-          font-size: 0.84rem;
+          font-size: 0.75rem;
+        }
+        .main-header .atlas-auth-shell {
+          margin-inline-start: auto;
+        }
+        .main-header .atlas-auth-user {
+          color: #e2e8f0;
+        }
+        .main-header .atlas-auth-user-label {
+          color: #cbd5e1;
+        }
+        @media (max-width: 720px) {
+          .atlas-auth-user-label {
+            display: none;
+          }
         }
       `;
       document.head.appendChild(style);
@@ -592,7 +747,7 @@
       id: buildUserId(),
       username,
       full_name: normalize(data.full_name) || username,
-      password_hash: await sha256(password),
+      password_hash: await hashPassword(password),
       is_admin: Boolean(data.is_admin),
       permissions: normalizePermissions(data.permissions, data.is_admin),
       created_at: new Date().toISOString(),
@@ -634,7 +789,7 @@
     }
 
     if (normalize(data.password)) {
-      next.password_hash = await sha256(data.password);
+      next.password_hash = await hashPassword(data.password);
     }
 
     if (current.username === DEFAULT_ADMIN.username) {

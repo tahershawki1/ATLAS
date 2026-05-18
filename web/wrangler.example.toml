@@ -1,0 +1,23 @@
+# Copy this to wrangler.toml only after creating the Cloudflare resources.
+# Do not put secrets in this file.
+
+name = "atlas-site"
+pages_build_output_dir = "../dist/cloudflare-pages"
+compatibility_date = "2026-05-11"
+
+# Replace these IDs with the real KV namespace IDs from Cloudflare.
+[[kv_namespaces]]
+binding = "ATLAS_DATA"
+id = "REPLACE_WITH_ATLAS_DATA_KV_ID"
+
+[[kv_namespaces]]
+binding = "ATLAS_SESSIONS"
+id = "REPLACE_WITH_ATLAS_SESSIONS_KV_ID"
+
+# Replace bucket_name with the real R2 bucket name.
+[[r2_buckets]]
+binding = "ATLAS_PAGES_BUCKET"
+bucket_name = "atlas-pages-bucket"
+
+# Set ATLAS_ADMIN_PASSWORD as a Cloudflare Pages secret or dashboard variable.
+# Do not commit the real password.

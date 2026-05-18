@@ -1,4 +1,4 @@
-const REPORT_LEVELS_DB = [
+﻿const REPORT_LEVELS_DB = [
   {
     "id": "1005",
     "source_report_id": "749",

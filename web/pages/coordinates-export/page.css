@@ -1,0 +1,290 @@
+﻿.custom-page {
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at top right, rgba(241, 135, 62, 0.16) 0%, transparent 34%),
+        radial-gradient(circle at left top, rgba(10, 127, 138, 0.12) 0%, transparent 30%),
+        linear-gradient(170deg, #f8fafc 0%, #eef2ff 50%, #f1f5f9 100%);
+    }
+
+    .wrap {
+      width: min(100%, 1280px);
+      margin: 0 auto;
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      border-radius: 16px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 16px 30px rgba(30, 64, 175, 0.08);
+      padding: 12px;
+    }
+
+    .title {
+      margin: 0;
+      color: var(--primary);
+      font-size: 1.05rem;
+      font-weight: 900;
+      line-height: 1.4;
+    }
+
+    .muted {
+      margin: 6px 0 0;
+      color: #475569;
+      font-size: 0.8rem;
+      font-weight: 700;
+      line-height: 1.8;
+    }
+
+    .metrics {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .metric {
+      border-radius: 12px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      background: #ffffff;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .metric .label {
+      color: #64748b;
+      font-size: 0.7rem;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .metric .value {
+      color: #0f172a;
+      font-family: "Outfit", "Cairo", sans-serif;
+      font-size: 1rem;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .table-wrap {
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      border-radius: 12px;
+      background: #ffffff;
+      max-height: 55vh;
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 900px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid rgba(30, 64, 175, 0.08);
+      padding: 8px 6px;
+      text-align: center;
+      font-size: 0.74rem;
+      line-height: 1.45;
+      font-family: "Outfit", "Cairo", sans-serif;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f8fafc;
+      color: var(--primary);
+      font-weight: 900;
+    }
+
+    .empty-row td {
+      font-family: "Cairo", sans-serif;
+      color: #64748b;
+      font-weight: 700;
+      padding: 14px 10px;
+    }
+
+    .map-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 220px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .map-select,
+    .name-input {
+      width: 100%;
+      min-height: 40px;
+      border-radius: 10px;
+      border: 1px solid rgba(30, 64, 175, 0.16);
+      background: #ffffff;
+      padding: 0 10px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      font-family: inherit;
+      color: #0f172a;
+      outline: none;
+    }
+
+    .map-area {
+      width: 100%;
+      height: min(52vh, 460px);
+      border-radius: 12px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      overflow: hidden;
+      background: #e2e8f0;
+    }
+
+    .status-note {
+      margin-top: 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      background: #f8fafc;
+      color: #0f172a;
+      padding: 8px 10px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      line-height: 1.75;
+    }
+
+    .formats-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .format-row {
+      border: 1px solid rgba(30, 64, 175, 0.12);
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 8px;
+      display: grid;
+      grid-template-columns: minmax(120px, 170px) minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+    }
+
+    .format-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #0f172a;
+      font-size: 0.82rem;
+      font-weight: 900;
+    }
+
+    .format-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .primary-btn {
+      min-height: 44px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0a7f8a 0%, #1e3a8a 100%);
+      color: #ffffff;
+      font-size: 0.84rem;
+      font-weight: 900;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 12px 22px rgba(15, 23, 42, 0.18);
+    }
+
+    .primary-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    @media (min-width: 900px) {
+      .wrap {
+        padding: 18px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(330px, 0.55fr);
+        gap: 12px;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+
+.coords-muted-zero { margin: 0; }
+.coords-section-gap { margin-top: 10px; }
+
+.manual-entry {
+  margin-bottom: 10px;
+  border: 1px solid rgba(30, 64, 175, 0.12);
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 8px;
+}
+
+.manual-entry-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #0f172a;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.manual-entry-input {
+  width: 100%;
+  min-height: 110px;
+  border-radius: 10px;
+  border: 1px solid rgba(30, 64, 175, 0.16);
+  padding: 8px 10px;
+  font-family: "Outfit", "Cairo", sans-serif;
+  font-size: 0.78rem;
+  resize: vertical;
+  outline: none;
+}
+
+.manual-entry-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.secondary-btn {
+  min-height: 44px;
+  border: 1px solid rgba(30, 64, 175, 0.2);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1e3a8a;
+  font-size: 0.82rem;
+  font-weight: 900;
+  font-family: inherit;
+  padding: 0 14px;
+  cursor: pointer;
+}
+

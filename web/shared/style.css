@@ -143,9 +143,9 @@ body {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(15px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+  position: static;
+  top: auto;
+  z-index: auto;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
 }
 
@@ -282,6 +282,10 @@ body {
 .global-back-btn svg {
   width: 20px;
   height: 20px;
+}
+
+.arrow-rtl-flip {
+  transform: rotate(180deg);
 }
 
 /* Page Transitions */
@@ -1495,6 +1499,9 @@ body.page-scroll-enabled .main-header {
   background: rgba(255, 255, 255, 0.96);
   box-shadow: var(--surface-shadow);
   backdrop-filter: blur(12px);
+  position: static;
+  top: auto;
+  z-index: auto;
 }
 
 .logo {

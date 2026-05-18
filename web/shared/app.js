@@ -1,13 +1,15 @@
 ﻿const app = {
   state: {
-    currentPage: "home",
-    history: ["home"],
+    currentPage: "workspace",
+    history: ["workspace"],
     selectedSite: null,
+    workspaceDraftSite: null,
     pendingAction: null,
     routeBackUrl: null,
     currentSelection: { companyId: null, area: null, plotId: null, plotIndex: null },
     pendingSites: [],
     customSiteDb: [],
+    workspaces: [],
   },
 
   // Data will be loaded from SITES_DB (sites_data.js)
@@ -19,9 +21,11 @@
     selectedSite: "selectedSite",
     pendingSites: "pendingSites",
     customSitesDb: "atlasCustomSitesDb",
+    workspaces: "atlasWorkspaces",
   },
 
   pages: {
+    workspace: { id: "workspacePage", title: "ملفات العمل" },
     home: { id: "homePage", title: "الرئيسية" },
     action: { id: "actionPage", title: "العمل" },
   },
@@ -52,6 +56,442 @@
     });
 
     return result;
+  },
+
+  readJsonStorage(key, fallback) {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    try {
+      return JSON.parse(raw);
+    } catch (error) {
+      console.warn("Failed to parse stored data", key, error);
+      return fallback;
+    }
+  },
+
+  writeJsonStorage(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  },
+
+  loadWorkspaces() {
+    const stored = this.readJsonStorage(this.storageKeys.workspaces, []);
+    this.state.workspaces = Array.isArray(stored) ? stored : [];
+  },
+
+  saveWorkspaces() {
+    this.writeJsonStorage(this.storageKeys.workspaces, this.state.workspaces);
+  },
+
+  buildWorkspaceId(site) {
+    if (site?.workspace_id) return site.workspace_id;
+    const project = this.normalizeValue(site?.project_name || site?.workspace_title).toLowerCase();
+    const company = this.normalizeValue(site?.company).toLowerCase();
+    const plot = this.normalizeValue(site?.plot).toLowerCase();
+    const report = this.normalizeValue(site?.source_report_id || site?.report_number_in_month).toLowerCase();
+    const base = [project, company, plot, report].filter(Boolean).join("__");
+    if (base) {
+      return base
+        .replace(/[^\w\u0600-\u06ff.-]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 90);
+    }
+    return `workspace-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  },
+
+  formatWorkspaceTitle(site) {
+    const explicitTitle = this.normalizeValue(site?.workspace_title || site?.project_name);
+    if (explicitTitle) return explicitTitle;
+    const plot = this.normalizeValue(site?.plot);
+    const company = this.normalizeValue(site?.company);
+    if (!plot && !company) return "ملف عمل بدون موقع";
+    return company ? `${plot} - ${company}` : plot;
+  },
+
+  updateSelectedSiteHeader() {
+    const siteName = document.getElementById("siteName");
+    const siteCompany = document.getElementById("siteCompany");
+    if (!siteName || !siteCompany) {
+      this.renderWorkspaceTools();
+      return;
+    }
+
+    siteName.textContent = this.state.selectedSite?.plot || "بدون رقم أرض";
+    siteCompany.textContent =
+      this.state.selectedSite?.company ||
+      this.state.selectedSite?.project_name ||
+      this.state.selectedSite?.workspace_title ||
+      "ملف عمل";
+    this.renderWorkspaceTools();
+  },
+
+  renderWorkspaceTools() {
+    const toolsPanel = document.getElementById("toolsPanel");
+    const activeTitle = document.getElementById("activeWorkspaceTitle");
+    const activeMeta = document.getElementById("activeWorkspaceMeta");
+    const hasWorkspace = Boolean(this.state.selectedSite);
+
+    document.body?.classList.toggle("atlas-workspace-ready", hasWorkspace);
+    document.body?.classList.toggle("atlas-workspace-landing", !hasWorkspace);
+
+    if (toolsPanel) toolsPanel.hidden = !hasWorkspace;
+    if (!hasWorkspace) {
+      if (activeTitle) activeTitle.textContent = "لم يتم اختيار موقع";
+      if (activeMeta) activeMeta.textContent = "اختر ملف عمل لعرض الأدوات.";
+      return;
+    }
+
+    if (activeTitle) {
+      activeTitle.textContent = this.formatWorkspaceTitle(this.state.selectedSite);
+    }
+    if (activeMeta) {
+      activeMeta.textContent = [
+        this.state.selectedSite.plot && `رقم الأرض: ${this.state.selectedSite.plot}`,
+        this.state.selectedSite.company && `الشركة: ${this.state.selectedSite.company}`,
+        this.state.selectedSite.area && `المنطقة: ${this.state.selectedSite.area}`,
+        this.state.selectedSite.project && `مشروع الموقع: ${this.state.selectedSite.project}`,
+        this.state.selectedSite.owner && `المالك: ${this.state.selectedSite.owner}`,
+      ].filter(Boolean).join(" - ") || "ملف عمل جاهز";
+    }
+  },
+
+  async renderUploadedPageCards() {
+    const grid = document.querySelector("#toolsPanel .grid-menu");
+    if (!grid || !window.AtlasAuth?.getDynamicPages) return;
+
+    grid.querySelectorAll("[data-uploaded-page-card]").forEach((node) => node.remove());
+
+    let pages = [];
+    try {
+      pages = await window.AtlasAuth.getDynamicPages();
+    } catch (error) {
+      console.warn("Failed to load uploaded page cards", error);
+      return;
+    }
+
+    const refreshCard = grid.querySelector(".refresh-cache-card");
+    pages
+      .filter((page) => window.AtlasAuth.canAccess(page.id))
+      .forEach((page) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "menu-card uploaded-page-card";
+        button.dataset.uploadedPageCard = "true";
+        button.setAttribute("data-permission", page.id);
+        button.addEventListener("click", () => {
+          window.location.href = page.url || `/published/${page.slug}/`;
+        });
+
+        const icon = document.createElement("div");
+        icon.className = "icon-wrapper uploaded-icon";
+        icon.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 4h16v16H4z" />
+            <path d="M8 8h8M8 12h8M8 16h5" />
+          </svg>
+        `;
+
+        const label = document.createElement("span");
+        label.className = "card-label";
+        label.textContent = page.label || page.slug;
+
+        button.append(icon, label);
+        grid.insertBefore(button, refreshCard || null);
+      });
+
+    window.AtlasAuth.applyPagePermissions(grid);
+  },
+
+  upsertWorkspaceFromSelectedSite() {
+    if (!this.state.selectedSite) return null;
+
+    const now = new Date().toISOString();
+    const workspaceId = this.state.selectedSite.workspace_id || this.buildWorkspaceId(this.state.selectedSite);
+    const existing = this.state.workspaces.find((workspace) => workspace.id === workspaceId);
+    const next = {
+      id: workspaceId,
+      title: this.formatWorkspaceTitle(this.state.selectedSite),
+      site: {
+        ...this.state.selectedSite,
+        workspace_id: workspaceId,
+      },
+      created_at: existing?.created_at || now,
+      updated_at: now,
+    };
+
+    this.state.selectedSite = next.site;
+    this.writeJsonStorage(this.storageKeys.selectedSite, this.state.selectedSite);
+    this.state.workspaces = [
+      next,
+      ...this.state.workspaces.filter((workspace) => workspace.id !== workspaceId),
+    ].slice(0, 30);
+    this.saveWorkspaces();
+    this.renderWorkspaces();
+    return next;
+  },
+
+  renderWorkspaces() {
+    const list = document.getElementById("workspaceList");
+    const empty = document.getElementById("workspaceEmpty");
+    if (!list || !empty) return;
+
+    const query = this.normalizeValue(document.getElementById("workspaceArchiveSearch")?.value).toLowerCase();
+    const workspaces = query
+      ? this.state.workspaces.filter((workspace) => {
+          const site = workspace.site || {};
+          return [
+            workspace.title,
+            site.workspace_title,
+            site.project_name,
+            site.project,
+            site.plot,
+            site.company,
+            site.area,
+            site.details,
+          ]
+            .map((value) => this.normalizeValue(value).toLowerCase())
+            .some((value) => value.includes(query));
+        })
+      : this.state.workspaces;
+
+    list.replaceChildren();
+    empty.hidden = workspaces.length > 0;
+
+    workspaces.forEach((workspace) => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "workspace-card";
+      if (workspace.id === this.state.selectedSite?.workspace_id) {
+        card.classList.add("active");
+      }
+
+      const title = document.createElement("strong");
+      title.textContent = workspace.title || this.formatWorkspaceTitle(workspace.site);
+
+      const details = document.createElement("span");
+      details.textContent = [
+        workspace.site?.plot && `أرض ${workspace.site.plot}`,
+        workspace.site?.company,
+        workspace.site?.area,
+        workspace.site?.work_type && this.getWorkspaceWorkTypeLabel(workspace.site.work_type),
+        workspace.updated_at ? new Date(workspace.updated_at).toLocaleDateString("ar") : "",
+      ].filter(Boolean).join(" - ");
+
+      card.append(title, details);
+      card.addEventListener("click", () => this.openWorkspace(workspace.id));
+      list.appendChild(card);
+    });
+    this.renderWorkspaceTools();
+  },
+
+  openWorkspace(workspaceId) {
+    const workspace = this.state.workspaces.find((entry) => entry.id === workspaceId);
+    if (!workspace?.site) return;
+
+    this.state.selectedSite = {
+      ...workspace.site,
+      workspace_id: workspace.id,
+    };
+    this.writeJsonStorage(this.storageKeys.selectedSite, this.state.selectedSite);
+    this.updateSelectedSiteHeader();
+    this.upsertWorkspaceFromSelectedSite();
+    this.showToast("تم فتح ملف العمل");
+    this.openWorkspaceTools();
+  },
+
+  startNewWorkspace() {
+    this.resetWorkspaceForm({ keepDraft: false });
+    this.state.currentPage = "workspace";
+    this.state.history = ["workspace"];
+    this.render();
+    document.getElementById("workspaceProjectName")?.focus();
+  },
+
+  openWorkspaceTools() {
+    this.state.currentPage = "home";
+    this.state.history = ["workspace", "home"];
+    this.render();
+  },
+
+  goToWorkspaceManager() {
+    this.state.currentPage = "workspace";
+    this.state.history = ["workspace"];
+    this.render();
+    this.renderWorkspaces();
+  },
+
+  getWorkspaceWorkTypeLabel(type) {
+    const labels = {
+      survey: "رفع مساحي",
+      check: "تشييك",
+      staking: "توقيع",
+      level: "مناسيب / Level",
+      general: "عام",
+    };
+    return labels[type] || "عام";
+  },
+
+  resetWorkspaceForm({ keepDraft = false } = {}) {
+    const today = new Date().toISOString().split("T")[0];
+    const fields = {
+      workspaceProjectName: "",
+      workspaceWorkType: "survey",
+      workspaceStartDate: today,
+      workspaceSiteSearch: "",
+      workspaceDetails: "",
+      workspaceArchiveSearch: "",
+    };
+    Object.entries(fields).forEach(([id, value]) => {
+      const node = document.getElementById(id);
+      if (node) node.value = value;
+    });
+    if (!keepDraft) this.state.workspaceDraftSite = null;
+    this.renderWorkspaceDraftSite();
+    this.searchWorkspaceSites();
+    this.renderWorkspaces();
+  },
+
+  buildSiteRecordFromPlot(company, plot, plotIndex = null) {
+    const meta = {
+      area: plot?.area || "",
+      owner: plot?.owner || "",
+      consultant: plot?.consultant || "",
+      project: plot?.project || "",
+      contractor: plot?.contractor || "",
+      report_year: plot?.report_year || "",
+      report_month: plot?.report_month || "",
+      report_number_in_month: plot?.report_number_in_month || "",
+      source_report_id: plot?.source_report_id || "",
+      survey_date: plot?.survey_date || "",
+      subject: plot?.subject || "",
+      surveyor: plot?.surveyor || "",
+      levels: plot?.levels || [],
+    };
+    return {
+      company: company?.name || "",
+      company_id: String(company?.id || ""),
+      plot: plot?.id || "",
+      plot_index: plotIndex,
+      ...meta,
+    };
+  },
+
+  renderWorkspaceDraftSite() {
+    const card = document.getElementById("workspaceSelectedSiteCard");
+    if (!card) return;
+    const site = this.state.workspaceDraftSite;
+    card.classList.toggle("is-empty", !site);
+    if (!site) {
+      card.textContent = "لم يتم اختيار موقع. يمكنك إنشاء ملف العمل بدون رقم أرض.";
+      return;
+    }
+    card.innerHTML = `
+      <strong>${this.escapeHtml(site.plot || "بدون رقم أرض")}</strong>
+      <span>${this.escapeHtml([site.company, site.area, site.project].filter(Boolean).join(" - ") || "موقع مختار")}</span>
+    `;
+  },
+
+  clearWorkspaceDraftSite() {
+    this.state.workspaceDraftSite = null;
+    const input = document.getElementById("workspaceSiteSearch");
+    if (input) input.value = "";
+    this.renderWorkspaceDraftSite();
+    this.searchWorkspaceSites();
+    this.showToast("سيتم إنشاء ملف العمل بدون موقع");
+  },
+
+  openWorkspaceSitePicker() {
+    this.showSiteSelector("__workspace_select__");
+  },
+
+  getWorkspaceSiteMatches(query) {
+    const normalizedQuery = this.normalizeValue(query).toLowerCase();
+    if (!normalizedQuery) return [];
+    const matches = [];
+    this.data.companies.forEach((company) => {
+      (company.plots || []).forEach((plot, plotIndex) => {
+        const haystack = [
+          plot.id,
+          plot.area,
+          plot.owner,
+          plot.project,
+          plot.source_report_id,
+          company.name,
+        ]
+          .map((value) => this.normalizeValue(value).toLowerCase())
+          .join(" ");
+        if (!haystack.includes(normalizedQuery)) return;
+        matches.push({ company, plot, plotIndex });
+      });
+    });
+    return matches.slice(0, 12);
+  },
+
+  searchWorkspaceSites() {
+    const resultsHost = document.getElementById("workspaceSiteResults");
+    if (!resultsHost) return;
+    const query = document.getElementById("workspaceSiteSearch")?.value || "";
+    const results = this.getWorkspaceSiteMatches(query);
+    resultsHost.replaceChildren();
+
+    if (!this.normalizeValue(query)) {
+      resultsHost.innerHTML = '<div class="workspace-search-hint">ابدأ بكتابة رقم الأرض أو اسم المنطقة للبحث.</div>';
+      return;
+    }
+
+    if (!results.length) {
+      resultsHost.innerHTML = '<div class="workspace-search-hint">لم يتم العثور على رقم الأرض. يمكنك المتابعة بدون موقع.</div>';
+      return;
+    }
+
+    results.forEach(({ company, plot, plotIndex }) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "workspace-site-result";
+      button.innerHTML = `
+        <strong>${this.escapeHtml(this.formatPlotLabel(plot))}</strong>
+        <span>${this.escapeHtml([company.name, plot.area, plot.project].filter(Boolean).join(" - "))}</span>
+      `;
+      button.addEventListener("click", () => {
+        this.state.workspaceDraftSite = this.buildSiteRecordFromPlot(company, plot, plotIndex);
+        this.renderWorkspaceDraftSite();
+        resultsHost.replaceChildren();
+        this.showToast("تم اختيار الموقع لملف العمل");
+      });
+      resultsHost.appendChild(button);
+    });
+  },
+
+  createWorkspaceFromForm(options = {}) {
+    const projectName = this.normalizeValue(document.getElementById("workspaceProjectName")?.value);
+    const workType = this.normalizeValue(document.getElementById("workspaceWorkType")?.value) || "general";
+    const startDate = this.normalizeValue(document.getElementById("workspaceStartDate")?.value);
+    const details = this.normalizeValue(document.getElementById("workspaceDetails")?.value);
+    const draftSite = options.withoutSite ? null : this.state.workspaceDraftSite;
+    const fallbackTitle = draftSite ? this.formatWorkspaceTitle(draftSite) : "";
+    const title = projectName || fallbackTitle;
+
+    if (!title) {
+      this.showToast("اكتب اسم المشروع أو اختر موقعًا قبل إنشاء ملف العمل");
+      document.getElementById("workspaceProjectName")?.focus();
+      return;
+    }
+
+    const workspaceId = `workspace-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    this.state.selectedSite = {
+      ...(draftSite || {}),
+      workspace_id: workspaceId,
+      workspace_title: title,
+      project_name: projectName || title,
+      work_type: workType,
+      start_date: startDate,
+      details,
+      is_workspace_only: !draftSite,
+    };
+    this.writeJsonStorage(this.storageKeys.selectedSite, this.state.selectedSite);
+    this.upsertWorkspaceFromSelectedSite();
+    this.updateSelectedSiteHeader();
+    this.showToast("تم إنشاء ملف العمل");
+    this.openWorkspaceTools();
   },
 
   escapeHtml(value) {
@@ -526,26 +966,33 @@
   async init() {
     console.log("Atlas App Initialized");
     this.state.customSiteDb = await this.loadCustomSiteDb();
+    this.loadWorkspaces();
     this.refreshCompaniesData();
     this.populateCompanies();
     this.enhanceNewSiteForm();
+    const startDateInput = document.getElementById("workspaceStartDate");
+    if (startDateInput && !startDateInput.value) {
+      startDateInput.value = new Date().toISOString().split("T")[0];
+    }
+    this.renderWorkspaceDraftSite();
+    this.searchWorkspaceSites();
 
     // Load persisted site
-    const saved = localStorage.getItem(this.storageKeys.selectedSite);
+    const saved = this.readJsonStorage(this.storageKeys.selectedSite, null);
     if (saved) {
-      this.state.selectedSite = JSON.parse(saved);
-      document.getElementById("siteName").textContent =
-        this.state.selectedSite.plot;
-      document.getElementById("siteCompany").textContent =
-        this.state.selectedSite.company;
+      this.state.selectedSite = saved;
+      this.updateSelectedSiteHeader();
+      this.upsertWorkspaceFromSelectedSite();
     }
 
     // Load pending sites
-    const pending = localStorage.getItem(this.storageKeys.pendingSites);
-    if (pending) {
-      this.state.pendingSites = JSON.parse(pending);
+    const pending = this.readJsonStorage(this.storageKeys.pendingSites, []);
+    if (Array.isArray(pending) && pending.length) {
+      this.state.pendingSites = pending;
       this.updateSyncBadge();
     }
+    this.renderWorkspaces();
+    await this.renderUploadedPageCards();
 
     // Network listeners
     window.addEventListener("online", () => this.syncPendingSites());
@@ -1220,8 +1667,9 @@
     this.refreshCompaniesData();
     this.populateCompanies();
 
-    this.state.selectedSite = {
+    const newSiteRecord = {
       company: selectedCompany.name,
+      company_id: String(selectedCompany.id),
       area: normalizedArea,
       plot: normalizedPlot,
       owner: normalizedOwner,
@@ -1237,11 +1685,26 @@
       surveyor: normalizedSurveyor,
       levels: normalizedLevels,
     };
+    const pendingAction = this.state.pendingAction;
+
+    if (pendingAction === "__workspace_select__") {
+      this.state.workspaceDraftSite = newSiteRecord;
+      this.renderWorkspaceDraftSite();
+      this.closeSiteModal();
+      this.populateNewSiteSelectors();
+      this.resetNewSiteForm();
+      this.showToast("تمت إضافة الموقع وربطه بملف العمل الجديد");
+      if (navigator.onLine) this.syncPendingSites();
+      return;
+    }
+
+    this.state.selectedSite = newSiteRecord;
 
     localStorage.setItem(
       this.storageKeys.selectedSite,
       JSON.stringify(this.state.selectedSite),
     );
+    this.upsertWorkspaceFromSelectedSite();
 
     const pendingSiteRecord = {
       ...this.state.selectedSite,
@@ -1257,17 +1720,14 @@
     );
     this.updateSyncBadge();
 
-    document.getElementById("siteName").textContent = normalizedPlot;
-    document.getElementById("siteCompany").textContent = selectedCompany.name;
+    this.updateSelectedSiteHeader();
     this.closeSiteModal();
     this.populateNewSiteSelectors();
     this.resetNewSiteForm();
     this.showToast("تمت إضافة الموقع وحفظه في قاعدة البيانات المحلية");
 
-    if (this.state.pendingAction) {
-      const action = this.state.pendingAction;
-      this.state.pendingAction = null;
-      this.action(action);
+    if (pendingAction && pendingAction !== "__workspace__") {
+      this.action(pendingAction);
     }
 
     if (navigator.onLine) this.syncPendingSites();
@@ -1319,9 +1779,11 @@
       return;
     }
 
-    this.state.selectedSite = {
+    const selectedSiteRecord = {
       company: company.name,
+      company_id: String(company.id),
       plot: plotId,
+      plot_index: this.state.currentSelection.plotIndex,
       area: meta.area,
       owner: meta.owner,
       consultant: meta.consultant,
@@ -1336,24 +1798,33 @@
       surveyor: meta.surveyor,
       levels: plot.levels || meta.levels || [],
     };
+    const pendingAction = this.state.pendingAction;
+
+    if (pendingAction === "__workspace_select__") {
+      this.state.workspaceDraftSite = selectedSiteRecord;
+      this.renderWorkspaceDraftSite();
+      this.closeSiteModal();
+      this.showToast("تم ربط الموقع بملف العمل الجديد");
+      return;
+    }
+
+    this.state.selectedSite = selectedSiteRecord;
 
     // Persist to local storage
     localStorage.setItem(
       this.storageKeys.selectedSite,
       JSON.stringify(this.state.selectedSite),
     );
+    this.upsertWorkspaceFromSelectedSite();
 
     // Update UI Header
-    document.getElementById("siteName").textContent = plotId;
-    document.getElementById("siteCompany").textContent = company.name;
+    this.updateSelectedSiteHeader();
     this.closeSiteModal();
     this.showToast("تم تحديد الموقع بنجاح");
 
     // Resume pending action if any
-    if (this.state.pendingAction) {
-      const action = this.state.pendingAction;
-      this.state.pendingAction = null;
-      this.action(action);
+    if (pendingAction && pendingAction !== "__workspace__") {
+      this.action(pendingAction);
     }
   },
 
@@ -1399,6 +1870,7 @@
       this.state.history = ["home"];
     }
     const isHomePage = this.state.currentPage === "home";
+    const isTopLevelPage = this.state.currentPage === "home" || this.state.currentPage === "workspace";
 
     // Update Title
     document.getElementById("navTitle").textContent = current.title;
@@ -1411,19 +1883,19 @@
 
     const topHeader = document.querySelector(".main-header");
     if (topHeader) {
-      topHeader.hidden = !isHomePage;
+      topHeader.hidden = !isTopLevelPage;
     }
 
     const authShellMount = document.querySelector("[data-auth-shell]");
     if (authShellMount) {
-      authShellMount.hidden = !isHomePage;
+      authShellMount.hidden = !isTopLevelPage;
     }
 
     const globalBackBtn = document.querySelector(".global-back-btn");
     if (globalBackBtn) {
       globalBackBtn.classList.toggle(
         "is-visible",
-        !isHomePage,
+        !isTopLevelPage,
       );
     }
 
@@ -1460,9 +1932,9 @@
     // Populate Action Page Header
     document.getElementById("actionPageTitle").textContent = label;
     document.getElementById("actionSitePlot").textContent =
-      this.state.selectedSite.plot;
+      this.state.selectedSite.plot || this.state.selectedSite.project_name || "بدون رقم أرض";
     document.getElementById("actionSiteCompany").textContent =
-      this.state.selectedSite.company;
+      this.state.selectedSite.company || this.state.selectedSite.workspace_title || "ملف عمل";
 
     // Reset and Build Form
     document.getElementById("actionNotes").value = "";
@@ -1558,6 +2030,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const allowed = await window.AtlasAuth.requirePageAccess("pages.home");
     if (!allowed) return;
   }
+  document.body.classList.remove("atlas-auth-pending");
   await app.init();
 });
-
