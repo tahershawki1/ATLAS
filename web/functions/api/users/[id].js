@@ -1,6 +1,7 @@
 ﻿import {
   USERS_KEY,
   ensureUsers,
+  hashPassword,
   hasWhitespace,
   json,
   normalizePermissions,
@@ -8,7 +9,6 @@
   putJson,
   requireUser,
   sanitizeUser,
-  sha256,
 } from "../_utils";
 
 export async function onRequestGet(context) {
@@ -56,7 +56,7 @@ export async function onRequestPatch(context) {
   }
 
   if (String(payload?.password ?? "").trim()) {
-    next.password_hash = await sha256(String(payload.password));
+    next.password_hash = await hashPassword(String(payload.password));
   }
 
   if (current.username === "admin") {

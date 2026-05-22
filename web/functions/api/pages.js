@@ -61,6 +61,23 @@ function contentTypeFromPath(path, fallback = "") {
   return normalizedFallback || "application/octet-stream";
 }
 
+async function deletePagePrefix(bucket, slug, keepPaths = []) {
+  const prefix = `pages/${slug}/`;
+  const keepKeys = new Set(keepPaths.map((filePath) => `${prefix}${filePath}`));
+  let cursor;
+
+  do {
+    const listed = await bucket.list({ prefix, cursor });
+    const staleObjects = (listed.objects || [])
+      .filter((object) => !keepKeys.has(object.key))
+      .map((object) => bucket.delete(object.key));
+    if (staleObjects.length) {
+      await Promise.all(staleObjects);
+    }
+    cursor = listed.truncated ? listed.cursor : undefined;
+  } while (cursor);
+}
+
 export async function onRequestGet(context) {
   const auth = await requireUser(context);
   if (auth.error) return auth.error;
@@ -128,6 +145,11 @@ export async function onRequestPost(context) {
       type: contentTypeFromPath(cleanPath, item.type),
     });
   }
+  await deletePagePrefix(
+    context.env.ATLAS_PAGES_BUCKET,
+    slug,
+    uploadedFiles.map((file) => file.path),
+  );
 
   const now = new Date().toISOString();
   const pageRecord = {

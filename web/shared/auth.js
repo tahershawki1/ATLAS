@@ -10,7 +10,6 @@
     localConfig: "atlasRuntimeConfig",
   };
 
-  const DEFAULT_ADMIN_PASSWORD = "admin123";
   const PASSWORD_HASH_PREFIX = "pbkdf2-sha256";
   const PASSWORD_HASH_ITERATIONS = 120000;
 
@@ -48,11 +47,31 @@
     apiAvailable: false,
     apiBindings: null,
     currentUser: null,
-    mode: "local",
+    mode: "unavailable",
+    localModeAllowed: false,
+    bootstrapError: "",
   };
 
   function normalize(value) {
     return String(value ?? "").trim();
+  }
+
+  function isLocalHost() {
+    const host = String(window.location.hostname || "").toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";
+  }
+
+  function getRuntimeFlags() {
+    const params = new URLSearchParams(window.location.search || "");
+    return {
+      forceApiProbe: params.get("atlas_api") === "1" || localStorage.getItem("atlasForceApiProbe") === "1",
+      allowLocalMode: params.get("atlas_local_mode") === "1" || localStorage.getItem("atlasAllowLocalMode") === "1",
+    };
+  }
+
+  function getLocalAdminPassword() {
+    const params = new URLSearchParams(window.location.search || "");
+    return normalize(params.get("atlas_local_password")) || normalize(localStorage.getItem("atlasLocalAdminPassword"));
   }
 
   function jsonParse(raw, fallback) {
@@ -210,16 +229,22 @@
   }
 
   async function buildDefaultAdmin() {
+    const localAdminPassword = getLocalAdminPassword();
+    if (!localAdminPassword) {
+      throw new Error(
+        "Local mode requires atlasLocalAdminPassword in localStorage or atlas_local_password=... in the URL.",
+      );
+    }
     return {
       ...DEFAULT_ADMIN,
-      password_hash: await hashPassword(DEFAULT_ADMIN_PASSWORD),
+      password_hash: await hashPassword(localAdminPassword),
     };
   }
 
   async function normalizeStoredUser(user, defaultAdmin) {
     const fallbackPassword =
       normalize(user?.username).toLowerCase() === normalize(DEFAULT_ADMIN.username).toLowerCase()
-        ? DEFAULT_ADMIN_PASSWORD
+        ? getLocalAdminPassword()
         : "";
     const next = {
       ...user,
@@ -317,24 +342,24 @@
     return payload;
   }
 
-  function shouldSkipApiProbe() {
-    const host = String(window.location.hostname || "").toLowerCase();
-    const isLocalHost =
-      host === "localhost" ||
-      host === "127.0.0.1" ||
-      host === "::1" ||
-      host === "[::1]";
+  function localModeError() {
+    return new Error(
+      "الوضع المحلي معطل. استخدم Cloudflare Functions أو شغّل localhost مع atlas_local_mode=1 عند الحاجة للتطوير المحلي فقط.",
+    );
+  }
 
-    if (!isLocalHost) return false;
-
-    const params = new URLSearchParams(window.location.search || "");
-    const forcedByQuery = params.get("atlas_api") === "1";
-    const forcedByStorage = localStorage.getItem("atlasForceApiProbe") === "1";
-    return !(forcedByQuery || forcedByStorage);
+  function requireLocalMode() {
+    if (state.mode !== "local" || !state.localModeAllowed) {
+      throw localModeError();
+    }
   }
 
   async function probeApi() {
-    if (shouldSkipApiProbe()) {
+    const flags = getRuntimeFlags();
+    state.localModeAllowed = isLocalHost() && flags.allowLocalMode;
+    state.bootstrapError = "";
+
+    if (state.localModeAllowed && !flags.forceApiProbe) {
       state.apiAvailable = false;
       state.apiBindings = null;
       state.mode = "local";
@@ -346,12 +371,20 @@
       state.apiBindings = payload?.bindings || null;
       const hasUserBindings = Boolean(payload?.bindings?.data) && Boolean(payload?.bindings?.sessions);
       state.apiAvailable = Boolean(payload?.ok && hasUserBindings);
-      state.mode = state.apiAvailable ? "cloudflare" : "local";
+      state.mode = state.apiAvailable ? "cloudflare" : (state.localModeAllowed ? "local" : "unavailable");
+      if (!state.apiAvailable) {
+        state.bootstrapError =
+          payload?.setup_message ||
+          "Cloudflare authentication is not ready. Configure the required bindings before using this deployment.";
+      }
       return state.apiAvailable;
     } catch (error) {
       state.apiAvailable = false;
       state.apiBindings = null;
-      state.mode = "local";
+      state.mode = state.localModeAllowed ? "local" : "unavailable";
+      state.bootstrapError =
+        error?.message ||
+        "تعذر الوصول إلى Cloudflare Functions. استخدم localhost مع atlas_local_mode=1 للتطوير المحلي فقط.";
       return false;
     }
   }
@@ -444,13 +477,21 @@
           state.currentUser = getSessionSnapshot();
         }
       }
+    } else if (state.mode === "local") {
+      try {
+        const users = await ensureLocalUsers();
+        const session = localGetSession();
+        const matchedUser =
+          users.find((user) => user.id === session?.user_id || user.username === session?.username) || null;
+        state.currentUser = stripSensitiveUser(matchedUser) || getSessionSnapshot();
+        if (state.currentUser) saveSessionSnapshot(state.currentUser, { mode: state.mode });
+      } catch (error) {
+        state.mode = "unavailable";
+        state.bootstrapError = error?.message || "Local mode is not configured correctly.";
+        state.currentUser = null;
+      }
     } else {
-      const users = await ensureLocalUsers();
-      const session = localGetSession();
-      const matchedUser =
-        users.find((user) => user.id === session?.user_id || user.username === session?.username) || null;
-      state.currentUser = stripSensitiveUser(matchedUser) || getSessionSnapshot();
-      if (state.currentUser) saveSessionSnapshot(state.currentUser, { mode: state.mode });
+      state.currentUser = null;
     }
 
     state.initialized = true;
@@ -482,6 +523,7 @@
       return state.currentUser;
     }
 
+    requireLocalMode();
     const users = await ensureLocalUsers();
     let user = null;
     for (const entry of users) {
@@ -744,11 +786,13 @@
   }
 
   async function localListUsers() {
+    requireLocalMode();
     const users = await ensureLocalUsers();
     return users.map(stripSensitiveUser);
   }
 
   async function localCreateUser(data) {
+    requireLocalMode();
     const users = await ensureLocalUsers();
     const username = normalizeUsername(data.username);
     if (hasWhitespace(username)) throw new Error("Username cannot contain spaces");
@@ -775,6 +819,7 @@
   }
 
   async function localUpdateUser(userId, data) {
+    requireLocalMode();
     const users = await ensureLocalUsers();
     const index = users.findIndex((user) => user.id === userId);
     if (index === -1) throw new Error("المستخدم غير موجود");
@@ -827,6 +872,7 @@
   }
 
   async function localDeleteUser(userId) {
+    requireLocalMode();
     const users = await ensureLocalUsers();
     const user = users.find((entry) => entry.id === userId);
     if (!user) throw new Error("المستخدم غير موجود");
@@ -857,6 +903,7 @@
         const payload = await apiFetch("/api/users", { method: "GET" });
         return payload?.users || [];
       }
+      requireLocalMode();
       return localListUsers();
     },
 
@@ -869,6 +916,7 @@
         });
         return payload?.user || null;
       }
+      requireLocalMode();
       return localCreateUser(data);
     },
 
@@ -881,6 +929,7 @@
         });
         return payload?.user || null;
       }
+      requireLocalMode();
       return localUpdateUser(userId, data);
     },
 
@@ -892,6 +941,7 @@
           body: JSON.stringify({}),
         });
       }
+      requireLocalMode();
       return localDeleteUser(userId);
     },
 
@@ -904,22 +954,25 @@
           localStorage.setItem(STORAGE.localCustomSites, JSON.stringify(sites));
           return sites;
         } catch (error) {
-          console.warn("Falling back to local custom sites", error);
+          console.warn("Failed to load custom sites", error);
         }
       }
+      requireLocalMode();
       return jsonParse(localStorage.getItem(STORAGE.localCustomSites), []);
     },
 
     async saveCustomSites(customSites) {
       const next = Array.isArray(customSites) ? customSites : [];
-      localStorage.setItem(STORAGE.localCustomSites, JSON.stringify(next));
-
       await initialize();
       if (state.apiAvailable && state.currentUser) {
         await apiFetch("/api/sites", {
           method: "PUT",
           body: JSON.stringify({ custom_sites: next }),
         });
+        localStorage.setItem(STORAGE.localCustomSites, JSON.stringify(next));
+      } else {
+        requireLocalMode();
+        localStorage.setItem(STORAGE.localCustomSites, JSON.stringify(next));
       }
 
       return next;
@@ -931,6 +984,7 @@
         const payload = await apiFetch("/api/pages", { method: "GET" });
         return payload || { pages: [] };
       }
+      requireLocalMode();
       return jsonParse(localStorage.getItem(STORAGE.localPages), { pages: [] });
     },
 

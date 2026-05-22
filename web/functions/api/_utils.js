@@ -2,6 +2,8 @@
 const USERS_KEY = "users";
 const CUSTOM_SITES_KEY = "custom_sites";
 const PAGES_MANIFEST_KEY = "pages_manifest";
+const PASSWORD_HASH_PREFIX = "pbkdf2-sha256";
+const PASSWORD_HASH_ITERATIONS = 120000;
 
 function json(data, init = {}) {
   return new Response(JSON.stringify(data), {
@@ -20,6 +22,80 @@ async function sha256(input) {
   return Array.from(new Uint8Array(digest))
     .map((value) => value.toString(16).padStart(2, "0"))
     .join("");
+}
+
+function bytesToHex(bytes) {
+  return Array.from(bytes)
+    .map((value) => value.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function hexToBytes(hex) {
+  const clean = String(hex || "").replace(/[^a-f0-9]/gi, "");
+  const bytes = new Uint8Array(Math.floor(clean.length / 2));
+  for (let index = 0; index < bytes.length; index += 1) {
+    bytes[index] = Number.parseInt(clean.slice(index * 2, index * 2 + 2), 16);
+  }
+  return bytes;
+}
+
+async function hashPassword(password) {
+  const salt = new Uint8Array(16);
+  crypto.getRandomValues(salt);
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(String(password ?? "")),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      hash: "SHA-256",
+      salt,
+      iterations: PASSWORD_HASH_ITERATIONS,
+    },
+    keyMaterial,
+    256,
+  );
+  return `${PASSWORD_HASH_PREFIX}$${PASSWORD_HASH_ITERATIONS}$${bytesToHex(salt)}$${bytesToHex(new Uint8Array(bits))}`;
+}
+
+async function verifyPassword(password, storedHash) {
+  const hash = normalizeValue(storedHash);
+  if (!hash) return false;
+
+  if (!hash.startsWith(`${PASSWORD_HASH_PREFIX}$`)) {
+    return (await sha256(password)) === hash;
+  }
+
+  const [, iterationsText, saltHex, expectedHex] = hash.split("$");
+  const iterations = Number(iterationsText);
+  if (!Number.isFinite(iterations) || !saltHex || !expectedHex) return false;
+
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(String(password ?? "")),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      hash: "SHA-256",
+      salt: hexToBytes(saltHex),
+      iterations,
+    },
+    keyMaterial,
+    256,
+  );
+  return bytesToHex(new Uint8Array(bits)) === expectedHex;
+}
+
+function passwordHashNeedsUpgrade(storedHash) {
+  return !normalizeValue(storedHash).startsWith(`${PASSWORD_HASH_PREFIX}$${PASSWORD_HASH_ITERATIONS}$`);
 }
 
 function cookieValue(request, name) {
@@ -96,9 +172,11 @@ async function normalizeStoredUsers(users, defaultAdmin) {
     next.is_admin = Boolean(next.is_admin);
     if (!normalizeValue(next.created_at)) next.created_at = new Date().toISOString();
 
+    const rawPassword = normalizeValue(next.password_hint) || fallbackPassword;
     if (!normalizeValue(next.password_hash)) {
-      const rawPassword = normalizeValue(next.password_hint) || fallbackPassword;
-      if (rawPassword) next.password_hash = await sha256(rawPassword);
+      if (rawPassword) next.password_hash = await hashPassword(rawPassword);
+    } else if (rawPassword && passwordHashNeedsUpgrade(next.password_hash)) {
+      next.password_hash = await hashPassword(rawPassword);
     }
 
     if (next.username === defaultAdmin.username) {
@@ -136,7 +214,7 @@ async function ensureUsers(env) {
     username: "admin",
     full_name: "مدير النظام",
     password_hint: "",
-    password_hash: await sha256(defaultPassword),
+    password_hash: await hashPassword(defaultPassword),
     is_admin: true,
     permissions: ["*"],
     must_change_password: !configuredDefaultPassword,
@@ -270,11 +348,14 @@ export {
   redirectToLogin,
   requireUser,
   buildUserId,
+  hashPassword,
   hasWhitespace,
   normalizePermissions,
   normalizeUsername,
+  passwordHashNeedsUpgrade,
   sanitizeUser,
   setSessionCookie,
   sha256,
   slugify,
+  verifyPassword,
 };

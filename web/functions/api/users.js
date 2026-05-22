@@ -2,6 +2,7 @@
   USERS_KEY,
   buildUserId,
   ensureUsers,
+  hashPassword,
   hasWhitespace,
   json,
   normalizePermissions,
@@ -9,7 +10,6 @@
   putJson,
   requireUser,
   sanitizeUser,
-  sha256,
 } from "./_utils";
 
 export async function onRequestGet(context) {
@@ -40,7 +40,7 @@ export async function onRequestPost(context) {
     id: buildUserId(),
     username,
     full_name: String(payload?.full_name ?? "").trim() || username,
-    password_hash: await sha256(password),
+    password_hash: await hashPassword(password),
     is_admin: Boolean(payload?.is_admin),
     permissions: normalizePermissions(payload?.permissions, payload?.is_admin),
     created_at: new Date().toISOString(),

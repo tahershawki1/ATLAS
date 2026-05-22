@@ -10,20 +10,18 @@
   <link rel="stylesheet" href="../../shared/style.css" />
   <link rel="stylesheet" href="../../shared/mobile-fix.css" />
   <script src="../../shared/auth.js"></script>
-    <script src="../../shared/coordinates-export.js"></script>
-    <link rel="stylesheet" href="page.css" />
+  <script src="../../shared/coordinates-export.js"></script>
+  <link rel="stylesheet" href="page.css" />
+  <style>
+    body[data-page-ready="false"] .manage-page {
+      visibility: hidden;
+    }
+  </style>
 </head>
-<body class="page-scroll-enabled">
-  <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      if (!window.AtlasAuth) return;
-      await window.AtlasAuth.initialize();
-      const allowed = await window.AtlasAuth.requirePageAccess("pages.site-management");
-      if (!allowed) return;
-    });
-  </script>
+<body class="page-scroll-enabled" data-page-ready="false">
   <div class="manage-page">
     <div class="wrap">
+      <div data-auth-shell></div>
       <div id="browseView" class="view active">
         <div class="top-actions">
           <button class="back-btn" onclick="window.location.href='../../index.html'">
@@ -32,7 +30,7 @@
             </svg>
             <span>العودة</span>
           </button>
-          <button class="action-btn" onclick="openFormView()">إضافة/تعديل</button>
+          <button class="action-btn" data-write-action="true" onclick="openFormView()">إضافة/تعديل</button>
           <button class="action-btn" onclick="refreshData()">تحديث</button>
         </div>
 
@@ -69,9 +67,9 @@
         <section id="formMenuView" class="card manager-view active">
           <h2>صفحة إضافة أو تعديل</h2>
           <div class="manager-tabs">
-            <button class="manager-tab-btn" type="button" onclick="openManagerView('companies')">تعديل الشركات</button>
-            <button class="manager-tab-btn" type="button" onclick="openManagerView('areas')">تعديل المناطق</button>
-            <button class="manager-tab-btn" type="button" onclick="openManagerView('sites')">تعديل المواقع</button>
+            <button class="manager-tab-btn" type="button" data-write-action="true" onclick="openManagerView('companies')">تعديل الشركات</button>
+            <button class="manager-tab-btn" type="button" data-write-action="true" onclick="openManagerView('areas')">تعديل المناطق</button>
+            <button class="manager-tab-btn" type="button" data-write-action="true" onclick="openManagerView('sites')">تعديل المواقع</button>
           </div>
         </section>
 
@@ -98,13 +96,13 @@
         <section id="siteEditorView" class="card manager-view">
           <h2>تعديل بيانات الموقع</h2>
           <div class="toolbar"><button class="btn-secondary" type="button" onclick="openManagerView('sites')">رجوع</button></div>
-          <p class="muted">الحفظ يتم محليًا داخل الجهاز ويظهر مباشرة في نافذة اختيار الموقع.</p>
+          <p class="muted">الحفظ يتم عبر طبقة البيانات الحالية ويظهر مباشرة في نافذة اختيار الموقع.</p>
           <div class="filters">
             <div class="field">
               <label>الشركة</label>
               <div class="field-inline">
                 <select id="editCompany"></select>
-                <button class="mini-btn" type="button" onclick="addCompany()">+ شركة</button>
+                <button class="mini-btn" type="button" data-write-action="true" onclick="addCompany()">+ شركة</button>
               </div>
             </div>
             <div class="field"><label>المنطقة</label><input id="editArea" type="text" /></div>
@@ -118,7 +116,7 @@
             <div class="field"><label>اسم المساح</label><input id="editSurveyor" type="text" placeholder="MR. " /></div>
           </div>
           <div class="toolbar">
-            <button class="btn-primary" type="button" onclick="savePlot()">حفظ</button>
+            <button class="btn-primary" type="button" data-write-action="true" onclick="savePlot()">حفظ</button>
             <button class="btn-secondary" type="button" onclick="resetForm()">تفريغ</button>
           </div>
         </section>
@@ -156,6 +154,7 @@
     let browseState = { companyId: null, area: null, plotId: null };
     let managerViewKey = "menu";
     let pendingAreaTransfer = null;
+    let canEditSites = false;
 
     const norm = (v) => String(v ?? "").trim();
     const esc = (v) => norm(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
@@ -181,7 +180,17 @@
     const askAlert = (message) =>
       window.AtlasDialog ? window.AtlasDialog.alert(message) : window.alert(message);
 
-    function loadCustomDb() {
+    function ensureWriteAccess() {
+      if (canEditSites) return true;
+      void askAlert("لا توجد صلاحية لتعديل بيانات المواقع.");
+      return false;
+    }
+
+    async function loadCustomDb() {
+      if (window.AtlasStore?.loadCustomSites) {
+        const loaded = await window.AtlasStore.loadCustomSites();
+        return Array.isArray(loaded) ? loaded : [];
+      }
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         const parsed = raw ? JSON.parse(raw) : [];
@@ -191,8 +200,21 @@
       }
     }
 
-    function saveCustomDb() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(customDb));
+    async function saveCustomDb() {
+      const next = Array.isArray(customDb) ? customDb : [];
+      if (window.AtlasStore?.saveCustomSites) {
+        customDb = await window.AtlasStore.saveCustomSites(next);
+        return customDb;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    }
+
+    function syncWriteAccessUi() {
+      document.querySelectorAll("[data-write-action]").forEach((node) => {
+        node.hidden = !canEditSites;
+        node.disabled = !canEditSites;
+      });
     }
 
     function openFormView() {
@@ -301,14 +323,15 @@
       return merged;
     }
 
-    function refreshData() {
-      customDb = loadCustomDb();
+    async function refreshData() {
+      customDb = await loadCustomDb();
       companies = mergeCompanies(Array.isArray(SITES_DB) ? SITES_DB : [], customDb);
       renderStats();
       renderEditCompanySelector();
       renderManagerSelectors();
       renderBrowser();
       renderActiveManagerView();
+      syncWriteAccessUi();
     }
 
     function getCompanyById(companyId) {
@@ -417,12 +440,14 @@
           <div class="detail-item"><label>اسم المساح</label><span class="ar">${esc(plot.surveyor)}</span></div>
           <div class="detail-item"><label>عدد مستويات Levels</label><span>${levelsCount}</span></div>
         </div>
-        <div class="toolbar">
-          <button class="btn-primary" type="button" onclick="loadPlot(${jsArg(company.id)},${jsArg(browseState.plotId)})">تعديل البيانات</button>
-          ${plot._source === "custom"
-            ? `<button class="btn-secondary" type="button" onclick="deletePlot(${jsArg(company.id)},${jsArg(browseState.plotId)})">حذف محلي</button>`
-            : `<button class="btn-secondary" type="button" onclick="clonePlot(${jsArg(company.id)},${jsArg(browseState.plotId)})">نسخ محلي</button>`}
-        </div>
+        ${canEditSites ? `
+          <div class="toolbar">
+            <button class="btn-primary" type="button" onclick="loadPlot(${jsArg(company.id)},${jsArg(browseState.plotId)})">تعديل البيانات</button>
+            ${plot._source === "custom"
+              ? `<button class="btn-secondary" type="button" onclick="deletePlot(${jsArg(company.id)},${jsArg(browseState.plotId)})">حذف محلي</button>`
+              : `<button class="btn-secondary" type="button" onclick="clonePlot(${jsArg(company.id)},${jsArg(browseState.plotId)})">نسخ محلي</button>`}
+          </div>
+        ` : ""}
       `;
     }
 
@@ -479,8 +504,10 @@
       container.innerHTML = companies.map((company) => `
         <div class="manager-row">
           <span>${esc(company.name)}</span>
-          <button type="button" onclick="renameCompany(${jsArg(company.id)})">تعديل</button>
-          <button type="button" class="danger" onclick="deleteCompany(${jsArg(company.id)})">حذف</button>
+          ${canEditSites ? `
+            <button type="button" onclick="renameCompany(${jsArg(company.id)})">تعديل</button>
+            <button type="button" class="danger" onclick="deleteCompany(${jsArg(company.id)})">حذف</button>
+          ` : ""}
         </div>
       `).join("") || `<div class="muted">لا توجد شركات.</div>`;
     }
@@ -502,8 +529,10 @@
       container.innerHTML = areas.map((area) => `
         <div class="manager-row">
           <span>${esc(area)} (${(company.plots || []).filter((p) => norm(p.area) === area).length} مواقع)</span>
-          <button type="button" onclick="renameArea(${jsArg(company.id)},${jsArg(area)})">تعديل</button>
-          <button type="button" class="danger" onclick="deleteArea(${jsArg(company.id)},${jsArg(area)})">حذف</button>
+          ${canEditSites ? `
+            <button type="button" onclick="renameArea(${jsArg(company.id)},${jsArg(area)})">تعديل</button>
+            <button type="button" class="danger" onclick="deleteArea(${jsArg(company.id)},${jsArg(area)})">حذف</button>
+          ` : ""}
         </div>
       `).join("") || `<div class="muted">لا توجد مناطق.</div>`;
     }
@@ -524,8 +553,10 @@
       container.innerHTML = (company.plots || []).map((plot, index) => `
         <div class="manager-row">
           <span>${esc(plotDisplayLabel(plot))} - ${esc(plot.area)}</span>
-          <button type="button" onclick="loadPlotForManager(${jsArg(company.id)},${jsArg(plotSelectionKey(plot, index))})">تعديل</button>
-          <button type="button" class="danger" onclick="deletePlot(${jsArg(company.id)},${jsArg(plotSelectionKey(plot, index))})">حذف</button>
+          ${canEditSites ? `
+            <button type="button" onclick="loadPlotForManager(${jsArg(company.id)},${jsArg(plotSelectionKey(plot, index))})">تعديل</button>
+            <button type="button" class="danger" onclick="deletePlot(${jsArg(company.id)},${jsArg(plotSelectionKey(plot, index))})">حذف</button>
+          ` : ""}
         </div>
       `).join("") || `<div class="muted">لا توجد مواقع.</div>`;
     }
@@ -536,33 +567,36 @@
     }
 
     async function renameCompany(companyId) {
+      if (!ensureWriteAccess()) return;
       const company = getCompanyById(companyId);
       if (!company) return;
       const nextName = norm(await askPrompt("اكتب اسم الشركة الجديد", company.name));
       if (!nextName) return;
       const entry = upsertCustomCompany(company.id, nextName);
       entry.is_deleted = false;
-      saveCustomDb();
-      refreshData();
+      await saveCustomDb();
+      await refreshData();
       openManagerView("companies");
     }
 
     async function deleteCompany(companyId) {
+      if (!ensureWriteAccess()) return;
       const company = getCompanyById(companyId);
       if (!company) return;
       if (!(await askConfirm(`حذف الشركة ${company.name}؟`))) return;
       const entry = upsertCustomCompany(company.id, company.name);
       entry.is_deleted = true;
       entry.plots = [];
-      saveCustomDb();
+      await saveCustomDb();
       if (browseState.companyId === String(company.id)) {
         browseState = { companyId: null, area: null, plotId: null };
       }
-      refreshData();
+      await refreshData();
       openManagerView("companies");
     }
 
     async function renameArea(companyId, oldArea) {
+      if (!ensureWriteAccess()) return;
       const company = getCompanyById(companyId);
       if (!company) return;
       const nextArea = norm(await askPrompt("اكتب اسم المنطقة الجديد", oldArea));
@@ -576,8 +610,8 @@
         const idx = entry.plots.findIndex((p) => String(p.id) === String(plot.id));
         if (idx === -1) entry.plots.push(sourcePlot); else entry.plots[idx] = sourcePlot;
       });
-      saveCustomDb();
-      refreshData();
+      await saveCustomDb();
+      await refreshData();
       const areasSelect = document.getElementById("areasManagerCompany");
       if (areasSelect) areasSelect.value = String(company.id);
       openManagerView("areas");
@@ -604,6 +638,7 @@
     }
 
     async function confirmAreaTransfer() {
+      if (!ensureWriteAccess()) return;
       if (!pendingAreaTransfer) return;
       const { companyId, oldArea } = pendingAreaTransfer;
       const selectedArea = norm(document.getElementById("areaTransferSelect")?.value);
@@ -635,13 +670,13 @@
         return !moved;
       });
 
-      saveCustomDb();
+      await saveCustomDb();
       if (browseState.companyId === String(company.id) && browseState.area === oldArea) {
         browseState.area = targetArea;
         browseState.plotId = null;
       }
       closeAreaTransferModal();
-      refreshData();
+      await refreshData();
       const areasSelect = document.getElementById("areasManagerCompany");
       if (areasSelect) areasSelect.value = String(company.id);
       openManagerView("areas");
@@ -656,6 +691,7 @@
     }
 
     async function addCompany() {
+      if (!ensureWriteAccess()) return;
       const name = norm(await askPrompt("اكتب اسم الشركة الجديدة"));
       if (!name) return;
       const exists = companies.find((c) => norm(c.name).toLowerCase() === name.toLowerCase());
@@ -669,8 +705,8 @@
         return Number.isFinite(n) ? Math.max(m, n) : m;
       }, 0);
       customDb.push({ id: String(maxId + 1 || 1), name, plots: [], is_custom: true });
-      saveCustomDb();
-      refreshData();
+      await saveCustomDb();
+      await refreshData();
       openManagerView("companies");
     }
 
@@ -714,21 +750,23 @@
       renderBrowser();
     }
 
-    function clonePlot(companyId, plotId) {
+    async function clonePlot(companyId, plotId) {
+      if (!ensureWriteAccess()) return;
       const selected = getPlot(companyId, plotId);
       const company = selected?.company;
       const plot = selected?.plot;
       if (!company || !plot) return;
       const entry = upsertCustomCompany(company.id, company.name);
       if (!entry.plots.some((p, index) => plotSelectionKey(p, index) === String(plotId))) entry.plots.push(clone(plot));
-      saveCustomDb();
-      refreshData();
+      await saveCustomDb();
+      await refreshData();
       browseState = { companyId: String(company.id), area: norm(plot.area), plotId: String(plotId) };
       renderBrowser();
       loadPlot(companyId, plotId);
     }
 
     async function deletePlot(companyId, plotId) {
+      if (!ensureWriteAccess()) return;
       const selected = getPlot(companyId, plotId);
       const company = selected?.company;
       const plot = selected?.plot;
@@ -741,8 +779,8 @@
       if (idx !== -1) entry.plots.splice(idx, 1);
       if (!entry.deleted_plots.includes(selectedKey)) entry.deleted_plots.push(selectedKey);
 
-      saveCustomDb();
-      refreshData();
+      await saveCustomDb();
+      await refreshData();
       if (browseState.plotId === selectedKey && browseState.area === norm(plot.area)) {
         browseState.plotId = null;
         renderBrowser();
@@ -750,7 +788,8 @@
       if (managerViewKey === "sites") renderSitesManager();
     }
 
-    function savePlot() {
+    async function savePlot() {
+      if (!ensureWriteAccess()) return;
       const companyId = document.getElementById("editCompany").value;
       const company = companies.find((c) => String(c.id) === String(companyId));
       if (!company) return;
@@ -778,8 +817,8 @@
       const record = { ...data, levels: [] };
       if (idx === -1) entry.plots.push(record); else entry.plots[idx] = record;
 
-      saveCustomDb();
-      refreshData();
+      await saveCustomDb();
+      await refreshData();
       browseState = { companyId: String(company.id), area: data.area, plotId: data.id };
       renderBrowser();
       openFormView();
@@ -787,11 +826,30 @@
       loadPlot(company.id, data.id);
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      refreshData();
+    async function initializePage() {
+      if (window.AtlasAuth) {
+        await window.AtlasAuth.initialize();
+        const allowed = await window.AtlasAuth.requirePageAccess("pages.site-management");
+        if (!allowed) return;
+        canEditSites = window.AtlasAuth.canAccess("sites.write");
+        window.AtlasAuth.decorateShell({ homeOnly: false });
+        window.AtlasAuth.applyPagePermissions();
+      }
+
+      await refreshData();
       document.getElementById("editSurveyor").value = "MR. ";
       closeFormView();
       openManagerView("menu");
+      syncWriteAccessUi();
+      document.body.dataset.pageReady = "true";
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initializePage().catch(async (error) => {
+        console.error("Site management init failed", error);
+        document.body.dataset.pageReady = "true";
+        await askAlert(error?.message || "تعذر تحميل صفحة إدارة المواقع.");
+      });
     });
   </script>
 </body>

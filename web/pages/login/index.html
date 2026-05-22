@@ -26,7 +26,7 @@
         <h2>وضع التشغيل</h2>
         <p id="modeLabel" class="muted">جاري التحقق من وضع التشغيل...</p>
         <div class="quick-note">
-          لا يتم عرض بيانات الدخول الافتراضية داخل التطبيق. يجب تغيير كلمة مرور المدير قبل نشر الموقع للعامة.
+          لا يتم عرض بيانات الدخول الافتراضية داخل التطبيق. عند التطوير المحلي استخدم `atlasLocalAdminPassword` أو `atlas_local_password`.
         </div>
       </section>
 
@@ -74,7 +74,14 @@
       modeLabel.textContent =
         mode === "cloudflare"
           ? "Cloudflare mode: يتم حفظ المستخدمين والصفحات والمواقع عبر KV / R2."
-          : "Local mode: البيانات محفوظة محليًا داخل المتصفح حتى يتم تفعيل Cloudflare.";
+          : mode === "local"
+            ? "Local mode: مفعل للتطوير المحلي فقط عبر localhost مع atlas_local_mode=1."
+            : (window.AtlasAuth.state.bootstrapError || "Authentication is unavailable on this deployment.");
+
+      if (mode === "unavailable") {
+        submitBtn.disabled = true;
+        setStatus(window.AtlasAuth.state.bootstrapError || "تعذر تسجيل الدخول لأن المصادقة السحابية غير متاحة.");
+      }
 
       const user = window.AtlasAuth.getCurrentUser();
       if (user) {

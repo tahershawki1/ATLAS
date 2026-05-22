@@ -73,6 +73,31 @@ function buildCandidatePaths(filePath, page) {
   return candidates;
 }
 
+function buildPublishedHeaders(contentType, isHtmlDocument) {
+  const headers = {
+    "content-type": contentType,
+    "cache-control": "no-store",
+    "x-content-type-options": "nosniff",
+  };
+
+  if (isHtmlDocument) {
+    headers["content-security-policy"] = [
+      "default-src 'self' data: blob: https:",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline' https:",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data: https:",
+      "connect-src 'none'",
+      "frame-ancestors 'none'",
+      "form-action 'none'",
+      "base-uri 'none'",
+      "sandbox allow-scripts allow-downloads allow-modals",
+    ].join("; ");
+  }
+
+  return headers;
+}
+
 function readRoutePath(pathParam) {
   if (Array.isArray(pathParam)) return pathParam.join("/");
   return String(pathParam || "");
@@ -107,10 +132,12 @@ export async function onRequestGet(context) {
   const manifest = await getPagesManifest(context.env);
   const page = (manifest.pages || []).find((entry) => entry.slug === slug);
   if (!page) return new Response("Not Found", { status: 404 });
+  const allowedPaths = new Set(listPageFilePaths(page));
 
   let object = null;
   let resolvedPath = cleanObjectPath(filePath) || "index.html";
   for (const candidatePath of buildCandidatePaths(filePath, page)) {
+    if (allowedPaths.size && !allowedPaths.has(candidatePath)) continue;
     object = await context.env.ATLAS_PAGES_BUCKET.get(`pages/${slug}/${candidatePath}`);
     if (object) {
       resolvedPath = candidatePath;
@@ -125,12 +152,10 @@ export async function onRequestGet(context) {
     storedContentType && storedContentType !== "application/octet-stream"
       ? storedContentType
       : contentTypeFromPath(resolvedPath);
+  const isHtmlDocument = isHtmlPath(resolvedPath) || contentType.includes("text/html");
 
   return new Response(object.body, {
     status: 200,
-    headers: {
-      "content-type": contentType,
-      "cache-control": "no-store",
-    },
+    headers: buildPublishedHeaders(contentType, isHtmlDocument),
   });
 }

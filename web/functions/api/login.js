@@ -1,4 +1,14 @@
-﻿import { ensureUsers, json, sanitizeUser, setSessionCookie, sha256 } from "./_utils";
+import {
+  USERS_KEY,
+  ensureUsers,
+  hashPassword,
+  json,
+  passwordHashNeedsUpgrade,
+  putJson,
+  sanitizeUser,
+  setSessionCookie,
+  verifyPassword,
+} from "./_utils";
 
 export async function onRequestPost(context) {
   const body = await context.request.json();
@@ -14,13 +24,23 @@ export async function onRequestPost(context) {
       { status: 503 },
     );
   }
-  const passwordHash = await sha256(password);
-  const user = users.find(
-    (entry) => String(entry.username ?? "").trim().toLowerCase() === username && entry.password_hash === passwordHash,
-  );
+
+  let user = null;
+  for (const entry of users) {
+    if (String(entry.username ?? "").trim().toLowerCase() !== username) continue;
+    if (await verifyPassword(password, entry.password_hash)) {
+      user = entry;
+      break;
+    }
+  }
 
   if (!user) {
-    return json({ error: "اسم المستخدم أو كلمة المرور غير صحيحة" }, { status: 401 });
+    return json({ error: "Invalid username or password" }, { status: 401 });
+  }
+
+  if (passwordHashNeedsUpgrade(user.password_hash)) {
+    user.password_hash = await hashPassword(password);
+    await putJson(context.env, USERS_KEY, users);
   }
 
   const token = crypto.randomUUID();
