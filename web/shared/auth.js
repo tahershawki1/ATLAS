@@ -11,7 +11,9 @@
   };
 
   const PASSWORD_HASH_PREFIX = "pbkdf2-sha256";
-  const PASSWORD_HASH_ITERATIONS = 120000;
+  const PBKDF2_WEBCRYPTO_ITERATION_LIMIT = 100000;
+  const PASSWORD_HASH_ITERATIONS = PBKDF2_WEBCRYPTO_ITERATION_LIMIT;
+  const PBKDF2_COMPAT_ITERATION_LIMIT = 200000;
 
   const DEFAULT_ADMIN = {
     id: "user-admin",
@@ -169,27 +171,70 @@
     return bytes;
   }
 
+  async function derivePbkdf2BitsCompat(passwordBytes, salt, iterations) {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      passwordBytes,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const firstBlock = new Uint8Array(salt.length + 4);
+    firstBlock.set(salt, 0);
+    firstBlock.set([0, 0, 0, 1], salt.length);
+
+    let chunk = new Uint8Array(await crypto.subtle.sign("HMAC", key, firstBlock));
+    const derived = new Uint8Array(chunk);
+    for (let index = 1; index < iterations; index += 1) {
+      chunk = new Uint8Array(await crypto.subtle.sign("HMAC", key, chunk));
+      for (let offset = 0; offset < derived.length; offset += 1) {
+        derived[offset] ^= chunk[offset];
+      }
+    }
+    return derived;
+  }
+
+  async function derivePbkdf2Bits(password, salt, iterations) {
+    const count = Number(iterations);
+    if (!Number.isInteger(count) || count < 1) {
+      throw new Error("PBKDF2 iterations must be a positive integer");
+    }
+
+    const passwordBytes = new TextEncoder().encode(String(password ?? ""));
+    if (count <= PBKDF2_WEBCRYPTO_ITERATION_LIMIT) {
+      const keyMaterial = await crypto.subtle.importKey(
+        "raw",
+        passwordBytes,
+        "PBKDF2",
+        false,
+        ["deriveBits"],
+      );
+      const bits = await crypto.subtle.deriveBits(
+        {
+          name: "PBKDF2",
+          hash: "SHA-256",
+          salt,
+          iterations: count,
+        },
+        keyMaterial,
+        256,
+      );
+      return new Uint8Array(bits);
+    }
+
+    if (count > PBKDF2_COMPAT_ITERATION_LIMIT) {
+      throw new Error(`PBKDF2 iterations above ${PBKDF2_COMPAT_ITERATION_LIMIT} are not supported`);
+    }
+
+    // Compatibility path for hashes created before the 100k WebCrypto limit was enforced.
+    return derivePbkdf2BitsCompat(passwordBytes, salt, count);
+  }
+
   async function hashPassword(password) {
     const salt = new Uint8Array(16);
     crypto.getRandomValues(salt);
-    const keyMaterial = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(String(password ?? "")),
-      "PBKDF2",
-      false,
-      ["deriveBits"],
-    );
-    const bits = await crypto.subtle.deriveBits(
-      {
-        name: "PBKDF2",
-        hash: "SHA-256",
-        salt,
-        iterations: PASSWORD_HASH_ITERATIONS,
-      },
-      keyMaterial,
-      256,
-    );
-    return `${PASSWORD_HASH_PREFIX}$${PASSWORD_HASH_ITERATIONS}$${bytesToHex(salt)}$${bytesToHex(new Uint8Array(bits))}`;
+    const bits = await derivePbkdf2Bits(password, salt, PASSWORD_HASH_ITERATIONS);
+    return `${PASSWORD_HASH_PREFIX}$${PASSWORD_HASH_ITERATIONS}$${bytesToHex(salt)}$${bytesToHex(bits)}`;
   }
 
   async function verifyPassword(password, storedHash) {
@@ -203,25 +248,8 @@
     const [, iterationsText, saltHex, expectedHex] = hash.split("$");
     const iterations = Number(iterationsText);
     if (!Number.isFinite(iterations) || !saltHex || !expectedHex) return false;
-
-    const keyMaterial = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(String(password ?? "")),
-      "PBKDF2",
-      false,
-      ["deriveBits"],
-    );
-    const bits = await crypto.subtle.deriveBits(
-      {
-        name: "PBKDF2",
-        hash: "SHA-256",
-        salt: hexToBytes(saltHex),
-        iterations,
-      },
-      keyMaterial,
-      256,
-    );
-    return bytesToHex(new Uint8Array(bits)) === expectedHex;
+    const bits = await derivePbkdf2Bits(password, hexToBytes(saltHex), iterations);
+    return bytesToHex(bits) === expectedHex;
   }
 
   function passwordHashNeedsUpgrade(storedHash) {
@@ -260,9 +288,13 @@
     next.is_admin = Boolean(next.is_admin);
     if (!normalize(next.created_at)) next.created_at = new Date().toISOString();
 
+    const storedPasswordHint = normalize(next.password_hint);
+    const rawPassword = storedPasswordHint || fallbackPassword;
     if (!normalize(next.password_hash)) {
-      const rawPassword = normalize(next.password_hint) || fallbackPassword;
       if (rawPassword) next.password_hash = await hashPassword(rawPassword);
+    } else if (rawPassword && passwordHashNeedsUpgrade(next.password_hash)) {
+      const canMigrateHash = storedPasswordHint || (await verifyPassword(rawPassword, next.password_hash));
+      if (canMigrateHash) next.password_hash = await hashPassword(rawPassword);
     }
 
     if (next.username === defaultAdmin.username) {
