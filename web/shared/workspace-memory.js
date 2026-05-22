@@ -100,6 +100,9 @@
     const contentType = response.headers.get("content-type") || "";
     const payload = contentType.includes("application/json") ? await response.json() : await response.text();
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        window.AtlasAuth?.resetAuthenticatedState?.();
+      }
       const error = new Error(typeof payload === "string" ? payload : payload?.error || "Workspace memory request failed");
       error.status = response.status;
       throw error;

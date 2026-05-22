@@ -368,6 +368,9 @@
       const requestError = new Error(message);
       requestError.status = response.status;
       requestError.payload = payload;
+      if (response.status === 401 || response.status === 403) {
+        resetAuthenticatedState();
+      }
       throw requestError;
     }
 
@@ -441,6 +444,14 @@
     localStorage.setItem(STORAGE.localSession, JSON.stringify(session));
   }
 
+  function resetAuthenticatedState(options = {}) {
+    state.currentUser = null;
+    clearSessionSnapshot();
+    if (options.clearLocalSession !== false) {
+      localSetSession(null);
+    }
+  }
+
   function saveSessionSnapshot(user, options = {}) {
     const safeUser = stripSensitiveUser(user);
     if (!safeUser) {
@@ -499,12 +510,15 @@
       try {
         const payload = await apiFetch("/api/me", { method: "GET" });
         const serverUser = payload?.user || null;
-        state.currentUser = serverUser || getSessionSnapshot();
-        if (serverUser) saveSessionSnapshot(serverUser, { mode: "cloudflare" });
+        if (serverUser) {
+          state.currentUser = serverUser;
+          saveSessionSnapshot(serverUser, { mode: "cloudflare" });
+        } else {
+          resetAuthenticatedState({ clearLocalSession: false });
+        }
       } catch (error) {
         if (error?.status === 401 || error?.status === 403) {
-          clearSessionSnapshot();
-          state.currentUser = null;
+          resetAuthenticatedState();
         } else {
           state.currentUser = getSessionSnapshot();
         }
@@ -594,9 +608,7 @@
       }
     }
 
-    localSetSession(null);
-    clearSessionSnapshot();
-    state.currentUser = null;
+    resetAuthenticatedState();
   }
 
   function getCurrentUser() {
@@ -980,16 +992,11 @@
     async loadCustomSites() {
       await initialize();
       if (state.apiAvailable && state.currentUser) {
-        try {
-          const payload = await apiFetch("/api/sites", { method: "GET" });
-          const sites = Array.isArray(payload?.custom_sites) ? payload.custom_sites : [];
-          localStorage.setItem(STORAGE.localCustomSites, JSON.stringify(sites));
-          return sites;
-        } catch (error) {
-          console.warn("Failed to load custom sites", error);
-        }
+        const payload = await apiFetch("/api/sites", { method: "GET" });
+        const sites = Array.isArray(payload?.custom_sites) ? payload.custom_sites : [];
+        localStorage.setItem(STORAGE.localCustomSites, JSON.stringify(sites));
+        return sites;
       }
-      requireLocalMode();
       return jsonParse(localStorage.getItem(STORAGE.localCustomSites), []);
     },
 
@@ -1012,11 +1019,11 @@
 
     async getPagesManifest() {
       await initialize();
+      if (!state.currentUser) return { pages: [] };
       if (state.apiAvailable && state.currentUser) {
         const payload = await apiFetch("/api/pages", { method: "GET" });
         return payload || { pages: [] };
       }
-      requireLocalMode();
       return jsonParse(localStorage.getItem(STORAGE.localPages), { pages: [] });
     },
 
@@ -1055,6 +1062,7 @@
     initialize,
     login,
     logout,
+    resetAuthenticatedState,
     getCurrentUser,
     isAdmin,
     canAccess,
