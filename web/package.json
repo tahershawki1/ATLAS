@@ -1,6 +1,6 @@
 {
   "name": "atlas-site",
-  "version": "2.0.18",
+  "version": "2.0.19",
   "private": true,
   "scripts": {
     "build:cloudflare": "node tools/build-cloudflare-pages.js",
