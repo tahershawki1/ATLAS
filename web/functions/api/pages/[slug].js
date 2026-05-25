@@ -1,4 +1,14 @@
-﻿import { getPagesManifest, json, putPagesManifest, requireUser } from "../_utils";
+import { getPagesManifest, json, putPagesManifest, requireUser } from "../_utils";
+
+function normalizeSlugParam(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
 
 export async function onRequestDelete(context) {
   const auth = await requireUser(context, "admin.panel");
@@ -7,8 +17,11 @@ export async function onRequestDelete(context) {
     return json({ error: "ATLAS_PAGES_BUCKET binding is required" }, { status: 500 });
   }
 
+  const slug = normalizeSlugParam(context.params.slug);
+  if (!slug) return json({ error: "معرف الصفحة غير صالح" }, { status: 400 });
+
   const manifest = await getPagesManifest(context.env);
-  const page = (manifest.pages || []).find((entry) => entry.slug === context.params.slug);
+  const page = (manifest.pages || []).find((entry) => entry.slug === slug);
   if (!page) return json({ error: "الصفحة غير موجودة" }, { status: 404 });
 
   let cursor;
@@ -19,7 +32,7 @@ export async function onRequestDelete(context) {
     cursor = listed.truncated ? listed.cursor : undefined;
   } while (cursor);
 
-  const pages = (manifest.pages || []).filter((entry) => entry.slug !== context.params.slug);
+  const pages = (manifest.pages || []).filter((entry) => entry.slug !== slug);
   await putPagesManifest(context.env, { pages });
   return json({ ok: true });
 }

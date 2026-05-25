@@ -193,8 +193,7 @@
 
   renderWorkspaceTools() {
     const toolsPanel = document.getElementById("toolsPanel");
-    const activeTitle = document.getElementById("activeWorkspaceTitle");
-    const activeMeta = document.getElementById("activeWorkspaceMeta");
+    const navTitle = document.getElementById("navTitle");
     const hasWorkspace = Boolean(this.state.selectedSite);
 
     document.body?.classList.toggle("atlas-workspace-ready", hasWorkspace);
@@ -202,22 +201,12 @@
 
     if (toolsPanel) toolsPanel.hidden = !hasWorkspace;
     if (!hasWorkspace) {
-      if (activeTitle) activeTitle.textContent = "لم يتم اختيار موقع";
-      if (activeMeta) activeMeta.textContent = "اختر ملف عمل لعرض الأدوات.";
+      if (navTitle) navTitle.textContent = "الرئيسية";
       return;
     }
 
-    if (activeTitle) {
-      activeTitle.textContent = this.formatWorkspaceTitle(this.state.selectedSite);
-    }
-    if (activeMeta) {
-      activeMeta.textContent = [
-        this.state.selectedSite.plot && `رقم الأرض: ${this.state.selectedSite.plot}`,
-        this.state.selectedSite.company && `الشركة: ${this.state.selectedSite.company}`,
-        this.state.selectedSite.area && `المنطقة: ${this.state.selectedSite.area}`,
-        this.state.selectedSite.project && `مشروع الموقع: ${this.state.selectedSite.project}`,
-        this.state.selectedSite.owner && `المالك: ${this.state.selectedSite.owner}`,
-      ].filter(Boolean).join(" - ") || "ملف عمل جاهز";
+    if (navTitle) {
+      navTitle.textContent = this.formatWorkspaceTitle(this.state.selectedSite);
     }
   },
 
@@ -1049,6 +1038,8 @@
     const saved = this.readJsonStorage(this.storageKeys.selectedSite, null);
     if (saved) {
       this.state.selectedSite = saved;
+      this.state.currentPage = "home";
+      this.state.history = ["workspace", "home"];
       this.updateSelectedSiteHeader();
       this.upsertWorkspaceFromSelectedSite();
     }
@@ -1942,6 +1933,8 @@
 
     // Update Title
     document.getElementById("navTitle").textContent = current.title;
+
+    if (isHomePage) this.renderWorkspaceTools();
 
     // Update Visibility
     document

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atlas Surveying - تحويل نقاط الواجهات</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../shared/style.css">
+    <link rel="stylesheet" href="../../shared/mobile-fix.css">
+    <link rel="stylesheet" href="page.css" />
+    <script src="../../shared/auth.js"></script>
+    <script src="../../shared/workspace-memory.js"></script>
+    <script src="../../shared/coordinates-export.js"></script>
+</head>
+<body class="page-scroll-enabled facade-profile-page">
+<div class="custom-page facade-profile-page">
+    <div class="form-container">
+        <div class="header-btns">
+            <button class="back-btn-header" type="button" onclick="window.location.href='../../index.html'">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" class="arrow-rtl-flip"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                <span>العودة للرئيسية</span>
+            </button>
+        </div>
+
+        <header class="page-title-section card">
+            <h1 class="title">تحويل نقاط الواجهات (Facade Profile)</h1>
+            <p class="sub-title">تحويل نقاط الرفع ثلاثي الأبعاد للواجهات إلى مسقط أفقي للبروفايل (Profile) بشكل مرن.</p>
+        </header>
+
+        <div class="grid-facade">
+            <!-- Sidebar controls -->
+            <aside class="controls-panel">
+                <section class="card">
+                    <h2 class="title">1) رفع ملف الإحداثيات</h2>
+                    <div class="upload-shell">
+                        <input id="fileInput" type="file" class="hidden" accept=".csv,.txt,.sdr,.SDR" />
+                        <button id="uploadBtn" class="file-btn" type="button">اختيار ملف النقاط</button>
+                        <p id="fileHint" class="sub-title file-hint-inline">لم يتم اختيار ملف بعد</p>
+                    </div>
+                    <div class="hint-text">
+                        يدعم ملفات <strong>CSV</strong> (الاسم، E، N، Z، الكود) وملفات <strong>SDR</strong> (سطور 08TP/08KI).
+                    </div>
+                </section>
+
+                <section class="card">
+                    <h2 class="title">2) تحديد اتجاه الواجهة</h2>
+                    
+                    <div class="field-group">
+                        <label for="leftPoints">نقاط البداية / جهة اليسار</label>
+                        <input id="leftPoints" type="text" placeholder="مثال: CP1,CP2 أو 1,2" />
+                    </div>
+
+                    <div class="field-group">
+                        <label for="rightPoints">نقاط النهاية / جهة اليمين</label>
+                        <input id="rightPoints" type="text" placeholder="مثال: CP13,CP14 أو 13,14" />
+                    </div>
+
+                    <div class="row-buttons">
+                        <button id="autoDetectBtn" class="btn secondary">تخمين تلقائي</button>
+                        <button id="convertBtn" class="btn primary">تحويل البروفايل</button>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <h2 class="title">3) التحكم والضبط للاتجاه</h2>
+                    <div class="grid-buttons">
+                        <button id="mirrorBtn" class="btn secondary">مرآة Mirror X</button>
+                        <button id="reverseBtn" class="btn secondary">عكس الترتيب Order</button>
+                        <button id="swapXYBtn" class="btn secondary">تبديل X/Y</button>
+                        <button id="normalizeBtn" class="btn secondary">البدء من X=0</button>
+                        <button id="fitBtn" class="btn secondary">ملاءمة العرض</button>
+                        <button id="resetBtn" class="btn danger">إعادة ضبط</button>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <h2 class="title">4) خيارات التصدير السريع</h2>
+                    <div class="field-group">
+                        <label for="civilFormat">صيغة Civil 3D</label>
+                        <select id="civilFormat">
+                            <option value="PENZD" selected>PENZD - الأفضل للبروفايل الأفقي</option>
+                            <option value="PNEZD">PNEZD</option>
+                        </select>
+                    </div>
+                    <div class="grid-buttons-two">
+                        <button id="exportCivilCsvBtn" class="btn primary-light">Civil CSV</button>
+                        <button id="exportDxfBtn" class="btn primary-light">ملف DXF</button>
+                        <button id="exportReviewBtn" class="btn secondary">Review CSV</button>
+                    </div>
+                    <div id="status" class="status-msg">جاهز لاستلام الملف.</div>
+                </section>
+            </aside>
+
+            <!-- Viewer and table section -->
+            <main class="viewer-panel">
+                <section class="card canvas-card">
+                    <div class="viewer-header">
+                        <div>
+                            <h2 class="title title-no-bottom">معاينة البروفايل</h2>
+                            <p id="summary" class="sub-title">لم يتم رفع ملف بعد.</p>
+                        </div>
+                        <div class="legend-chips">
+                            <span class="legend-chip"><span class="legend-dot legend-start"></span>البداية (يسار)</span>
+                            <span class="legend-chip"><span class="legend-dot legend-end"></span>النهاية (يمين)</span>
+                            <span class="legend-chip"><span class="legend-dot legend-normal"></span>نقطة عادية</span>
+                        </div>
+                    </div>
+                    
+                    <div class="canvas-wrapper">
+                        <canvas id="mapCanvas"></canvas>
+                    </div>
+                </section>
+
+                <section class="card table-card">
+                    <h2 class="title">جدول الإحداثيات المحسوبة (بروفايل)</h2>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>اسم النقطة</th>
+                                    <th>X بروفايل</th>
+                                    <th>Y منسوب</th>
+                                    <th>E الأصلي</th>
+                                    <th>N الأصلي</th>
+                                    <th>المنسوب الأصلي</th>
+                                    <th>الكود</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pointsTable"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

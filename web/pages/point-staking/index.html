@@ -64,11 +64,28 @@
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" class="arrow-rtl-flip"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                     <span>الرجوع للمعاينة</span>
                 </button>
+                <div id="stakingCounter" class="staking-counter hidden">
+                    <span class="counter-item counter-signed">
+                        <span class="counter-dot"></span>
+                        <span id="signedCount">0</span>
+                    </span>
+                    <span class="counter-item counter-invisible">
+                        <span class="counter-dot"></span>
+                        <span id="invisibleCount">0</span>
+                    </span>
+                    <span class="counter-item counter-total">
+                        <span id="totalCount">0</span>
+                    </span>
+                </div>
                 <div id="pointsMap" class="map-area"></div>
                 <div id="overlayTools" class="overlay-tools hidden">
                     <div class="actions-row">
                         <button id="signBtn" class="sign-btn" type="button">توقيع</button>
                         <button id="invisibleBtn" class="invisible-btn" type="button">غير مرئية</button>
+                    </div>
+                    <div class="search-row">
+                        <input id="pointSearchInput" class="point-search-input" type="number" min="1" inputmode="numeric" placeholder="رقم النقطة" autocomplete="off">
+                        <button id="pointSearchBtn" class="point-search-btn" type="button">اذهب</button>
                     </div>
                     <div class="point-nav">
                         <button id="nextBtn" class="nav-btn" type="button" aria-label="النقطة التالية">◀</button>
@@ -105,6 +122,12 @@
     const nextBtn = document.getElementById('nextBtn');
     const startStakingBtn = document.getElementById('startStakingBtn');
     const backToPreviewBtn = document.getElementById('backToPreviewBtn');
+    const stakingCounter = document.getElementById('stakingCounter');
+    const signedCount = document.getElementById('signedCount');
+    const invisibleCount = document.getElementById('invisibleCount');
+    const totalCount = document.getElementById('totalCount');
+    const pointSearchInput = document.getElementById('pointSearchInput');
+    const pointSearchBtn = document.getElementById('pointSearchBtn');
 
     const CRS_OPTIONS = {
         DLTM: {
@@ -133,10 +156,12 @@
     const POINT_STAKING_MEMORY_PAGE = 'point-staking';
     let restoringPointMemory = false;
 
-    const MAP_MAX_ZOOM = 24;
+    const MAP_MAX_ZOOM = 26;
     const MAP_MAX_NATIVE_ZOOM = 19;
-    const SINGLE_POINT_ZOOM = 23;
+    const SINGLE_POINT_ZOOM = 26;
     const AUTO_ZOOM_BOOST = 3;
+    const STAKING_NAV_DURATION = 0.45;
+    const SEARCH_NAV_DELAY_MS = 120;
 
     function setStatus(message, isError = false) {
         statusText.textContent = message;
@@ -507,12 +532,26 @@
         state.map.setView([25.2048, 55.2708], 13);
     }
 
+    function updateStakingCounter() {
+        if (!stakingCounter || !signedCount || !invisibleCount || !totalCount) return;
+        const total = state.pointsMap.length;
+        const signed = state.signed.size;
+        const invisible = state.invisible.size;
+        const pending = Math.max(total - signed - invisible, 0);
+        signedCount.textContent = String(signed);
+        invisibleCount.textContent = String(invisible);
+        totalCount.textContent = `${pending}/${total}`;
+    }
+
     function updatePanel() {
         if (!state.stakingMode || !state.pointsMap.length || state.selectedIndex < 0) {
             overlayTools.classList.add('hidden');
+            stakingCounter?.classList.add('hidden');
             return;
         }
         overlayTools.classList.remove('hidden');
+        stakingCounter?.classList.remove('hidden');
+        updateStakingCounter();
         const point = state.pointsMap[state.selectedIndex];
         pointName.textContent = `${point.name || 'Point'} (${state.selectedIndex + 1}/${state.pointsMap.length})`;
         prevBtn.disabled = state.selectedIndex <= 0;
@@ -566,6 +605,23 @@
         });
     }
 
+    function focusPoint(point, { animate = true, invalidate = true } = {}) {
+        if (!state.map || !point) return;
+        const targetZoom = state.map.getZoom();
+        if (invalidate) {
+            state.map.invalidateSize({ pan: false });
+        }
+        if (animate) {
+            state.map.flyTo([point.lat, point.lon], targetZoom, {
+                animate: true,
+                duration: STAKING_NAV_DURATION,
+                noMoveStart: true,
+            });
+            return;
+        }
+        state.map.setView([point.lat, point.lon], targetZoom, { animate: false });
+    }
+
     function selectPoint(index, pan = true) {
         if (index < 0 || index >= state.pointsMap.length) return;
         state.selectedIndex = index;
@@ -573,10 +629,7 @@
         updatePanel();
         if (pan) {
             const point = state.pointsMap[index];
-            state.map.panTo([point.lat, point.lon], { animate: true, duration: 0.35 });
-            if (state.stakingMode && state.map.getZoom() < SINGLE_POINT_ZOOM - 1) {
-                state.map.setZoom(SINGLE_POINT_ZOOM - 1, { animate: true });
-            }
+            focusPoint(point, { animate: true });
         }
         savePointMemory();
     }
@@ -592,7 +645,7 @@
             state.map?.invalidateSize({ pan: false });
             if (state.pointsMap.length && state.selectedIndex >= 0) {
                 const point = state.pointsMap[state.selectedIndex];
-                state.map.setView([point.lat, point.lon], state.stakingMode ? SINGLE_POINT_ZOOM - 1 : state.map.getZoom(), { animate: false });
+                focusPoint(point, { animate: false, invalidate: false });
             }
         }, 80);
         savePointMemory();
@@ -639,9 +692,11 @@
 
         pointsCount.textContent = `${state.pointsMap.length} نقطة`;
         startStakingBtn.disabled = state.pointsMap.length === 0;
+        updateStakingCounter();
 
         if (!state.pointsMap.length) {
             overlayTools.classList.add('hidden');
+            stakingCounter?.classList.add('hidden');
             setStakingMode(false);
             setStatus('لم أتمكن من عرض نقاط على الماب. غيّر نظام الإحداثيات أو راجع الملف.', true);
             return;
@@ -681,6 +736,7 @@
                 : `تم توقيع النقطة: ${point.name || `Point ${state.selectedIndex + 1}`}`
         );
         savePointMemory();
+        movePoint(1);
     }
 
     function markCurrentInvisible() {
@@ -700,6 +756,22 @@
         const target = state.selectedIndex + step;
         if (target < 0 || target >= state.pointsMap.length) return;
         selectPoint(target);
+    }
+
+    function goToPointByNumber() {
+        if (!state.pointsMap.length) return;
+        const val = parseInt(pointSearchInput.value, 10);
+        if (isNaN(val) || val < 1 || val > state.pointsMap.length) {
+            pointSearchInput.focus();
+            pointSearchInput.select();
+            return;
+        }
+        const targetIndex = val - 1;
+        pointSearchInput.blur();
+        setTimeout(() => {
+            selectPoint(targetIndex);
+        }, SEARCH_NAV_DELAY_MS);
+        pointSearchInput.value = '';
     }
 
     async function readPoints(file) {
@@ -813,8 +885,17 @@
     exportCoordsBtn.addEventListener('click', openCoordinatesExportForm);
     prevBtn.addEventListener('click', () => movePoint(-1));
     nextBtn.addEventListener('click', () => movePoint(1));
+    pointSearchBtn.addEventListener('click', goToPointByNumber);
+    pointSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') goToPointByNumber();
+    });
 
-    window.addEventListener('resize', () => state.map?.invalidateSize());
+    window.addEventListener('resize', () => {
+        if (!state.map) return;
+        state.map.invalidateSize({ pan: false });
+        if (!state.stakingMode || state.selectedIndex < 0 || state.selectedIndex >= state.pointsMap.length) return;
+        focusPoint(state.pointsMap[state.selectedIndex], { animate: false, invalidate: false });
+    });
     window.addEventListener('atlas-workspace-memory-ready', restorePointMemory, { once: true });
 </script>
 <script>

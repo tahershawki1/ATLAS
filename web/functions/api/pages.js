@@ -13,8 +13,69 @@ function cleanUploadPath(value) {
     .join("/");
 }
 
+function splitUploadPath(value) {
+  return cleanUploadPath(value)
+    .split("/")
+    .filter(Boolean);
+}
+
+function inferSharedRootName(paths = []) {
+  const parts = paths.map((entry) => splitUploadPath(entry));
+  if (!parts.length) return "";
+
+  const root = parts[0][0];
+  if (!root) return "";
+  if (!parts.every((entry) => entry[0] === root)) return "";
+  if (!parts.some((entry) => entry.length > 1)) return "";
+  return root;
+}
+
+function basenameWithoutExtension(pathname) {
+  const fileName = splitUploadPath(pathname).pop() || "";
+  return fileName.replace(/\.[^./]+$/, "");
+}
+
+function normalizeDisplayTitle(value) {
+  return String(value || "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function inferPageNameFromPaths(normalizedUploads = [], entryPath = "") {
+  const rootName = inferSharedRootName(normalizedUploads.map((entry) => entry.originalPath));
+  if (rootName) return normalizeDisplayTitle(rootName);
+
+  const entryRecord =
+    normalizedUploads.find((entry) => cleanUploadPath(entry.path).toLowerCase() === cleanUploadPath(entryPath).toLowerCase()) ||
+    normalizedUploads.find((entry) => isHtmlPath(entry.path)) ||
+    normalizedUploads[0];
+  if (!entryRecord) return "";
+
+  const baseName = basenameWithoutExtension(entryRecord.originalPath || entryRecord.path);
+  if (!baseName || baseName.toLowerCase() === "index") return "";
+  return normalizeDisplayTitle(baseName);
+}
+
+async function inferHtmlTitle(normalizedUploads = [], entryPath = "") {
+  const entryRecord =
+    normalizedUploads.find((entry) => cleanUploadPath(entry.path).toLowerCase() === cleanUploadPath(entryPath).toLowerCase()) ||
+    normalizedUploads.find((entry) => isHtmlPath(entry.path)) ||
+    null;
+  if (!entryRecord || !isHtmlPath(entryRecord.path) || typeof entryRecord.item?.text !== "function") return "";
+
+  try {
+    const html = await entryRecord.item.text();
+    const match = String(html || "").match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    if (!match?.[1]) return "";
+    return match[1].replace(/\s+/g, " ").trim();
+  } catch {
+    return "";
+  }
+}
+
 function stripSharedRoot(paths) {
-  if (paths.length < 2) return paths;
+  if (!paths.length) return paths;
 
   const parts = paths.map((entry) => entry.split("/"));
   if (parts.some((entry) => entry.length < 2)) return paths;
@@ -100,8 +161,6 @@ export async function onRequestPost(context) {
   if (!files.length) return json({ error: "لم يتم اختيار ملفات" }, { status: 400 });
 
   const manifest = await getPagesManifest(context.env);
-  const slug = slugify(requestedSlug || title || `page-${Date.now()}`);
-  const existingPage = (manifest.pages || []).find((page) => page.slug === slug);
   const uploadItems = files
     .filter(isUploadFile)
     .map((item) => ({
@@ -127,6 +186,11 @@ export async function onRequestPost(context) {
   }
 
   const entryPath = chooseEntryPath(normalizedUploads.map((entry) => entry.path));
+  const inferredNameFromPaths = inferPageNameFromPaths(normalizedUploads, entryPath);
+  const inferredHtmlTitle = await inferHtmlTitle(normalizedUploads, entryPath);
+  const slug = slugify(requestedSlug || title || inferredNameFromPaths || inferredHtmlTitle || `page-${Date.now()}`);
+  const existingPage = (manifest.pages || []).find((page) => page.slug === slug);
+  const pageTitle = title || inferredHtmlTitle || inferredNameFromPaths || slug;
 
   const uploadedFiles = [];
   for (const upload of normalizedUploads) {
@@ -154,7 +218,7 @@ export async function onRequestPost(context) {
   const now = new Date().toISOString();
   const pageRecord = {
     slug,
-    title: title || slug,
+    title: pageTitle,
     entry_path: entryPath,
     files: uploadedFiles,
     created_at: existingPage?.created_at || now,

@@ -38,6 +38,7 @@
     { id: "pages.coordinates-extractor", label: "استخراج الاحداثيات", url: "/pages/coordinates-extractor/" },
     { id: "pages.coordinates-proposal", label: "اقتراح الإحداثيات", url: "/pages/coordinates-proposal/" },
     { id: "pages.coordinates-export", label: "تصدير الإحداثيات", url: "/pages/coordinates-export/" },
+    { id: "pages.facade-profile", label: "تحويل نقاط الواجهات", url: "/pages/facade-profile/" },
     { id: "pages.shared-file", label: "اختيار أداة الملف المشترك", url: "/pages/shared-file/" },
     { id: "pages.site-management", label: "إدارة الشركات والمناطق والمواقع", url: "/pages/site-management/" },
     { id: "sites.write", label: "إضافة وتعديل بيانات المواقع", url: "/index.html", is_permission: true },
@@ -65,15 +66,28 @@
 
   function getRuntimeFlags() {
     const params = new URLSearchParams(window.location.search || "");
+    const apiParam = params.get("atlas_api");
+    const localModeParam = params.get("atlas_local_mode");
+
+    if (apiParam === "1") localStorage.setItem("atlasForceApiProbe", "1");
+    if (apiParam === "0") localStorage.removeItem("atlasForceApiProbe");
+    if (localModeParam === "1") localStorage.setItem("atlasAllowLocalMode", "1");
+    if (localModeParam === "0") localStorage.removeItem("atlasAllowLocalMode");
+
     return {
-      forceApiProbe: params.get("atlas_api") === "1" || localStorage.getItem("atlasForceApiProbe") === "1",
-      allowLocalMode: params.get("atlas_local_mode") === "1" || localStorage.getItem("atlasAllowLocalMode") === "1",
+      forceApiProbe: apiParam === "1" || localStorage.getItem("atlasForceApiProbe") === "1",
+      allowLocalMode: localModeParam === "1" || localStorage.getItem("atlasAllowLocalMode") === "1",
     };
   }
 
   function getLocalAdminPassword() {
     const params = new URLSearchParams(window.location.search || "");
-    return normalize(params.get("atlas_local_password")) || normalize(localStorage.getItem("atlasLocalAdminPassword"));
+    const passwordFromUrl = normalize(params.get("atlas_local_password"));
+    if (passwordFromUrl) {
+      localStorage.setItem("atlasLocalAdminPassword", passwordFromUrl);
+      return passwordFromUrl;
+    }
+    return normalize(localStorage.getItem("atlasLocalAdminPassword"));
   }
 
   function jsonParse(raw, fallback) {
@@ -342,6 +356,28 @@
     return deduplicatedUsers;
   }
 
+  function extractErrorMessage(response, payload, fallback = "Request failed") {
+    const httpMessage = `${fallback} (HTTP ${response.status})`;
+
+    if (typeof payload !== "string") {
+      const objectMessage = payload?.error || payload?.message;
+      return normalize(objectMessage) || httpMessage;
+    }
+
+    const text = payload.trim();
+    if (!text) return httpMessage;
+
+    const lower = text.toLowerCase();
+    const looksLikeHtml =
+      lower.startsWith("<!doctype") ||
+      lower.startsWith("<html") ||
+      lower.includes("<body") ||
+      lower.includes("<title>");
+    if (looksLikeHtml) return httpMessage;
+
+    return text.length > 240 ? `${text.slice(0, 237)}...` : text;
+  }
+
   async function apiFetch(url, options = {}) {
     const response = await fetch(url, {
       credentials: "include",
@@ -361,10 +397,7 @@
       : await response.text();
 
     if (!response.ok) {
-      const message =
-        typeof payload === "string"
-          ? payload
-          : payload?.error || payload?.message || "Request failed";
+      const message = extractErrorMessage(response, payload);
       const requestError = new Error(message);
       requestError.status = response.status;
       requestError.payload = payload;
@@ -417,9 +450,14 @@
       state.apiAvailable = false;
       state.apiBindings = null;
       state.mode = state.localModeAllowed ? "local" : "unavailable";
-      state.bootstrapError =
-        error?.message ||
-        "تعذر الوصول إلى Cloudflare Functions. استخدم localhost مع atlas_local_mode=1 للتطوير المحلي فقط.";
+      if (isLocalHost() && error?.status === 404) {
+        state.bootstrapError =
+          "Cloudflare Functions are not available on this local static server. For local testing, use atlas_local_mode=1 and set atlasLocalAdminPassword (or atlas_local_password in the URL).";
+      } else {
+        state.bootstrapError =
+          error?.message ||
+          "Unable to reach Cloudflare Functions. Use localhost with atlas_local_mode=1 for local development only.";
+      }
       return false;
     }
   }
@@ -798,7 +836,7 @@
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          min-height: 34px;
+          min-height: 44px;
           padding: 0 10px;
           border-radius: 9px;
           border: 1px solid rgba(30, 64, 175, 0.18);
@@ -822,6 +860,12 @@
         @media (max-width: 720px) {
           .atlas-auth-user-label {
             display: none;
+          }
+          .atlas-auth-link {
+            min-height: 44px;
+            padding: 0 14px;
+            border-radius: 10px;
+            font-size: 0.82rem;
           }
         }
       `;

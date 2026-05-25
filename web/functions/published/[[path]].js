@@ -1,5 +1,15 @@
 import { getPagesManifest, getSession, hasPermission, redirectToLogin } from "../api/_utils";
 
+function decodePathSegment(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text;
+  }
+}
+
 function contentTypeFromPath(pathname) {
   const lower = String(pathname || "").toLowerCase();
   if (lower.endsWith(".html") || lower.endsWith(".htm")) return "text/html; charset=utf-8";
@@ -17,6 +27,7 @@ function cleanObjectPath(value) {
   return String(value || "")
     .replaceAll("\\", "/")
     .split("/")
+    .map((segment) => decodePathSegment(segment))
     .map((segment) => segment.trim())
     .filter((segment) => segment && segment !== "." && segment !== "..")
     .join("/");
@@ -103,6 +114,10 @@ function readRoutePath(pathParam) {
   return String(pathParam || "");
 }
 
+function normalizeSlug(value) {
+  return cleanObjectPath(value).split("/")[0] || "";
+}
+
 export async function onRequestGet(context) {
   const auth = await getSession(context.env, context.request);
   if (!auth?.user) {
@@ -114,8 +129,8 @@ export async function onRequestGet(context) {
   }
 
   const rawPath = readRoutePath(context.params.path);
-  const segments = rawPath.split("/").filter(Boolean);
-  const slug = segments[0];
+  const segments = cleanObjectPath(rawPath).split("/").filter(Boolean);
+  const slug = normalizeSlug(segments[0]);
   const requestPathname = new URL(context.request.url).pathname;
   const nestedPath = segments.slice(1).join("/");
   const filePath = !nestedPath

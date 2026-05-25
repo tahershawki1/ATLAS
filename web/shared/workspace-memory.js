@@ -86,6 +86,26 @@
     return Boolean(window.AtlasStore?.isApiMode?.() && window.AtlasAuth?.getCurrentUser?.());
   }
 
+  function extractErrorMessage(response, payload, fallback = "Workspace memory request failed") {
+    const httpMessage = `${fallback} (HTTP ${response.status})`;
+    if (typeof payload !== "string") {
+      return normalize(payload?.error || payload?.message) || httpMessage;
+    }
+
+    const text = payload.trim();
+    if (!text) return httpMessage;
+
+    const lower = text.toLowerCase();
+    const looksLikeHtml =
+      lower.startsWith("<!doctype") ||
+      lower.startsWith("<html") ||
+      lower.includes("<body") ||
+      lower.includes("<title>");
+    if (looksLikeHtml) return httpMessage;
+
+    return text.length > 240 ? `${text.slice(0, 237)}...` : text;
+  }
+
   async function apiFetch(url, options = {}) {
     const response = await fetch(url, {
       credentials: "include",
@@ -103,7 +123,7 @@
       if (response.status === 401 || response.status === 403) {
         window.AtlasAuth?.resetAuthenticatedState?.();
       }
-      const error = new Error(typeof payload === "string" ? payload : payload?.error || "Workspace memory request failed");
+      const error = new Error(extractErrorMessage(response, payload));
       error.status = response.status;
       throw error;
     }

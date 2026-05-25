@@ -20,6 +20,7 @@
     />
     <link rel="stylesheet" href="shared/style.css" />
     <link rel="stylesheet" href="shared/home-page.css" />
+    <link rel="stylesheet" href="shared/mobile-fix.css" />
     <style>
       body.atlas-auth-pending #app {
         opacity: 0;
@@ -50,10 +51,6 @@
     </div>
 
     <div id="app" class="app-container">
-      <!-- Background Elements -->
-      <div class="bg-blur"></div>
-      <div class="bg-gradient"></div>
-
       <!-- Header -->
       <header class="main-header">
         <div class="logo-wrapper">
@@ -87,33 +84,26 @@
         <!-- Work Files Entry -->
         <div id="workspacePage" class="page active">
           <section class="workspace-studio" aria-label="ملفات العمل والمشاريع">
-            <div class="workspace-hero">
-              <div class="workspace-hero-copy">
-                <span class="workbench-kicker">ATLAS WORKSPACE</span>
-                <h1>ابدأ من ملف عمل واضح قبل الدخول للأدوات</h1>
-                <p>اكتب اسم المشروع أو الموقع، اربطه برقم أرض إن وجد، ثم ادخل للصفحة الرئيسية الخاصة بهذا الملف. رقم الأرض اختياري بالكامل.</p>
-              </div>
-              <div class="workspace-steps" aria-label="خطوات إنشاء ملف العمل">
-                <div class="workspace-step"><span>1</span><strong>اسم المشروع</strong><small>اسم واضح للرجوع إليه</small></div>
-                <div class="workspace-step"><span>2</span><strong>بيانات الموقع</strong><small>اختياري أو بالبحث عن رقم الأرض</small></div>
-                <div class="workspace-step"><span>3</span><strong>تفاصيل إضافية</strong><small>ملاحظات ونوع العمل</small></div>
-              </div>
-            </div>
 
             <div class="workspace-layout">
-              <section class="workspace-form-card">
+              <aside class="workspace-archive-card">
                 <div class="workspace-card-head">
-                  <span class="workspace-card-index">01</span>
-                  <div>
-                    <h2>بيانات ملف العمل</h2>
-                    <p>يمكن إنشاء ملف عمل جديد حتى لو لم يكن الموقع مسجلًا بعد.</p>
-                  </div>
+                  <span class="workspace-card-index">↺</span>
+                  <h2>ملفات العمل السابقة</h2>
                 </div>
+                <label class="workspace-field workspace-field-full">
+                  <span>بحث</span>
+                  <input id="workspaceArchiveSearch" type="search" oninput="app.renderWorkspaces()" />
+                </label>
+                <div id="workspaceEmpty" class="workspace-empty"></div>
+                <div id="workspaceList" class="workspace-list"></div>
+              </aside>
 
+              <section class="workspace-form-card">
                 <div class="workspace-fields">
                   <label class="workspace-field workspace-field-full">
-                    <span>اسم المشروع أو الموقع</span>
-                    <input id="workspaceProjectName" type="text" placeholder="مثال: فيلا المزهر - أعمال الرفع" autocomplete="off" />
+                    <span>اسم المشروع</span>
+                    <input id="workspaceProjectName" type="text" autocomplete="off" />
                   </label>
 
                   <label class="workspace-field">
@@ -133,65 +123,29 @@
                   </label>
                 </div>
 
-                <div class="workspace-card-head workspace-card-head-tight">
-                  <span class="workspace-card-index">02</span>
-                  <div>
-                    <h2>بيانات الموقع</h2>
-                    <p>ابحث برقم الأرض أو اختر من قاعدة المواقع. يمكنك المتابعة بدون اختيار موقع.</p>
-                  </div>
-                </div>
-
                 <div class="workspace-site-tools">
                   <label class="workspace-field workspace-field-full">
-                    <span>بحث سريع برقم الأرض</span>
-                    <input id="workspaceSiteSearch" type="search" placeholder="اكتب رقم الأرض للبحث..." autocomplete="off" oninput="app.searchWorkspaceSites()" />
+                    <span>رقم الأرض</span>
+                    <input id="workspaceSiteSearch" type="search" autocomplete="off" oninput="app.searchWorkspaceSites()" />
                   </label>
                   <div id="workspaceSiteResults" class="workspace-site-results" aria-live="polite"></div>
-                  <div id="workspaceSelectedSiteCard" class="workspace-selected-site is-empty">
-                    لم يتم اختيار موقع. يمكنك إنشاء ملف العمل بدون رقم أرض.
-                  </div>
+                  <div id="workspaceSelectedSiteCard" class="workspace-selected-site is-empty"></div>
                   <div class="workspace-inline-actions">
                     <button type="button" class="workbench-secondary" onclick="app.openWorkspaceSitePicker()">اختيار الموقع</button>
                     <button type="button" class="workbench-secondary" onclick="app.clearWorkspaceDraftSite()">بدون موقع</button>
                   </div>
                 </div>
 
-                <div class="workspace-card-head workspace-card-head-tight">
-                  <span class="workspace-card-index">03</span>
-                  <div>
-                    <h2>تفاصيل اختيارية</h2>
-                    <p>أضف أي معلومات تساعدك عند الرجوع للملف لاحقًا.</p>
-                  </div>
-                </div>
-
                 <label class="workspace-field workspace-field-full">
-                  <span>تفاصيل أو ملاحظات</span>
-                  <textarea id="workspaceDetails" rows="4" placeholder="مثال: مطلوب مراجعة اللوحات قبل الرفع، أو ملاحظات العميل..."></textarea>
+                  <span>ملاحظات</span>
+                  <textarea id="workspaceDetails" rows="2"></textarea>
                 </label>
 
                 <div class="workspace-submit-row">
-                  <button type="button" class="workbench-primary" onclick="app.createWorkspaceFromForm()">إنشاء ملف العمل والدخول للأدوات</button>
-                  <button type="button" class="workbench-secondary" onclick="app.createWorkspaceFromForm({ withoutSite: true })">متابعة بدون موقع</button>
+                  <button type="button" class="workbench-primary" onclick="app.createWorkspaceFromForm()">إنشاء ملف العمل</button>
+                  <button type="button" class="workbench-secondary" onclick="app.createWorkspaceFromForm({ withoutSite: true })">بدون موقع</button>
                 </div>
               </section>
-
-              <aside class="workspace-archive-card">
-                <div class="workspace-card-head">
-                  <span class="workspace-card-index">↺</span>
-                  <div>
-                    <h2>ملفات العمل السابقة</h2>
-                    <p>افتح مشروعًا سابقًا أو ابحث عنه بالاسم أو رقم الأرض.</p>
-                  </div>
-                </div>
-                <label class="workspace-field workspace-field-full">
-                  <span>بحث في ملفات العمل</span>
-                  <input id="workspaceArchiveSearch" type="search" placeholder="ابحث باسم المشروع أو رقم الأرض..." oninput="app.renderWorkspaces()" />
-                </label>
-                <div id="workspaceEmpty" class="workspace-empty">
-                  لا توجد ملفات عمل محفوظة حتى الآن.
-                </div>
-                <div id="workspaceList" class="workspace-list"></div>
-              </aside>
             </div>
           </section>
         </div>
@@ -199,17 +153,16 @@
         <!-- Home Menu -->
         <div id="homePage" class="page">
           <section id="toolsPanel" class="tools-panel" hidden aria-label="أدوات ملف العمل">
-            <div class="active-workspace-banner">
-              <div class="active-workspace-copy">
-                <span>ملف العمل الحالي</span>
-                <strong id="activeWorkspaceTitle">لم يتم اختيار موقع</strong>
-                <small id="activeWorkspaceMeta">اختر ملف عمل لعرض الأدوات.</small>
-              </div>
-              <button type="button" class="workbench-secondary" onclick="app.goToWorkspaceManager()">تغيير ملف العمل</button>
-            </div>
-
             <h2 class="home-section-title">الأدوات المتاحة لهذا الموقع</h2>
             <div class="grid-menu">
+            <button class="menu-card" onclick="app.goToWorkspaceManager()">
+              <div class="icon-wrapper" style="background:rgba(241,135,62,0.1);color:var(--accent)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                </svg>
+              </div>
+              <span class="card-label">تغيير ملف العمل</span>
+            </button>
             <button class="menu-card" data-permission="pages.new" onclick="window.location.href='pages/new/'">
               <div class="icon-wrapper new-icon">
                 <svg
@@ -344,6 +297,24 @@
                 </svg>
               </div>
               <span class="card-label">تصدير الإحداثيات</span>
+            </button>
+
+            <button class="menu-card" data-permission="pages.facade-profile" onclick="window.location.href='pages/facade-profile/'">
+              <div class="icon-wrapper">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M3 18h18" />
+                  <path d="M5 16l4-8 3 5 3-4 4 7" />
+                  <circle cx="9" cy="8" r="1" />
+                  <circle cx="12" cy="13" r="1" />
+                  <circle cx="15" cy="9" r="1" />
+                </svg>
+              </div>
+              <span class="card-label">تحويل نقاط الواجهات</span>
             </button>
 
             <button class="menu-card refresh-cache-card" type="button" onclick="forceRefreshAtlasApp(this)">

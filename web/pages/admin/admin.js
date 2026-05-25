@@ -8,6 +8,7 @@
     selectedArea: "",
     selectedPlotId: "",
     selectedFiles: [],
+    inferredPageMeta: { title: "", slug: "" },
     runtimeMode: "local",
   };
 
@@ -15,6 +16,89 @@
 
   function norm(value) {
     return String(value ?? "").trim();
+  }
+
+  function normalizeUploadPath(value) {
+    return String(value || "")
+      .replaceAll("\\", "/")
+      .split("/")
+      .map((segment) => segment.trim())
+      .filter((segment) => segment && segment !== "." && segment !== "..")
+      .join("/");
+  }
+
+  function splitUploadPath(value) {
+    return normalizeUploadPath(value)
+      .split("/")
+      .filter(Boolean);
+  }
+
+  function slugify(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\u0600-\u06ff]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function inferPageMetaFromFiles(files = []) {
+    const paths = Array.from(files || [])
+      .map((file) => normalizeUploadPath(file.webkitRelativePath || file.name))
+      .filter(Boolean);
+    if (!paths.length) return { title: "", slug: "" };
+
+    const pathParts = paths.map((path) => splitUploadPath(path));
+    const hasNestedPaths = pathParts.some((parts) => parts.length > 1);
+    const sharedRoot = (() => {
+      if (!pathParts.length) return "";
+      const root = pathParts[0][0];
+      if (!root || !hasNestedPaths) return "";
+      return pathParts.every((parts) => parts[0] === root) ? root : "";
+    })();
+
+    const htmlPaths = paths.filter((path) => /\.html?$/i.test(path));
+    const preferredPath =
+      htmlPaths.find((path) => path.toLowerCase() === "index.html") ||
+      htmlPaths.find((path) => path.toLowerCase().endsWith("/index.html")) ||
+      htmlPaths[0] ||
+      paths[0];
+    const preferredFileName = splitUploadPath(preferredPath).pop() || "";
+    const preferredBaseName = preferredFileName.replace(/\.[^./]+$/, "");
+
+    const titleBase = sharedRoot || (preferredBaseName.toLowerCase() === "index" ? "" : preferredBaseName);
+    const title = String(titleBase || "")
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const slug = slugify(sharedRoot || preferredBaseName || title);
+
+    return { title, slug };
+  }
+
+  function applyAutoPageMeta() {
+    const titleInput = $("#pageTitleInput");
+    const slugInput = $("#pageSlugInput");
+    if (!titleInput || !slugInput) return;
+
+    const inferred = inferPageMetaFromFiles(state.selectedFiles);
+    const previousInferredTitle = norm(state.inferredPageMeta.title);
+    const previousInferredSlug = norm(state.inferredPageMeta.slug);
+
+    if (
+      inferred.title &&
+      (!norm(titleInput.value) || norm(titleInput.value) === previousInferredTitle)
+    ) {
+      titleInput.value = inferred.title;
+    }
+
+    if (
+      inferred.slug &&
+      (!norm(slugInput.value) || norm(slugInput.value) === previousInferredSlug)
+    ) {
+      slugInput.value = inferred.slug;
+    }
+
+    state.inferredPageMeta = inferred;
   }
 
   function esc(value) {
@@ -735,6 +819,7 @@
         slug: $("#pageSlugInput").value,
       });
       state.selectedFiles = [];
+      state.inferredPageMeta = { title: "", slug: "" };
       $("#pageFileInput").value = "";
       $("#pageFolderInput").value = "";
       $("#pageTitleInput").value = "";
@@ -896,10 +981,12 @@
     $("#pageFileInput").addEventListener("change", (event) => {
       state.selectedFiles = Array.from(event.target.files || []);
       renderSelectedFiles();
+      applyAutoPageMeta();
     });
     $("#pageFolderInput").addEventListener("change", (event) => {
       state.selectedFiles = Array.from(event.target.files || []);
       renderSelectedFiles();
+      applyAutoPageMeta();
     });
     $("#siteCompanySelect").addEventListener("change", (event) => {
       state.selectedCompanyId = event.target.value;

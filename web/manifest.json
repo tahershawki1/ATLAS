@@ -1,13 +1,22 @@
 {
-  "name": "Atlas Site",
-  "short_name": "Atlas",
-  "description": "Atlas Engineering - Site Management System",
-  "start_url": "index.html",
-  "scope": "./",
+  "name": "Atlas Surveying - مساح",
+  "short_name": "مساح",
+  "description": "نظام إدارة الأعمال المساحية - Atlas Engineering Site Management System",
+  "id": "atlas-site",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#0a0e1a",
-  "theme_color": "#00d4ff",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "lang": "ar",
+  "dir": "rtl",
+  "background_color": "#f8fafc",
+  "theme_color": "#0a7f8a",
+  "categories": ["productivity", "utilities"],
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "icons": [
     {
       "src": "icons/icon-192.png",
@@ -24,11 +33,53 @@
     {
       "src": "icons/brand-logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "ملف عمل جديد",
+      "short_name": "جديد",
+      "description": "إنشاء ملف عمل جديد",
+      "url": "/",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "الأدوات المتاحة",
+      "short_name": "أدوات",
+      "description": "قائمة الأدوات المساحية",
+      "url": "/pages/new/",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "إدارة المواقع",
+      "short_name": "مواقع",
+      "description": "إدارة الشركات والمناطق والمواقع",
+      "url": "/pages/site-management/",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ],
   "share_target": {
-    "action": "share-target",
+    "action": "/share-target",
     "method": "POST",
     "enctype": "multipart/form-data",
     "params": {

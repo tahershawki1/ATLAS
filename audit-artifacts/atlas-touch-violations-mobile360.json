@@ -1,0 +1,270 @@
+[
+  {
+    "route": "/",
+    "violations": [
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "تحديث الآن",
+        "w": 89,
+        "h": 35
+      },
+      {
+        "tag": "a",
+        "cls": "atlas-auth-link",
+        "text": "لوحة الإدارة",
+        "w": 83,
+        "h": 34
+      },
+      {
+        "tag": "button",
+        "cls": "atlas-auth-link atlas-auth-logout",
+        "text": "تسجيل الخروج",
+        "w": 95,
+        "h": 34
+      }
+    ]
+  },
+  {
+    "route": "/pages/new/",
+    "violations": [
+      {
+        "tag": "a",
+        "cls": "atlas-auth-link",
+        "text": "لوحة الإدارة",
+        "w": 83,
+        "h": 34
+      },
+      {
+        "tag": "button",
+        "cls": "atlas-auth-link atlas-auth-logout",
+        "text": "تسجيل الخروج",
+        "w": 95,
+        "h": 34
+      }
+    ]
+  },
+  {
+    "route": "/pages/check/",
+    "violations": [
+      {
+        "tag": "a",
+        "cls": "atlas-auth-link",
+        "text": "لوحة الإدارة",
+        "w": 83,
+        "h": 34
+      },
+      {
+        "tag": "button",
+        "cls": "atlas-auth-link atlas-auth-logout",
+        "text": "تسجيل الخروج",
+        "w": 95,
+        "h": 34
+      }
+    ]
+  },
+  {
+    "route": "/pages/survey/",
+    "violations": [
+      {
+        "tag": "a",
+        "cls": "atlas-auth-link",
+        "text": "لوحة الإدارة",
+        "w": 83,
+        "h": 34
+      },
+      {
+        "tag": "button",
+        "cls": "atlas-auth-link atlas-auth-logout",
+        "text": "تسجيل الخروج",
+        "w": 95,
+        "h": 34
+      }
+    ]
+  },
+  {
+    "route": "/pages/new-level-mark/",
+    "violations": [
+      {
+        "tag": "button",
+        "cls": "back-btn-header",
+        "text": "العودة",
+        "w": 167,
+        "h": 34
+      },
+      {
+        "tag": "button",
+        "cls": "reset-btn",
+        "text": "🗑️\n                    إعادة تعيين",
+        "w": 167,
+        "h": 34
+      }
+    ]
+  },
+  {
+    "route": "/pages/point-staking/",
+    "violations": []
+  },
+  {
+    "route": "/pages/level-budget/",
+    "violations": [
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "✕",
+        "w": 15,
+        "h": 29
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "✕",
+        "w": 15,
+        "h": 29
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "✕",
+        "w": 15,
+        "h": 29
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "✕",
+        "w": 15,
+        "h": 29
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "✕",
+        "w": 15,
+        "h": 29
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "✕",
+        "w": 15,
+        "h": 29
+      }
+    ]
+  },
+  {
+    "route": "/pages/coordinates-extractor/",
+    "violations": []
+  },
+  {
+    "route": "/pages/coordinates-proposal/",
+    "violations": [
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "w": 18,
+        "h": 40
+      }
+    ]
+  },
+  {
+    "route": "/pages/coordinates-export/",
+    "violations": [
+      {
+        "tag": "a",
+        "cls": "atlas-auth-link",
+        "text": "لوحة الإدارة",
+        "w": 85,
+        "h": 34
+      },
+      {
+        "tag": "button",
+        "cls": "atlas-auth-link atlas-auth-logout",
+        "text": "تسجيل الخروج",
+        "w": 98,
+        "h": 34
+      },
+      {
+        "tag": "a",
+        "cls": "leaflet-control-zoom-in",
+        "text": "+",
+        "w": 30,
+        "h": 30
+      },
+      {
+        "tag": "a",
+        "cls": "leaflet-control-zoom-out",
+        "text": "−",
+        "w": 30,
+        "h": 30
+      },
+      {
+        "tag": "a",
+        "cls": "",
+        "text": "Leaflet",
+        "w": 224,
+        "h": 14
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "w": 18,
+        "h": 40
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "w": 18,
+        "h": 40
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "w": 18,
+        "h": 40
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "w": 18,
+        "h": 40
+      }
+    ]
+  },
+  {
+    "route": "/pages/facade-profile/",
+    "violations": []
+  },
+  {
+    "route": "/pages/shared-file/",
+    "violations": []
+  },
+  {
+    "route": "/pages/site-management/",
+    "violations": [
+      {
+        "tag": "a",
+        "cls": "atlas-auth-link",
+        "text": "لوحة الإدارة",
+        "w": 85,
+        "h": 34
+      },
+      {
+        "tag": "button",
+        "cls": "atlas-auth-link atlas-auth-logout",
+        "text": "تسجيل الخروج",
+        "w": 98,
+        "h": 34
+      }
+    ]
+  },
+  {
+    "route": "/pages/admin/",
+    "violations": []
+  }
+]

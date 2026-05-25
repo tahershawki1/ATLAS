@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="ltr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -19,7 +19,7 @@
     <div class="wrap">
       <div class="top-actions">
         <button class="back-btn" onclick="window.location.href='../../index.html'">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="arrow-rtl-flip" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
           <span>العودة</span>
@@ -107,7 +107,7 @@
         <td><input class="readonly num" type="text" readonly /></td>
         <td><input class="readonly num" type="text" readonly /></td>
         <td><input class="input-cell" placeholder="-" /></td>
-        <td><button type="button" onclick="deleteRow(this)">✕</button></td>
+        <td><button type="button" class="row-remove-btn" onclick="deleteRow(this)" aria-label="حذف الصف">✕</button></td>
       `;
       rowsEl.appendChild(tr);
     }

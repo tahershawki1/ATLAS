@@ -1,0 +1,51 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "ATLAS: Start Local Server (4173)",
+      "type": "node-terminal",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/web",
+      "command": "python -m http.server 4173 --bind 127.0.0.1"
+    },
+    {
+      "name": "ATLAS: Open Local Preview",
+      "type": "node-terminal",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "command": "Start-Process 'http://127.0.0.1:4173/pages/login/?atlas_local_mode=1&atlas_local_password=admin123'"
+    },
+    {
+      "name": "ATLAS: Start Cloudflare Preview (8788)",
+      "type": "node-terminal",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/web",
+      "command": "npm.cmd run dev:cloudflare"
+    },
+    {
+      "name": "ATLAS: Open Cloudflare Preview",
+      "type": "node-terminal",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "command": "Start-Process 'http://127.0.0.1:8788/'"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "ATLAS: Local Test (Start + Open)",
+      "configurations": [
+        "ATLAS: Start Local Server (4173)",
+        "ATLAS: Open Local Preview"
+      ],
+      "stopAll": true
+    },
+    {
+      "name": "ATLAS: Cloudflare Test (Start + Open)",
+      "configurations": [
+        "ATLAS: Start Cloudflare Preview (8788)",
+        "ATLAS: Open Cloudflare Preview"
+      ],
+      "stopAll": true
+    }
+  ]
+}

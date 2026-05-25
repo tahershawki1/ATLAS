@@ -6,7 +6,11 @@ const failures = [];
 
 function shouldSkip(filePath) {
   const normalized = filePath.replaceAll(path.sep, "/");
-  return normalized.includes("/LIP/") || normalized.includes("/_web_zip_restore/");
+  return (
+    normalized.includes("/LIP/") ||
+    normalized.includes("/_web_zip_restore/") ||
+    normalized.includes("/node_modules/")
+  );
 }
 
 function walk(dir, visitor) {

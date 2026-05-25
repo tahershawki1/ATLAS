@@ -1,7 +1,7 @@
 // Atlas Site - Service Worker
 // Handles offline caching and update notifications
 
-const CACHE_NAME = 'atlas-site-v35';
+const CACHE_NAME = 'atlas-site-v36';
 const SHARED_FILES_CACHE = 'atlas-shared-files-v1';
 const SHARED_FILE_KEY = '/__atlas_shared_file__';
 const SHARED_FILE_META_KEY = '/__atlas_shared_file_meta__';
@@ -43,6 +43,9 @@ const ASSETS = [
   './pages/coordinates-proposal/page.css',
   './pages/coordinates-export/index.html',
   './pages/coordinates-export/page.css',
+  './pages/facade-profile/index.html',
+  './pages/facade-profile/page.css',
+  './pages/facade-profile/script.js',
   './pages/shared-file/index.html',
   './pages/shared-file/page.css',
   './pages/point-staking/index.html',

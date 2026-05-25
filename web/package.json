@@ -5,9 +5,13 @@
   "scripts": {
     "build:cloudflare": "node tools/build-cloudflare-pages.js",
     "deploy:cloudflare": "npm run check && npm run build:cloudflare && npx wrangler pages deploy ../dist/cloudflare-pages --project-name atlas-site",
-    "dev:cloudflare": "npm run build:cloudflare && npx wrangler pages dev ../dist/cloudflare-pages",
+    "dev:cloudflare": "npm run build:cloudflare && node tools/start-cloudflare-dev.js",
+    "dev:qa-local": "node tools/qa-audit/start-local-qa.js",
     "check": "npm run check:js && npm run check:links",
     "check:js": "node tools/check-js.js",
-    "check:links": "node tools/check-links.js"
+    "check:links": "node tools/check-links.js",
+    "qa:audit": "node tools/qa-audit/run-audit.js --target both",
+    "qa:audit:local": "node tools/qa-audit/run-audit.js --target local",
+    "qa:audit:production": "node tools/qa-audit/run-audit.js --target production"
   }
 }
