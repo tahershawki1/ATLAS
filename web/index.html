@@ -6,9 +6,9 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0"
     />
-    <title>Atlas Engineering - Site Dashboard</title>
-    <meta name="description" content="Atlas Engineering Site Management System">
-    <meta name="theme-color" content="#00d4ff">
+    <title>ATLAS Surveying Field Tools</title>
+    <meta name="description" content="ATLAS Surveying Field Tools for mobile-first site engineering workflows.">
+    <meta name="theme-color" content="#0f5e72">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icons/brand-logo.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -84,6 +84,24 @@
         <!-- Work Files Entry -->
         <div id="workspacePage" class="page active">
           <section class="workspace-studio" aria-label="ملفات العمل والمشاريع">
+            <header class="screen-intro">
+              <h1>مجلد العمل</h1>
+              <p>اختيار الشركة والموقع والرجوع السريع لآخر مشروع مستخدم أثناء العمل الميداني.</p>
+            </header>
+
+            <section class="workspace-quick-strip" aria-label="ملخص ملف العمل">
+              <div class="workspace-quick-item">
+                <span>آخر مشروع مستخدم</span>
+                <strong id="workspaceLastProject">لا يوجد مشروع نشط</strong>
+              </div>
+              <div class="workspace-quick-item">
+                <span>الموقع الحالي</span>
+                <strong id="workspaceLastSite">غير محدد</strong>
+              </div>
+              <button type="button" class="workbench-secondary workspace-quick-btn" onclick="app.goToWorkspaceManager()">
+                إضافة / تغيير مجلد العمل
+              </button>
+            </section>
 
             <div class="workspace-layout">
               <aside class="workspace-archive-card">
@@ -152,191 +170,315 @@
 
         <!-- Home Menu -->
         <div id="homePage" class="page">
-          <section id="toolsPanel" class="tools-panel" hidden aria-label="أدوات ملف العمل">
-            <h2 class="home-section-title">الأدوات المتاحة لهذا الموقع</h2>
-            <div class="grid-menu">
-            <button class="menu-card" onclick="app.goToWorkspaceManager()">
-              <div class="icon-wrapper" style="background:rgba(241,135,62,0.1);color:var(--accent)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                </svg>
-              </div>
-              <span class="card-label">تغيير ملف العمل</span>
-            </button>
-            <button class="menu-card" data-permission="pages.new" onclick="window.location.href='pages/new/'">
-              <div class="icon-wrapper new-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </div>
-              <span class="card-label">جديد</span>
-            </button>
+          <div class="mobile-home-screens">
+            <section id="toolsSection" class="mobile-home-screen is-active" data-home-screen="tools">
+              <header class="screen-intro">
+                <h2>أدوات المساحة</h2>
+                <p>تشغيل أدوات التحويل والرفع والحسابات مباشرة من الموبايل.</p>
+              </header>
 
-            <button class="menu-card" data-permission="pages.check" onclick="window.location.href='pages/check/'">
-              <div class="icon-wrapper check-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"
-                  />
-                </svg>
+              <div id="toolsWorkspaceRequired" class="section-empty-note">
+                اختر أو أنشئ مجلد عمل أولاً حتى تظهر أدوات هذا الموقع.
               </div>
-              <span class="card-label">تشييك</span>
-            </button>
 
-            <button class="menu-card" data-permission="pages.survey" onclick="window.location.href='pages/survey/'">
-              <div class="icon-wrapper survey-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"
-                  />
-                </svg>
-              </div>
-              <span class="card-label">رفع</span>
-            </button>
+              <section id="toolsPanel" class="tools-panel" hidden aria-label="أدوات ملف العمل">
+                <h2 class="home-section-title">الأدوات المتاحة لهذا الموقع</h2>
+                <div class="grid-menu">
+                <button class="menu-card" onclick="app.goToWorkspaceManager()">
+                  <div class="icon-wrapper" style="background:rgba(241,135,62,0.1);color:var(--accent)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
+                  </div>
+                  <span class="card-label">تغيير ملف العمل</span>
+                </button>
+                <button class="menu-card" data-permission="pages.new" onclick="window.location.href='pages/new/'">
+                  <div class="icon-wrapper new-icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                  </div>
+                  <span class="card-label">جديد</span>
+                </button>
 
-            <button class="menu-card" data-permission="pages.point-staking" onclick="window.location.href='pages/point-staking/'">
-              <div class="icon-wrapper stake-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 8v8M8 12h8" />
-                </svg>
-              </div>
-              <span class="card-label">توقيع</span>
-            </button>
+                <button class="menu-card" data-permission="pages.check" onclick="window.location.href='pages/check/'">
+                  <div class="icon-wrapper check-icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"
+                      />
+                    </svg>
+                  </div>
+                  <span class="card-label">تشييك</span>
+                </button>
 
-            <button class="menu-card" data-permission="pages.level-budget" onclick="window.location.href='pages/level-budget/'">
-              <div class="icon-wrapper new-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </div>
-              <span class="card-label">جدول الميزانية والتحقق</span>
-            </button>
+                <button class="menu-card" data-permission="pages.survey" onclick="window.location.href='pages/survey/'">
+                  <div class="icon-wrapper survey-icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"
+                      />
+                    </svg>
+                  </div>
+                  <span class="card-label">رفع</span>
+                </button>
 
-            <button class="menu-card" data-permission="pages.site-management" onclick="window.location.href='pages/site-management/'">
-              <div class="icon-wrapper survey-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M3 3h18v4H3z" />
-                  <path d="M7 9h10M7 13h10M7 17h6" />
-                </svg>
-              </div>
-              <span class="card-label">إدارة الشركات والمناطق والمواقع</span>
-            </button>
+                <button class="menu-card" data-permission="pages.point-staking" onclick="window.location.href='pages/point-staking/'">
+                  <div class="icon-wrapper stake-icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 8v8M8 12h8" />
+                    </svg>
+                  </div>
+                  <span class="card-label">توقيع</span>
+                </button>
 
-            <button class="menu-card" data-permission="pages.coordinates-proposal" onclick="window.location.href='pages/coordinates-proposal/'">
-              <div class="icon-wrapper">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M3 5h18M3 12h18M3 19h18" />
-                  <path d="M8 5v14" />
-                </svg>
-              </div>
-              <span class="card-label">فحص المخطط واستخراج الإحداثيات</span>
-            </button>
+                <button class="menu-card" data-permission="pages.level-budget" onclick="window.location.href='pages/level-budget/'">
+                  <div class="icon-wrapper new-icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </div>
+                  <span class="card-label">جدول الميزانية والتحقق</span>
+                </button>
 
-            <button class="menu-card" data-permission="pages.coordinates-extractor" onclick="window.location.href='pages/coordinates-extractor/'">
-              <div class="icon-wrapper">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M4 4h16v16H4z" />
-                  <path d="M8 8h8M8 12h8M8 16h5" />
-                </svg>
-              </div>
-              <span class="card-label">استخراج الإحداثيات</span>
-            </button>
+                <button class="menu-card" data-permission="pages.site-management" onclick="window.location.href='pages/site-management/'">
+                  <div class="icon-wrapper survey-icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M3 3h18v4H3z" />
+                      <path d="M7 9h10M7 13h10M7 17h6" />
+                    </svg>
+                  </div>
+                  <span class="card-label">إدارة الشركات والمناطق والمواقع</span>
+                </button>
 
-            <button class="menu-card" data-permission="pages.coordinates-export" onclick="window.location.href='pages/coordinates-export/'">
-              <div class="icon-wrapper">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M12 3v12" />
-                  <path d="M7 10l5 5 5-5" />
-                  <path d="M4 21h16" />
-                </svg>
-              </div>
-              <span class="card-label">تصدير الإحداثيات</span>
-            </button>
+                <button class="menu-card" data-permission="pages.coordinates-proposal" onclick="window.location.href='pages/coordinates-proposal/'">
+                  <div class="icon-wrapper">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M3 5h18M3 12h18M3 19h18" />
+                      <path d="M8 5v14" />
+                    </svg>
+                  </div>
+                  <span class="card-label">فحص المخطط واستخراج الإحداثيات</span>
+                </button>
 
-            <button class="menu-card" data-permission="pages.facade-profile" onclick="window.location.href='pages/facade-profile/'">
-              <div class="icon-wrapper">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M3 18h18" />
-                  <path d="M5 16l4-8 3 5 3-4 4 7" />
-                  <circle cx="9" cy="8" r="1" />
-                  <circle cx="12" cy="13" r="1" />
-                  <circle cx="15" cy="9" r="1" />
-                </svg>
-              </div>
-              <span class="card-label">تحويل نقاط الواجهات</span>
-            </button>
+                <button class="menu-card" data-permission="pages.coordinates-extractor" onclick="window.location.href='pages/coordinates-extractor/'">
+                  <div class="icon-wrapper">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M4 4h16v16H4z" />
+                      <path d="M8 8h8M8 12h8M8 16h5" />
+                    </svg>
+                  </div>
+                  <span class="card-label">استخراج الإحداثيات</span>
+                </button>
 
-            <button class="menu-card refresh-cache-card" type="button" onclick="forceRefreshAtlasApp(this)">
-              <div class="icon-wrapper refresh-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M21 12a9 9 0 0 1-15.5 6.2" />
-                  <path d="M3 12A9 9 0 0 1 18.5 5.8" />
-                  <path d="M18 2v4h-4" />
-                  <path d="M6 22v-4h4" />
-                </svg>
+                <button class="menu-card" data-permission="pages.coordinates-export" onclick="window.location.href='pages/coordinates-export/'">
+                  <div class="icon-wrapper">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M12 3v12" />
+                      <path d="M7 10l5 5 5-5" />
+                      <path d="M4 21h16" />
+                    </svg>
+                  </div>
+                  <span class="card-label">تصدير الإحداثيات</span>
+                </button>
+
+                <button class="menu-card" data-permission="pages.facade-profile" onclick="window.location.href='pages/facade-profile/'">
+                  <div class="icon-wrapper">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M3 18h18" />
+                      <path d="M5 16l4-8 3 5 3-4 4 7" />
+                      <circle cx="9" cy="8" r="1" />
+                      <circle cx="12" cy="13" r="1" />
+                      <circle cx="15" cy="9" r="1" />
+                    </svg>
+                  </div>
+                  <span class="card-label">تحويل نقاط الواجهات</span>
+                </button>
+
+                <button class="menu-card refresh-cache-card" type="button" onclick="forceRefreshAtlasApp(this)">
+                  <div class="icon-wrapper refresh-icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M21 12a9 9 0 0 1-15.5 6.2" />
+                      <path d="M3 12A9 9 0 0 1 18.5 5.8" />
+                      <path d="M18 2v4h-4" />
+                      <path d="M6 22v-4h4" />
+                    </svg>
+                  </div>
+                  <span class="card-label">تحديث الموقع ومسح الكاش</span>
+                </button>
+                </div>
+              </section>
+            </section>
+
+            <section id="siteSection" class="mobile-home-screen" data-home-screen="site">
+              <header class="screen-intro">
+                <h2>إدارة الموقع</h2>
+                <p>بيانات الموقع، المرفقات، التقارير، ومتابعة حالة العمل من شاشة واحدة.</p>
+              </header>
+              <div class="grid-menu">
+                <button class="menu-card" data-permission="pages.site-management" onclick="window.location.href='pages/site-management/'">
+                  <div class="icon-wrapper">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 3h18v4H3z" />
+                      <path d="M6 10h12M6 14h12M6 18h8" />
+                    </svg>
+                  </div>
+                  <span class="card-label">بيانات الموقع</span>
+                </button>
+                <button class="menu-card" onclick="window.location.href='pages/shared-file/'">
+                  <div class="icon-wrapper">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <path d="M7 10l5 5 5-5" />
+                      <path d="M12 15V3" />
+                    </svg>
+                  </div>
+                  <span class="card-label">الصور / المرفقات</span>
+                </button>
+                <button class="menu-card" data-permission="pages.survey" onclick="window.location.href='pages/survey/'">
+                  <div class="icon-wrapper">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 4h16v16H4z" />
+                      <path d="M8 8h8M8 12h8M8 16h5" />
+                    </svg>
+                  </div>
+                  <span class="card-label">التقارير</span>
+                </button>
+                <button class="menu-card" data-permission="pages.check" onclick="window.location.href='pages/check/'">
+                  <div class="icon-wrapper">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M9 11l3 3L22 4" />
+                      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                    </svg>
+                  </div>
+                  <span class="card-label">ملاحظات الموقع</span>
+                </button>
+                <button class="menu-card" data-permission="pages.level-budget" onclick="window.location.href='pages/level-budget/'">
+                  <div class="icon-wrapper">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </div>
+                  <span class="card-label">حالات العمل</span>
+                </button>
               </div>
-              <span class="card-label">تحديث الموقع ومسح الكاش</span>
-            </button>
-            </div>
-          </section>
+            </section>
+
+            <section id="profileSection" class="mobile-home-screen" data-home-screen="profile">
+              <header class="screen-intro">
+                <h2>البروفايل</h2>
+                <p>إعدادات المستخدم، الثيم، اللغة، ومعلومات التطبيق.</p>
+              </header>
+
+              <section class="profile-card">
+                <h3>بيانات المستخدم</h3>
+                <div class="profile-meta-row">
+                  <span>المستخدم</span>
+                  <strong id="profileUserName">—</strong>
+                </div>
+                <div class="profile-meta-row">
+                  <span>الدور</span>
+                  <strong id="profileUserRole">—</strong>
+                </div>
+                <div class="profile-meta-row">
+                  <span>المشروع النشط</span>
+                  <strong id="profileWorkspaceName">لا يوجد</strong>
+                </div>
+              </section>
+
+              <section class="profile-card">
+                <h3>الإعدادات</h3>
+                <label class="workspace-field workspace-field-full">
+                  <span>الثيم</span>
+                  <select id="profileThemeSelect" onchange="app.applyShellTheme(this.value)">
+                    <option value="field-light">Field Light</option>
+                    <option value="field-contrast">Field Contrast</option>
+                  </select>
+                </label>
+                <label class="workspace-field workspace-field-full">
+                  <span>اللغة</span>
+                  <select id="profileLanguageSelect" onchange="app.applyShellLanguage(this.value)">
+                    <option value="ar">العربية</option>
+                    <option value="en">English</option>
+                  </select>
+                </label>
+              </section>
+
+              <section class="profile-card">
+                <h3>معلومات التطبيق</h3>
+                <div class="profile-meta-row">
+                  <span>النسخة</span>
+                  <strong>v2.0.19</strong>
+                </div>
+                <div class="profile-meta-row">
+                  <span>الوضع</span>
+                  <strong>ATLAS Surveying Field Tools</strong>
+                </div>
+                <div class="profile-meta-row">
+                  <span>PWA</span>
+                  <strong>Enabled</strong>
+                </div>
+              </section>
+            </section>
+          </div>
         </div>
         <!-- Action Form Page (Dynamic) -->
         <div id="actionPage" class="page">
@@ -374,10 +516,40 @@
       <footer class="main-footer">
         <div class="status-indicator">
           <span class="status-dot"></span>
-          <span class="status-text">Atlas Engineering System</span>
+          <span class="status-text">ATLAS Field Engine</span>
           <span class="version-tag">v2.0.19</span>
         </div>
       </footer>
+
+      <nav class="bottom-nav" aria-label="التنقل السفلي">
+        <button type="button" class="bottom-nav-item" data-mobile-nav="workspace" onclick="atlasSwitchMobileNav('workspace')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 7h18M3 12h18M3 17h18" />
+          </svg>
+          <span>مجلد العمل</span>
+        </button>
+        <button type="button" class="bottom-nav-item" data-mobile-nav="tools" onclick="atlasSwitchMobileNav('tools')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14.7 6.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4l-7.9 7.9-3.5.5.5-3.5z" />
+            <path d="M12 3v3M3 12h3M21 12h-3M12 21v-3" />
+          </svg>
+          <span>أدوات المساحة</span>
+        </button>
+        <button type="button" class="bottom-nav-item" data-mobile-nav="site" onclick="atlasSwitchMobileNav('site')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2s7 5 7 11a7 7 0 1 1-14 0c0-6 7-11 7-11z" />
+            <circle cx="12" cy="12" r="2.5" />
+          </svg>
+          <span>إدارة الموقع</span>
+        </button>
+        <button type="button" class="bottom-nav-item" data-mobile-nav="profile" onclick="atlasSwitchMobileNav('profile')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="7" r="4" />
+            <path d="M4 21c1.8-3.4 4.5-5 8-5s6.2 1.6 8 5" />
+          </svg>
+          <span>البروفايل</span>
+        </button>
+      </nav>
 
 
       <!-- Site Selector Modal -->
@@ -580,6 +752,63 @@
       </div>
 
     </div>
+    <script>
+      window.atlasSwitchMobileNav = function atlasSwitchMobileNav(section) {
+        const next = String(section || "").trim().toLowerCase();
+        const appRef = window.app;
+
+        if (appRef && typeof appRef.switchMobileNav === "function") {
+          appRef.switchMobileNav(next);
+          return;
+        }
+
+        if (next === "workspace") {
+          if (appRef && typeof appRef.goToWorkspaceManager === "function") {
+            appRef.goToWorkspaceManager();
+            return;
+          }
+          const workspacePage = document.getElementById("workspacePage");
+          const homePage = document.getElementById("homePage");
+          workspacePage?.classList.add("active");
+          homePage?.classList.remove("active");
+        }
+
+        if (!["tools", "site", "profile"].includes(next)) return;
+
+        if (appRef) {
+          appRef.state = appRef.state || {};
+          appRef.state.homeSection = next;
+          appRef.state.currentPage = "home";
+          appRef.state.history = ["workspace", "home"];
+          if (typeof appRef.render === "function") {
+            appRef.render();
+            return;
+          }
+        }
+
+        document.querySelectorAll(".page").forEach((page) => page.classList.remove("active"));
+        document.getElementById("homePage")?.classList.add("active");
+        document.querySelectorAll("[data-home-screen]").forEach((node) => {
+          node.classList.toggle("is-active", node.getAttribute("data-home-screen") === next);
+        });
+
+        document.querySelectorAll("[data-mobile-nav]").forEach((button) => {
+          const isActive = button.getAttribute("data-mobile-nav") === next;
+          button.classList.toggle("is-active", isActive);
+          button.setAttribute("aria-current", isActive ? "page" : "false");
+        });
+
+        const navTitle = document.getElementById("navTitle");
+        if (navTitle) {
+          const titles = {
+            tools: "أدوات المساحة",
+            site: "إدارة الموقع",
+            profile: "البروفايل",
+          };
+          navTitle.textContent = titles[next] || "ATLAS";
+        }
+      };
+    </script>
 
     <script src="shared/sites_data.js"></script>
     <script src="shared/dialogs.js"></script>

@@ -2,6 +2,7 @@
   state: {
     currentPage: "workspace",
     history: ["workspace"],
+    homeSection: "tools",
     selectedSite: null,
     workspaceDraftSite: null,
     pendingAction: null,
@@ -22,6 +23,8 @@
     pendingSites: "pendingSites",
     customSitesDb: "atlasCustomSitesDb",
     workspaces: "atlasWorkspaces",
+    uiTheme: "atlasUiTheme",
+    uiLanguage: "atlasUiLanguage",
   },
 
   pages: {
@@ -179,6 +182,8 @@
     const siteCompany = document.getElementById("siteCompany");
     if (!siteName || !siteCompany) {
       this.renderWorkspaceTools();
+      this.renderWorkspaceSummaryCards();
+      this.renderProfileSummary();
       return;
     }
 
@@ -189,25 +194,138 @@
       this.state.selectedSite?.workspace_title ||
       "ملف عمل";
     this.renderWorkspaceTools();
+    this.renderWorkspaceSummaryCards();
+    this.renderProfileSummary();
   },
 
   renderWorkspaceTools() {
     const toolsPanel = document.getElementById("toolsPanel");
+    const toolsWorkspaceRequired = document.getElementById("toolsWorkspaceRequired");
     const navTitle = document.getElementById("navTitle");
     const hasWorkspace = Boolean(this.state.selectedSite);
+    const isToolsSection = this.state.currentPage === "home" && this.state.homeSection === "tools";
 
     document.body?.classList.toggle("atlas-workspace-ready", hasWorkspace);
     document.body?.classList.toggle("atlas-workspace-landing", !hasWorkspace);
 
     if (toolsPanel) toolsPanel.hidden = !hasWorkspace;
-    if (!hasWorkspace) {
-      if (navTitle) navTitle.textContent = "الرئيسية";
+    if (toolsWorkspaceRequired) toolsWorkspaceRequired.hidden = hasWorkspace;
+
+    if (navTitle) {
+      if (this.state.currentPage === "workspace") {
+        navTitle.textContent = "مجلد العمل";
+      } else if (isToolsSection && hasWorkspace) {
+        navTitle.textContent = this.formatWorkspaceTitle(this.state.selectedSite);
+      } else if (this.state.currentPage === "home") {
+        navTitle.textContent = this.getHomeSectionTitle(this.state.homeSection);
+      } else {
+        navTitle.textContent = this.pages[this.state.currentPage]?.title || "ATLAS";
+      }
+    }
+  },
+
+  getHomeSectionTitle(section = "tools") {
+    const titles = {
+      tools: "أدوات المساحة",
+      site: "إدارة الموقع",
+      profile: "البروفايل",
+    };
+    return titles[section] || titles.tools;
+  },
+
+  switchMobileNav(section = "workspace") {
+    const next = this.normalizeValue(section).toLowerCase();
+    if (next === "workspace") {
+      this.goToWorkspaceManager();
       return;
     }
 
-    if (navTitle) {
-      navTitle.textContent = this.formatWorkspaceTitle(this.state.selectedSite);
-    }
+    if (!["tools", "site", "profile"].includes(next)) return;
+
+    this.state.homeSection = next;
+    this.state.currentPage = "home";
+    this.state.history = ["workspace", "home"];
+    this.render();
+  },
+
+  renderHomeSections() {
+    const section = this.state.homeSection || "tools";
+    document.querySelectorAll("[data-home-screen]").forEach((node) => {
+      node.classList.toggle("is-active", node.dataset.homeScreen === section);
+    });
+  },
+
+  renderBottomNav() {
+    const activeSection = this.state.currentPage === "workspace"
+      ? "workspace"
+      : this.state.currentPage === "home"
+        ? this.state.homeSection
+        : "";
+
+    document.querySelectorAll("[data-mobile-nav]").forEach((button) => {
+      const isActive = Boolean(activeSection) && button.dataset.mobileNav === activeSection;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-current", isActive ? "page" : "false");
+    });
+  },
+
+  renderWorkspaceSummaryCards() {
+    const projectLabel = document.getElementById("workspaceLastProject");
+    const siteLabel = document.getElementById("workspaceLastSite");
+    if (!projectLabel || !siteLabel) return;
+
+    const site = this.state.selectedSite;
+    projectLabel.textContent = site
+      ? this.formatWorkspaceTitle(site)
+      : "لا يوجد مشروع نشط";
+
+    siteLabel.textContent = site
+      ? [site.company, site.plot].filter(Boolean).join(" - ") || "موقع بدون تفاصيل"
+      : "غير محدد";
+  },
+
+  renderProfileSummary() {
+    const nameNode = document.getElementById("profileUserName");
+    const roleNode = document.getElementById("profileUserRole");
+    const workspaceNode = document.getElementById("profileWorkspaceName");
+    if (!nameNode || !roleNode || !workspaceNode) return;
+
+    const currentUser = window.AtlasAuth?.getCurrentUser?.() || null;
+    nameNode.textContent = currentUser?.full_name || currentUser?.username || "مستخدم ميداني";
+    roleNode.textContent = currentUser?.is_admin ? "مدير النظام" : "مهندس / فني مساحة";
+    workspaceNode.textContent = this.state.selectedSite
+      ? this.formatWorkspaceTitle(this.state.selectedSite)
+      : "لا يوجد";
+  },
+
+  applyShellTheme(theme = "field-light", options = {}) {
+    const normalized = this.normalizeValue(theme) || "field-light";
+    const persist = options.persist !== false;
+    document.body.classList.toggle("theme-field-contrast", normalized === "field-contrast");
+    const select = document.getElementById("profileThemeSelect");
+    if (select && select.value !== normalized) select.value = normalized;
+    if (persist) localStorage.setItem(this.storageKeys.uiTheme, normalized);
+  },
+
+  applyShellLanguage(language = "ar", options = {}) {
+    const normalized = this.normalizeValue(language).toLowerCase() || "ar";
+    const persist = options.persist !== false;
+    const lang = normalized === "en" ? "en" : "ar";
+    const dir = lang === "ar" ? "rtl" : "ltr";
+
+    document.documentElement.lang = lang;
+    document.documentElement.dir = dir;
+
+    const select = document.getElementById("profileLanguageSelect");
+    if (select && select.value !== lang) select.value = lang;
+    if (persist) localStorage.setItem(this.storageKeys.uiLanguage, lang);
+  },
+
+  initializeShellPreferences() {
+    const storedTheme = this.normalizeValue(localStorage.getItem(this.storageKeys.uiTheme)) || "field-light";
+    const storedLanguage = this.normalizeValue(localStorage.getItem(this.storageKeys.uiLanguage)) || "ar";
+    this.applyShellTheme(storedTheme, { persist: false });
+    this.applyShellLanguage(storedLanguage, { persist: false });
   },
 
   async renderUploadedPageCards() {
@@ -358,6 +476,7 @@
     this.resetWorkspaceForm({ keepDraft: false });
     this.state.currentPage = "workspace";
     this.state.history = ["workspace"];
+    this.state.homeSection = "tools";
     this.render();
     document.getElementById("workspaceProjectName")?.focus();
   },
@@ -365,12 +484,14 @@
   openWorkspaceTools() {
     this.state.currentPage = "home";
     this.state.history = ["workspace", "home"];
+    this.state.homeSection = "tools";
     this.render();
   },
 
   goToWorkspaceManager() {
     this.state.currentPage = "workspace";
     this.state.history = ["workspace"];
+    this.state.homeSection = "tools";
     this.render();
     this.renderWorkspaces();
   },
@@ -1021,6 +1142,7 @@
 
   async init() {
     console.log("Atlas App Initialized");
+    this.initializeShellPreferences();
     this.state.customSiteDb = await this.loadCustomSiteDb();
     this.loadWorkspaces();
     await this.loadRemoteWorkspaces();
@@ -1040,6 +1162,7 @@
       this.state.selectedSite = saved;
       this.state.currentPage = "home";
       this.state.history = ["workspace", "home"];
+      this.state.homeSection = "tools";
       this.updateSelectedSiteHeader();
       this.upsertWorkspaceFromSelectedSite();
     }
@@ -1052,6 +1175,8 @@
     }
     this.renderWorkspaces();
     await this.renderUploadedPageCards();
+    this.renderWorkspaceSummaryCards();
+    this.renderProfileSummary();
 
     // Network listeners
     window.addEventListener("online", () => this.syncPendingSites());
@@ -1919,6 +2044,7 @@
 
     this.state.currentPage = "home";
     this.state.history = ["home"];
+    this.state.homeSection = "tools";
     this.render();
   },
 
@@ -1927,20 +2053,23 @@
     if (!this.pages[this.state.currentPage]) {
       this.state.currentPage = "home";
       this.state.history = ["home"];
+      this.state.homeSection = "tools";
     }
     const isHomePage = this.state.currentPage === "home";
-    const isTopLevelPage = this.state.currentPage === "home" || this.state.currentPage === "workspace";
-
-    // Update Title
-    document.getElementById("navTitle").textContent = current.title;
-
-    if (isHomePage) this.renderWorkspaceTools();
+    const isTopLevelPage =
+      this.state.currentPage === "home" || this.state.currentPage === "workspace";
 
     // Update Visibility
     document
       .querySelectorAll(".page")
       .forEach((p) => p.classList.remove("active"));
     document.getElementById(current.id).classList.add("active");
+
+    if (isHomePage) this.renderHomeSections();
+    this.renderWorkspaceTools();
+    this.renderWorkspaceSummaryCards();
+    this.renderProfileSummary();
+    this.renderBottomNav();
 
     const topHeader = document.querySelector(".main-header");
     if (topHeader) {
@@ -1960,8 +2089,14 @@
       );
     }
 
+    const bottomNav = document.querySelector(".bottom-nav");
+    if (bottomNav) {
+      bottomNav.hidden = !isTopLevelPage;
+    }
+
     // Scroll to top
-    document.getElementById("mainContent").scrollTop = 0;
+    const mainContent = document.getElementById("mainContent");
+    if (mainContent) mainContent.scrollTop = 0;
   },
 
   action(id) {
