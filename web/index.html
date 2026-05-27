@@ -53,21 +53,46 @@
     <div id="app" class="app-container">
       <!-- Header -->
       <header class="main-header">
-        <div class="logo-wrapper">
-          <div class="logo">
-            <img src="icons/brand-logo.png" alt="Atlas" class="header-logo">
-          </div>
-          <span class="logo-text-brand">ATLAS SURVEYING</span>
-        </div>
-        <div class="header-right">
-            <div id="selectedSiteDisplay" class="header-site-box" onclick="app.showSiteSelector()">
-                <div class="header-site-info">
-                    <span id="siteCompany" class="site-company-text">تحديد الشركة</span>
-                    <span id="siteName" class="site-plot-text">رقم الأرض</span>
-                </div>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <div class="header-brand">
+          <div class="logo-wrapper">
+            <div class="logo">
+              <img src="icons/brand-logo.png" alt="Atlas" class="header-logo">
             </div>
+            <span class="logo-text-brand">ATLAS SURVEYING</span>
+          </div>
+          <span class="brand-subtitle">Field Survey Control</span>
+        </div>
+
+        <div class="header-context">
+          <div class="header-context-head">
             <div id="navTitle" class="nav-title">الرئيسية</div>
+            <span class="nav-mode-chip">FIELD</span>
+          </div>
+          <div class="header-context-sub">واجهة تشغيل ميدانية للمهندسين وفنيي المساحة</div>
+        </div>
+
+        <div class="header-actions-panel">
+            <div class="header-quick-actions">
+              <button type="button" class="header-icon-btn" onclick="app.goToWorkspaceManager()" aria-label="مجلد العمل" title="مجلد العمل">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 7h18M3 12h18M3 17h18" />
+                </svg>
+              </button>
+              <button type="button" class="header-icon-btn" onclick="app.showSiteSelector()" aria-label="اختيار الموقع" title="اختيار الموقع">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </button>
+            </div>
+        </div>
+
+        <div id="selectedSiteDisplay" class="header-site-box" onclick="app.showSiteSelector()">
+          <div class="header-site-info">
+            <span id="siteCompany" class="site-company-text">تحديد الشركة</span>
+            <span id="siteName" class="site-plot-text">رقم الأرض</span>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
         </div>
       </header>
 
