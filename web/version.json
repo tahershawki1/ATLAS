@@ -1,11 +1,13 @@
 {
-  "cache_version": 37,
-  "web_version": "2.0.19",
+  "cache_version": 38,
+  "web_version": "2.0.20",
   "mobile_version": "2.0.0",
-  "build_number": 25,
+  "build_number": 26,
   "apk_url": "https://atlas-e73.pages.dev/downloads/atlas_app_final.apk",
-  "last_updated": "2026-05-22",
+  "last_updated": "2026-05-27",
   "changelog": [
+    "إعادة تصميم شريط التنقل العلوي للموبايل لسير عمل الحقل",
+    "تحويل واجهة ATLAS إلى تصميم mobile-first للعمل الميداني",
     "Fix guest session fallback and prevent unauthorized public-page API requests",
     "إضافة حفظ ملفات العمل والبيانات على Cloudflare R2 لكل مستخدم",
     "تحسين الأمان والصلاحيات والمزامنة",
