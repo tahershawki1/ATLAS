@@ -33,4 +33,4 @@ dist/
 .wrangler/
 .env
 .env.*
-wrangler.toml
+# wrangler.toml

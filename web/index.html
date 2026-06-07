@@ -21,27 +21,6 @@
     <link rel="stylesheet" href="shared/style.css" />
     <link rel="stylesheet" href="shared/home-page.css" />
     <link rel="stylesheet" href="shared/mobile-fix.css" />
-    <style>
-      body.atlas-auth-pending #app {
-        opacity: 0;
-        visibility: hidden;
-      }
-
-      body.atlas-auth-pending::before {
-        content: "جاري التحقق من الجلسة...";
-        position: fixed;
-        inset: 0;
-        z-index: 9999;
-        display: grid;
-        place-items: center;
-        background:
-          radial-gradient(circle at top right, rgba(241, 135, 62, 0.14), transparent 30%),
-          linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
-        color: #0a7f8a;
-        font-family: "Cairo", sans-serif;
-        font-weight: 900;
-      }
-    </style>
   </head>
   <body class="page-scroll-enabled home-page atlas-auth-pending">
     <!-- Update Banner -->
@@ -210,7 +189,7 @@
                 <h2 class="home-section-title">الأدوات المتاحة لهذا الموقع</h2>
                 <div class="grid-menu">
                 <button class="menu-card" onclick="app.goToWorkspaceManager()">
-                  <div class="icon-wrapper" style="background:rgba(241,135,62,0.1);color:var(--accent)">
+                  <div class="icon-wrapper">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
                     </svg>
