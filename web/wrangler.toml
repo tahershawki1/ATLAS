@@ -1,0 +1,15 @@
+name = "atlas-site"
+pages_build_output_dir = "../dist/cloudflare-pages"
+compatibility_date = "2026-05-11"
+
+[[kv_namespaces]]
+binding = "ATLAS_DATA"
+id = "6e0b018505794cc99092a8a090d3a0c3"
+
+[[kv_namespaces]]
+binding = "ATLAS_SESSIONS"
+id = "f69205486a7d4de584f0b4eb0071c14e"
+
+[[r2_buckets]]
+binding = "ATLAS_PAGES_BUCKET"
+bucket_name = "atlas-pages-bucket"
